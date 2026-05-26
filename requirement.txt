@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+*.pkl
+*.db
+*.code-workspace
+data/recipes.csv
+data/recipes-with-nutrition.csv
+data/*.csv 
