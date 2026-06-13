@@ -1,0 +1,6 @@
+Training rows: 8000
+Features: calories, protein, carbs, fat, ingredient_count
+Target: nutrition/practicality support score
+MAE: 0.0936
+R2: 0.9879
+Model path: /mnt/data/smart_pantry_ml_check/app/ml/recommendation_model.pkl

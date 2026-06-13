@@ -6,3 +6,4 @@ venv/
 .env
 .streamlit/secrets.toml
 app/data/recipes-with-nutrition.csv
+app/.streamlit/secrets.toml

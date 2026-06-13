@@ -11,7 +11,7 @@ try:
 except ImportError:
     joblib = None
 
-from database import (
+from database_supabase import (
     init_db,
     register_user,
     login_user,
@@ -25,10 +25,13 @@ from database import (
     save_recommendation_log,
     get_user_recommendation_logs,
     mark_recommendation_used,
+    save_survey,
+    has_completed_survey,
     get_all_users,
     get_all_pantry_items,
     get_all_recommendation_logs,
     get_all_ingredient_usage,
+    get_all_surveys,
 )
 
 
@@ -224,6 +227,49 @@ st.markdown(
     .grocery-list-medium { border-left-color: #f97316; }
     .grocery-list-low { border-left-color: #2563eb; }
     .grocery-list-manual { border-left-color: #a855f7; }
+
+    .recommendation-legend-board {
+        background: #ffffff;
+        border: 1px solid #dcebd6;
+        border-radius: 18px;
+        padding: 16px 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 6px 18px rgba(20, 83, 45, 0.08);
+    }
+
+    .recommendation-legend-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .recommendation-legend-item {
+        border-radius: 14px;
+        padding: 12px;
+        font-weight: 700;
+        border: 1px solid #e5e7eb;
+    }
+
+    .legend-green { background: #dcfce7; color: #14532d; border-left: 8px solid #22c55e; }
+    .legend-blue { background: #dbeafe; color: #1e3a8a; border-left: 8px solid #3b82f6; }
+    .legend-orange { background: #ffedd5; color: #7c2d12; border-left: 8px solid #f97316; }
+    .legend-purple { background: #f3e8ff; color: #581c87; border-left: 8px solid #a855f7; }
+
+    .recommendation-section-note {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-bottom: 14px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 12px rgba(20, 83, 45, 0.06);
+        font-weight: 650;
+    }
+
+    .section-green { border-left: 10px solid #22c55e; }
+    .section-blue { border-left: 10px solid #3b82f6; }
+    .section-orange { border-left: 10px solid #f97316; }
+    .section-purple { border-left: 10px solid #a855f7; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -1572,16 +1618,245 @@ def pantry_has_enough(pantry_df, item_name, amount_needed):
     return available_quantity >= float(amount_needed)
 
 
-def find_substitution(required_ingredient, pantry_df, amount_needed=1):
-    required_ingredient = normalize_text(required_ingredient)
-    possible_subs = SUBSTITUTIONS.get(required_ingredient, [])
 
-    for substitute in possible_subs:
-        if pantry_has_enough(pantry_df, substitute, amount_needed):
-            return substitute
+SMART_SWAP_GROUPS = {
+    "chicken": [
+        "chicken", "chicken breast", "chicken breasts", "chicken thigh",
+        "chicken thighs", "chicken wing", "chicken wings", "rotisserie chicken",
+        "canned chicken"
+    ],
+    "beef": ["beef", "ground beef", "beef strips", "steak", "roast beef"],
+    "turkey": ["turkey", "ground turkey", "turkey slices", "turkey breast"],
+    "fish": ["fish", "salmon", "tuna", "tilapia", "cod"],
+    "egg": ["egg", "eggs"],
+    "bread_base": ["bread", "tortilla", "tortillas", "wrap", "buns", "rolls", "crackers"],
+    "starch": ["rice", "pasta", "spaghetti", "macaroni", "noodles", "potato", "potatoes"],
+    "dairy": ["milk", "cheese", "yogurt", "sour cream", "cream cheese"],
+    "greens": ["lettuce", "spinach", "cabbage", "kale"],
+    "vegetable_flavor": ["onion", "bell pepper", "celery", "zucchini", "mushroom", "mushrooms"],
+    "tomato_base": ["tomato", "tomatoes", "tomato sauce", "salsa", "pasta sauce"],
+}
+
+
+def get_smart_swap_group(ingredient):
+    ingredient = normalize_text(ingredient)
+    for group_name, group_items in SMART_SWAP_GROUPS.items():
+        for group_item in group_items:
+            if pantry_item_matches(ingredient, group_item):
+                return group_name
+    return None
+
+
+def get_quantity_available(pantry_row):
+    if pantry_row is None:
+        return 0
+    try:
+        return float(pantry_row.get("quantity", 0) or 0)
+    except Exception:
+        return 0
+
+
+def find_pantry_row_by_group(pantry_df, required_ingredient):
+    required_group = get_smart_swap_group(required_ingredient)
+    if required_group is None or pantry_df.empty:
+        return None
+
+    for _, row in pantry_df.iterrows():
+        pantry_group = get_smart_swap_group(row["item_name"])
+        if pantry_group == required_group:
+            return row
 
     return None
 
+
+def find_smart_substitution(required_ingredient, pantry_df, amount_needed=1):
+    """Return a realistic Smart Swap without letting substitutions count as exact make-now meals."""
+    required_ingredient = normalize_text(required_ingredient)
+    amount_needed = float(amount_needed or 1)
+
+    exact_row = find_pantry_row_for_item(pantry_df, required_ingredient)
+    if exact_row is not None:
+        available_amount = get_quantity_available(exact_row)
+        if 0 < available_amount < amount_needed:
+            return {
+                "missing": required_ingredient,
+                "substitute": normalize_text(exact_row["item_name"]),
+                "substitution_type": "quantity_adjustment",
+                "amount_needed": amount_needed,
+                "available_amount": available_amount,
+                "message": (
+                    f"This recipe calls for {format_number(amount_needed)} {exact_row.get('unit', 'serving')} "
+                    f"{required_ingredient}, but you have {format_number(available_amount)}. "
+                    f"You can still make a smaller portion."
+                ),
+            }
+
+    family_row = find_pantry_row_by_group(pantry_df, required_ingredient)
+    if family_row is not None:
+        available_amount = get_quantity_available(family_row)
+        pantry_name = normalize_text(family_row["item_name"])
+        if available_amount > 0 and not pantry_item_matches(pantry_name, required_ingredient):
+            return {
+                "missing": required_ingredient,
+                "substitute": pantry_name,
+                "substitution_type": "same_food_family",
+                "amount_needed": amount_needed,
+                "available_amount": available_amount,
+                "message": (
+                    f"This recipe calls for {required_ingredient}, but you have {family_row['item_name']}. "
+                    f"This should still work because it is the same main ingredient family."
+                ),
+            }
+
+    possible_subs = SUBSTITUTIONS.get(required_ingredient, [])
+    for substitute in possible_subs:
+        substitute_row = find_pantry_row_for_item(pantry_df, substitute)
+        if substitute_row is not None:
+            available_amount = get_quantity_available(substitute_row)
+            if available_amount <= 0:
+                continue
+
+            required_group = get_smart_swap_group(required_ingredient)
+            substitute_group = get_smart_swap_group(substitute)
+            if required_group == "vegetable_flavor":
+                substitution_type = "optional_flavor_substitute"
+                message = (
+                    f"This recipe calls for {required_ingredient}, but you have {substitute}. "
+                    f"This works as a flavor swap, but the taste may change."
+                )
+            elif required_group and substitute_group and required_group == substitute_group:
+                substitution_type = "same_food_family"
+                message = (
+                    f"This recipe calls for {required_ingredient}, but you have {substitute}. "
+                    f"This should still work because it is the same ingredient family."
+                )
+            else:
+                substitution_type = "functional_substitute"
+                message = (
+                    f"This recipe calls for {required_ingredient}, but you have {substitute}. "
+                    f"This may work because it plays a similar role in the meal."
+                )
+
+            return {
+                "missing": required_ingredient,
+                "substitute": substitute,
+                "substitution_type": substitution_type,
+                "amount_needed": amount_needed,
+                "available_amount": available_amount,
+                "message": message,
+            }
+
+    return None
+
+
+def get_dish_style(recipe_name, ingredients):
+    text = normalize_text(recipe_name + " " + " ".join(ingredients))
+    style_terms = {
+        "casserole": ["casserole", "bake", "baked"],
+        "salad": ["salad"],
+        "sandwich": ["sandwich", "melt", "toast"],
+        "wrap": ["wrap", "tortilla", "burrito", "quesadilla", "taco"],
+        "soup": ["soup", "stew", "chili"],
+        "pasta": ["pasta", "spaghetti", "macaroni", "noodle", "noodles"],
+        "rice_bowl": ["rice", "bowl", "fried rice"],
+        "breakfast": ["egg", "toast", "oat", "pancake", "waffle", "breakfast"],
+        "skillet": ["skillet", "stir fry", "stir-fry"],
+    }
+    for style, terms in style_terms.items():
+        if any(term in text for term in terms):
+            return style
+    return "general"
+
+
+def get_core_recipe_groups(ingredients):
+    groups = []
+    for ingredient in ingredients:
+        group = get_smart_swap_group(ingredient)
+        if group and group not in groups:
+            groups.append(group)
+    return groups
+
+
+def get_recipe_family_key(recipe):
+    recipe_name = recipe.get("name", "")
+    ingredients = [normalize_text(item) for item in recipe.get("ingredients", [])]
+    dish_style = get_dish_style(recipe_name, ingredients)
+    core_groups = get_core_recipe_groups(ingredients)
+
+    protein_groups = [group for group in core_groups if group in ["chicken", "beef", "turkey", "fish", "egg"]]
+    base_groups = [group for group in core_groups if group in ["starch", "bread_base", "greens", "tomato_base"]]
+    protein_key = "+".join(sorted(protein_groups[:2])) or "no_main_protein"
+    base_key = "+".join(sorted(base_groups[:2])) or "no_main_base"
+    return f"{protein_key}|{base_key}|{dish_style}"
+
+
+def get_match_tier(match_percent):
+    if match_percent >= 80:
+        return "🟢 Great Match"
+    if match_percent >= 60:
+        return "🟡 Strong Match"
+    if match_percent >= 40:
+        return "🟠 Partial Match"
+    if match_percent >= 20:
+        return "🔵 Low Match"
+    return "⚪ Very Low Match"
+
+
+def prioritize_recommendation_diversity(recommendations):
+    first_best_by_family = []
+    duplicate_family_backups = []
+    seen_families = set()
+
+    for item in recommendations:
+        family_key = item.get("recipe_family_key", "")
+        if family_key not in seen_families:
+            first_best_by_family.append(item)
+            seen_families.add(family_key)
+        else:
+            duplicate_family_backups.append(item)
+
+    return first_best_by_family + duplicate_family_backups
+
+
+def build_why_this_meal(item):
+    reasons = []
+    exact_percent = item.get("exact_match_percent", item.get("match_percent", 0))
+    coverage_percent = item.get("coverage_percent", exact_percent)
+
+    if item["matched_ingredients"]:
+        reasons.append(
+            f"Exact pantry ingredients found: {len(item['matched_ingredients'])} item(s): "
+            + ", ".join(item["matched_ingredients"][:5])
+        )
+
+    if item["expiring_ingredients"]:
+        reasons.append("Uses ingredient(s) that should be planned soon: " + ", ".join(item["expiring_ingredients"][:5]))
+
+    if item["substitutions"]:
+        reasons.append(
+            f"This meal is under Smart Swaps because {len(item['substitutions'])} ingredient(s) need a swap, "
+            "ingredient-family match, or smaller amount adjustment."
+        )
+
+    if item.get("missing_without_substitution"):
+        reasons.append("Still missing without a pantry swap: " + ", ".join(item["missing_without_substitution"][:5]))
+
+    if item.get("ml_health_score") is not None:
+        reasons.append(f"Random Forest nutrition/practicality support: {item['ml_health_score']}/15.")
+
+    reasons.append(f"Exact pantry match: {exact_percent}%.")
+    if coverage_percent != exact_percent:
+        reasons.append(f"Coverage with Smart Swaps or amount adjustments: {coverage_percent}%.")
+    reasons.append(f"Smart Score: {item['score']}/100.")
+    return reasons
+
+
+
+def find_substitution(required_ingredient, pantry_df, amount_needed=1):
+    smart_sub = find_smart_substitution(required_ingredient, pantry_df, amount_needed)
+    if smart_sub:
+        return smart_sub.get("substitute")
+    return None
 
 def profile_terms_to_set(value):
     terms = []
@@ -1642,22 +1917,28 @@ def calculate_recommendation_score(recipe, pantry_df, profile):
         ingredient = requirement["ingredient"]
         amount_needed = requirement["amount"]
 
-        if pantry_has_enough(pantry_df, ingredient, amount_needed):
+        exact_row = find_pantry_row_for_item(pantry_df, ingredient)
+
+        if exact_row is not None and pantry_has_enough(pantry_df, ingredient, amount_needed):
             exact_matches.append(ingredient)
         else:
-            substitute = find_substitution(ingredient, pantry_df, amount_needed)
+            smart_substitution = find_smart_substitution(ingredient, pantry_df, amount_needed)
 
-            if substitute:
-                substitutions.append(
-                    {
-                        "missing": ingredient,
-                        "substitute": substitute,
-                    }
-                )
+            if smart_substitution:
+                substitutions.append(smart_substitution)
             else:
                 missing_without_substitution.append(ingredient)
 
-    can_make_meal = len(missing_without_substitution) == 0
+    total_needed = len(recipe_requirements)
+    exact_count = len(exact_matches)
+    swap_count = len(substitutions)
+    missing_count = len(missing_without_substitution)
+
+    exact_match_percent = round((exact_count / max(total_needed, 1)) * 100)
+    coverage_percent = round(((exact_count + swap_count) / max(total_needed, 1)) * 100)
+
+    can_make_meal = total_needed > 0 and exact_count == total_needed and swap_count == 0 and missing_count == 0
+    can_make_with_swaps = total_needed > 0 and missing_count == 0 and swap_count > 0
 
     used_items = exact_matches + [
         normalize_text(sub["substitute"])
@@ -1670,10 +1951,6 @@ def calculate_recommendation_score(recipe, pantry_df, profile):
 
         if item_name in used_items and days_left <= 10:
             expiring_ingredients.append(item_name)
-
-    exact_match_score = len(exact_matches) * 12
-    substitution_score = len(substitutions) * 7
-    expiration_score = min(len(expiring_ingredients) * 10, 30)
 
     preferred_meal_types = normalize_text(profile.get("preferred_meal_types", ""))
     preferred_cuisine_types = normalize_text(profile.get("preferred_cuisine_types", ""))
@@ -1688,23 +1965,39 @@ def calculate_recommendation_score(recipe, pantry_df, profile):
 
     preference_score = meal_type_score + cuisine_score
 
-    matched_count_for_ml = len(exact_matches) + len(substitutions)
-    if matched_count_for_ml > 0:
+    if exact_count + swap_count > 0:
         ml_health_score = get_ml_health_score(recipe)
     else:
         ml_health_score = None
 
     nutrition_score = ml_health_score if ml_health_score is not None else 10
+    expiration_score = min(len(expiring_ingredients) * 10, 20)
+
+    exact_component = exact_match_percent * 0.35
+    coverage_component = coverage_percent * 0.15
+    swap_component = 10 if can_make_with_swaps else 0
+    quantity_component = 15 if can_make_meal else (8 if can_make_with_swaps else 0)
+    preference_component = min(preference_score, 15)
+    nutrition_component = min(nutrition_score, 15)
+    missing_penalty = missing_count * 8
 
     final_score = (
-        exact_match_score
-        + substitution_score
+        exact_component
+        + coverage_component
         + expiration_score
-        + preference_score
-        + nutrition_score
+        + swap_component
+        + quantity_component
+        + preference_component
+        + nutrition_component
+        - missing_penalty
     )
 
-    final_score = max(0, min(final_score, 100))
+    if can_make_with_swaps:
+        final_score = min(final_score, 94)
+    elif missing_count > 0:
+        final_score = min(final_score, 79)
+
+    final_score = round(max(0, min(final_score, 100)))
 
     warning_items = get_profile_warning_items(
         [requirement["ingredient"] for requirement in recipe_requirements],
@@ -1713,6 +2006,7 @@ def calculate_recommendation_score(recipe, pantry_df, profile):
 
     return {
         "can_make_meal": can_make_meal,
+        "can_make_with_swaps": can_make_with_swaps,
         "score": final_score,
         "matched_ingredients": exact_matches,
         "substitutions": substitutions,
@@ -1721,11 +2015,16 @@ def calculate_recommendation_score(recipe, pantry_df, profile):
         "warning_items": warning_items,
         "requirements": recipe_requirements,
         "ml_health_score": ml_health_score,
+        "exact_match_percent": exact_match_percent,
+        "coverage_percent": coverage_percent,
+        "exact_count": exact_count,
+        "swap_count": swap_count,
+        "missing_count": missing_count,
     }
 
 
 def recipe_has_any_pantry_overlap(recipe, pantry_df):
-    """Fast pre-check so the app does not score recipes that share nothing with the pantry."""
+    """Fast pre-check so the app does not score recipes that share nothing useful with the pantry."""
     if pantry_df.empty:
         return False
 
@@ -1737,13 +2036,11 @@ def recipe_has_any_pantry_overlap(recipe, pantry_df):
             if pantry_item_matches(pantry_item, recipe_item):
                 return True
 
-        for substitute in SUBSTITUTIONS.get(recipe_item, []):
-            for pantry_item in pantry_names:
-                if pantry_item_matches(pantry_item, substitute):
-                    return True
+        smart_sub = find_smart_substitution(recipe_item, pantry_df, 1)
+        if smart_sub and smart_sub.get("substitution_type") in ["same_food_family", "quantity_adjustment"]:
+            return True
 
     return False
-
 
 def get_recommendations(pantry_df, profile, meal_type_filter):
     if pantry_df.empty:
@@ -1760,20 +2057,21 @@ def get_recommendations(pantry_df, profile, meal_type_filter):
             continue
 
         score_info = calculate_recommendation_score(recipe, pantry_df, profile)
-        matched_count = len(score_info["matched_ingredients"]) + len(score_info["substitutions"])
-        total_needed = len(score_info["requirements"])
+        exact_match_percent = score_info.get("exact_match_percent", 0)
+        coverage_percent = score_info.get("coverage_percent", exact_match_percent)
 
-        if matched_count == 0:
+        if coverage_percent == 0:
             continue
-
-        match_percent = matched_count / max(total_needed, 1)
 
         if score_info["can_make_meal"]:
             category = "Meals You Can Make Now"
-        elif score_info["substitutions"] or match_percent >= 0.5:
-            category = "Possible Substitutions / Almost There"
+            category_label = "Make Now"
+        elif score_info.get("can_make_with_swaps", False):
+            category = "Smart Swaps / Almost There"
+            category_label = "Smart Swap Match"
         else:
             category = "Need More Ingredients"
+            category_label = "More Ideas"
 
         recommendations.append(
             {
@@ -1787,18 +2085,30 @@ def get_recommendations(pantry_df, profile, meal_type_filter):
                 "requirements": score_info["requirements"],
                 "ml_health_score": score_info.get("ml_health_score"),
                 "can_make_meal": score_info["can_make_meal"],
+                "can_make_with_swaps": score_info.get("can_make_with_swaps", False),
                 "recommendation_category": category,
-                "match_percent": round(match_percent * 100),
+                "recommendation_category_label": category_label,
+                "match_percent": exact_match_percent,
+                "exact_match_percent": exact_match_percent,
+                "coverage_percent": coverage_percent,
+                "match_tier": get_match_tier(exact_match_percent),
+                "recipe_family_key": get_recipe_family_key(recipe),
                 "recipe_quality_score": recipe.get("recipe_quality_score", 75),
+                "exact_count": score_info.get("exact_count", 0),
+                "swap_count": score_info.get("swap_count", 0),
+                "missing_count": score_info.get("missing_count", 0),
             }
         )
 
     recommendations = sorted(
         recommendations,
         key=lambda item: (
+            len(item["expiring_ingredients"]) > 0,
             item["can_make_meal"],
+            item.get("can_make_with_swaps", False),
             item["score"],
-            item["match_percent"],
+            item.get("exact_match_percent", item.get("match_percent", 0)),
+            item.get("coverage_percent", 0),
             item.get("recipe_quality_score", 0),
         ),
         reverse=True,
@@ -2289,29 +2599,117 @@ def show_manual_grocery_items(user_id):
 
 
 def show_future_grocery_list(pantry_df):
-    st.subheader("Future Grocery List Ideas")
+    st.subheader("Suggested Grocery List")
 
     user_id = st.session_state["user"]["id"]
+    manual_key = f"manual_grocery_items_{user_id}"
+    if manual_key not in st.session_state:
+        st.session_state[manual_key] = []
+
     suggestions = get_future_grocery_suggestions(pantry_df)
+    table_rows = []
+    seen_items = set()
 
-    if suggestions:
-        suggestions_df = pd.DataFrame(suggestions)
-        if "Priority" in suggestions_df.columns and "Item" in suggestions_df.columns:
-            high_items = suggestions_df[suggestions_df["Priority"] == "High"]["Item"].tolist()
-            medium_items = suggestions_df[suggestions_df["Priority"] == "Medium"]["Item"].tolist()
-            low_items = suggestions_df[suggestions_df["Priority"] == "Low"]["Item"].tolist()
+    priority_rank = {"High": 0, "Medium": 1, "Low": 2, "Manual": 3}
+    priority_display = {
+        "High": "High",
+        "Medium": "Medium",
+        "Low": "Helpful",
+        "Manual": "Added by User",
+    }
 
-            show_grocery_item_list("Use or Replace Soon", high_items, "grocery-list-high")
-            show_grocery_item_list("Restock Soon", medium_items, "grocery-list-medium")
-            show_grocery_item_list("Helpful for More Meals", low_items, "grocery-list-low")
-        else:
-            item_list = suggestions_df.get("Item", pd.Series(dtype=str)).tolist()
-            show_grocery_item_list("Suggested Items", item_list, "grocery-list-medium")
+    for suggestion in suggestions:
+        item_name = str(suggestion.get("Item", "")).strip().title()
+        item_key = normalize_text(item_name)
+        if not item_name or item_key in seen_items:
+            continue
+        seen_items.add(item_key)
+        priority = str(suggestion.get("Priority", "Low")).strip().title()
+        suggestion_type = str(suggestion.get("Type", "Suggested")).strip()
+        reason = str(suggestion.get("Why It Is Listed", "Suggested based on pantry activity.")).strip()
+        table_rows.append(
+            {
+                "Priority": priority_display.get(priority, priority),
+                "Item": item_name,
+                "Reason": reason,
+                "Category": suggestion_type,
+                "Sort": priority_rank.get(priority, 9),
+            }
+        )
+
+    for manual_item in st.session_state[manual_key]:
+        item_name = str(manual_item).strip().title()
+        item_key = normalize_text(item_name)
+        if not item_name or item_key in seen_items:
+            continue
+        seen_items.add(item_key)
+        table_rows.append(
+            {
+                "Priority": "Added by User",
+                "Item": item_name,
+                "Reason": "Manually added to the grocery list.",
+                "Category": "Manual",
+                "Sort": priority_rank["Manual"],
+            }
+        )
+
+    if table_rows:
+        grocery_df = pd.DataFrame(table_rows).sort_values(["Sort", "Item"])
+        grocery_df = grocery_df[["Priority", "Item", "Reason", "Category"]]
+
+        def style_priority(row):
+            priority = str(row.get("Priority", ""))
+            if priority == "High":
+                color = "background-color: #ffe5e5; color: #7f1d1d; font-weight: 700;"
+            elif priority == "Medium":
+                color = "background-color: #ffedd5; color: #7c2d12; font-weight: 700;"
+            elif priority == "Helpful":
+                color = "background-color: #d9f2ff; color: #0f3f66; font-weight: 700;"
+            elif priority == "Added by User":
+                color = "background-color: #f3e8ff; color: #581c87; font-weight: 700;"
+            else:
+                color = ""
+            return [color for _ in row.index]
+
+        st.dataframe(
+            grocery_df.style.apply(style_priority, axis=1),
+            use_container_width=True,
+            hide_index=True,
+        )
     else:
-        st.success("No automatic grocery ideas yet. You can still add your own items below.")
+        st.info("No automatic grocery ideas yet. You can still add your own items below.")
 
-    show_manual_grocery_items(user_id)
+    st.markdown("**Add your own grocery items**")
+    with st.form(f"manual_grocery_form_{user_id}"):
+        manual_entry = st.text_input(
+            "Type ingredient or item",
+            placeholder="Example: eggs, rice, yogurt",
+            key=f"manual_grocery_entry_{user_id}",
+        )
+        add_manual = st.form_submit_button("Add to Grocery List")
 
+    if add_manual:
+        new_items = [item.strip().title() for item in re.split(r",|;|\n", manual_entry) if item.strip()]
+        existing_keys = {normalize_text(item) for item in st.session_state[manual_key]}
+
+        for item in new_items:
+            item_key = normalize_text(item)
+            if item_key and item_key not in existing_keys:
+                st.session_state[manual_key].append(item)
+                existing_keys.add(item_key)
+
+        if new_items:
+            st.success("Item added to your grocery list.")
+            st.rerun()
+        else:
+            st.warning("Please type at least one item before adding.")
+
+    if st.session_state[manual_key]:
+        col_clear, col_spacer = st.columns([1, 3])
+        with col_clear:
+            if st.button("Clear Added Items", key=f"clear_manual_grocery_{user_id}"):
+                st.session_state[manual_key] = []
+                st.rerun()
 
 def show_next_best_action(pantry_df):
     st.subheader("Next Best Action")
@@ -2357,25 +2755,29 @@ def show_home():
     )
 
     user_id = st.session_state["user"]["id"]
+
+    pre_done = has_completed_survey(user_id, "Pre-Study")
+    post_done = has_completed_survey(user_id, "Post-Study")
     pantry_df = get_user_pantry(user_id)
 
     total_usable_quantity = 0
-    category_count = 0
 
     if not pantry_df.empty:
         total_usable_quantity = pantry_df["quantity"].astype(float).sum()
-        category_count = pantry_df["category"].nunique() if "category" in pantry_df.columns else 0
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Available Pantry Items", len(pantry_df))
+        st.metric("Pre-Study Survey", "Completed" if pre_done else "Not Completed")
 
     with col2:
-        st.metric("Total Usable Amounts", format_number(total_usable_quantity))
+        st.metric("Available Pantry Items", len(pantry_df))
 
     with col3:
-        st.metric("Pantry Categories", category_count)
+        st.metric("Total Usable Amounts", format_number(total_usable_quantity))
+
+    with col4:
+        st.metric("Post-Study Survey", "Completed" if post_done else "Not Completed")
 
     top_left, top_right = st.columns([1.2, 1])
 
@@ -2436,6 +2838,100 @@ def show_profile():
         st.success("Profile updated.")
 
 
+SURVEY_QUESTIONS = {
+    "Pre-Study": [
+        ("pre_pantry_awareness", "I usually know what food items I already have in my pantry, fridge, or cabinets."),
+        ("pre_expiration_awareness", "I usually know which food items are getting close to expiring."),
+        ("pre_avoid_duplicate_buying", "My current pantry or meal planning method helps me avoid buying food I already have."),
+        ("pre_meal_planning_support", "My current method helps me decide what meals I can make with ingredients I already own."),
+        ("pre_use_before_expiration", "My current method helps me use food before it expires."),
+        ("pre_confidence_planning", "I feel confident planning meals based on what I already have at home."),
+        ("pre_use_before_buying", "I usually try to use ingredients I already have before buying more groceries."),
+        ("pre_method_easy_updated", "My current pantry tracking or meal planning method is easy for me to keep updated."),
+        ("pre_realistic_meal_ideas", "My current method gives me meal ideas that are realistic for my household."),
+        ("pre_prior_app_helped", "I have used a pantry tracking, grocery list, or recipe recommendation app before that helped me manage food at home."),
+    ],
+    "Post-Study": [
+        ("post_pantry_awareness", "Smart Pantry helped me better understand what food items I already had."),
+        ("post_expiration_awareness", "Smart Pantry helped me notice which items were getting close to expiring."),
+        ("post_meal_planning", "Smart Pantry helped me plan meals using ingredients already in my pantry."),
+        ("post_recommendation_usefulness", "Smart Pantry gave meal recommendations that felt realistic and useful."),
+        ("post_use_before_buying", "Smart Pantry helped me use ingredients before buying more groceries."),
+        ("post_reduce_forgetting", "Smart Pantry helped reduce the chance of me forgetting about food I already had."),
+        ("post_smart_score_understanding", "The Smart Score helped me understand why a meal was recommended."),
+        ("post_substitution_helpfulness", "The substitution options made the meal recommendations more helpful."),
+        ("post_easier_than_previous", "Compared to my previous method, Smart Pantry made pantry management easier."),
+        ("post_more_ingredient_use", "Compared to my previous method, Smart Pantry helped me use more ingredients I already owned."),
+    ],
+}
+
+OPEN_ENDED_QUESTIONS = [
+    ("open_notice", "What did Smart Pantry help you notice about your pantry, grocery habits, or meal planning?"),
+    ("open_feature", "Which Smart Pantry feature was the most useful to you, and why?"),
+    ("open_recommendation_used", "Did any meal recommendation help you use an ingredient you may not have used otherwise? Please explain."),
+    ("open_compare", "How did Smart Pantry compare to your previous way of tracking groceries, planning meals, or finding recipes?"),
+    ("open_improve", "What would make Smart Pantry easier or more useful for you to keep using?"),
+]
+
+
+def show_survey(survey_type):
+    st.title(survey_type)
+
+    user_id = st.session_state["user"]["id"]
+
+    if has_completed_survey(user_id, survey_type):
+        st.info(f"You have already completed the {survey_type.lower()}.")
+        return
+
+    st.write("Rate each statement from 1 to 10.")
+    st.caption("1 = Strongly Disagree / Not Useful, 10 = Strongly Agree / Extremely Useful")
+
+    responses = {}
+    for key, question in SURVEY_QUESTIONS.get(survey_type, SURVEY_QUESTIONS["Pre-Study"]):
+        responses[key] = st.slider(question, 1, 10, 5, key=f"{survey_type}_{key}")
+
+    if survey_type == "Pre-Study":
+        current_method = st.selectbox(
+            "How do you currently manage your pantry or groceries?",
+            [
+                "Memory",
+                "Handwritten list",
+                "Phone notes",
+                "Spreadsheet",
+                "Grocery list app",
+                "Recipe app",
+                "SuperCook",
+                "Samsung Food",
+                "Yummly",
+                "Mealime",
+                "I do not currently track pantry items",
+                "Other",
+            ],
+        )
+        comments = ""
+    else:
+        current_method = "Post-Study"
+        st.subheader("Open-Ended Questions")
+        open_responses = {}
+        for key, question in OPEN_ENDED_QUESTIONS:
+            open_responses[key] = st.text_area(question, key=f"{survey_type}_{key}")
+        responses.update(open_responses)
+        comments = json.dumps(open_responses)
+
+    if st.button(f"Submit {survey_type}"):
+        save_survey(
+            user_id,
+            survey_type,
+            responses.get("pre_pantry_awareness", responses.get("post_pantry_awareness", 5)),
+            responses.get("pre_realistic_meal_ideas", responses.get("post_recommendation_usefulness", 5)),
+            responses.get("pre_use_before_buying", responses.get("post_more_ingredient_use", 5)),
+            responses.get("pre_method_easy_updated", responses.get("post_easier_than_previous", 5)),
+            current_method,
+            comments,
+            survey_responses=json.dumps(responses),
+        )
+        st.success(f"{survey_type} submitted.")
+        st.rerun()
 
 def show_pantry():
     st.title("My Pantry")
@@ -2542,7 +3038,7 @@ def show_pantry():
         axis=1,
     )
 
-    table_df = editable_df[
+    table_df_with_ids = editable_df[
         [
             "id",
             "item_name",
@@ -2555,10 +3051,16 @@ def show_pantry():
             "pantry_amount",
         ]
     ].copy()
+
+    # Keep the Supabase UUID hidden from participants, but save it in the background
+    # so edits still update the correct pantry item.
+    hidden_pantry_ids = table_df_with_ids["id"].astype(str).tolist()
+
+    table_df = table_df_with_ids.drop(columns=["id"], errors="ignore")
     table_df["category"] = table_df["category"].apply(get_category_display)
 
     # Streamlit's DateColumn works best when the column contains real date values,
-    # not plain strings from SQLite. This keeps the table from failing to populate.
+    # not plain strings from SQLite/Supabase. This keeps the table from failing to populate.
     table_df["expiration_date"] = pd.to_datetime(
         table_df["expiration_date"],
         errors="coerce",
@@ -2570,9 +3072,8 @@ def show_pantry():
         hide_index=True,
         num_rows="fixed",
         key="editable_current_pantry_table",
-        disabled=["id", "days_left", "pantry_amount"],
+        disabled=["days_left", "pantry_amount"],
         column_config={
-            "id": st.column_config.NumberColumn("ID", help="Internal pantry item ID", disabled=True),
             "item_name": st.column_config.TextColumn("Item Name", required=True),
             "category": st.column_config.SelectboxColumn(
                 "Category",
@@ -2608,9 +3109,15 @@ def show_pantry():
     if st.button("Save Table Changes"):
         changes_saved = 0
 
-        for _, edited_row in edited_table.iterrows():
-            pantry_item_id = int(edited_row["id"])
-            original_row = pantry_df[pantry_df["id"] == pantry_item_id].iloc[0]
+        for row_index, edited_row in edited_table.iterrows():
+            pantry_item_id = hidden_pantry_ids[int(row_index)]
+            matching_original_rows = pantry_df[pantry_df["id"].astype(str) == str(pantry_item_id)]
+
+            if matching_original_rows.empty:
+                st.error("One pantry item could not be matched to its saved record. Please refresh and try again.")
+                return
+
+            original_row = matching_original_rows.iloc[0]
 
             edited_item_name = str(edited_row["item_name"]).strip()
             edited_category = clean_category_value(edited_row["category"])
@@ -2668,6 +3175,10 @@ def show_pantry():
 
 
 
+
+def show_recommendation_color_chart(make_now_count=0, smart_swap_count=0, more_ideas_count=0):
+    return
+
 def show_recommendations():
     st.title("Meal Recommendations")
     st.markdown(
@@ -2694,25 +3205,81 @@ def show_recommendations():
 
     recommendations = get_recommendations(pantry_df, profile, meal_type_filter)
 
-    st.markdown(
-        """
-        <div class="smart-card smart-card-blue">
-            These meal ideas are based on what is already in your pantry, what may expire soon,
-            your preferences, and possible substitutions. Basic seasonings like salt, pepper,
-            garlic powder, and paprika are treated as optional staples.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.expander("➕ Add Your Own Recipe Idea", expanded=False):
+        st.write(
+            "If you do not see a recommendation you like, you can add the meal you already have in mind. "
+            "This saves to your recommendation history so it still counts as pantry planning activity."
+        )
+
+        custom_recipe_name = st.text_input(
+            "Recipe or meal name",
+            placeholder="Example: Chicken Alfredo, Tuna Melt, Egg Fried Rice",
+            key="custom_recipe_name",
+        )
+
+        custom_meal_type = st.selectbox(
+            "Meal type",
+            ["Breakfast", "Lunch", "Dinner", "Snack"],
+            key="custom_recipe_meal_type",
+        )
+
+        custom_ingredients = st.text_area(
+            "Ingredients you plan to use",
+            placeholder="Example: chicken, pasta, alfredo sauce, broccoli",
+            key="custom_recipe_ingredients",
+        )
+
+        custom_notes = st.text_area(
+            "Notes or reason for adding this recipe — 250 words max",
+            placeholder="Example: I already know how to make this and I have most of the ingredients.",
+            key="custom_recipe_notes",
+        )
+
+        valid_custom_notes, custom_notes_msg = validate_250_words(custom_notes)
+        st.caption(custom_notes_msg)
+
+        if st.button("Save My Recipe Idea", key="save_custom_recipe_idea"):
+            if not custom_recipe_name.strip():
+                st.error("Please enter a recipe or meal name.")
+            elif not custom_ingredients.strip():
+                st.error("Please enter at least one ingredient.")
+            elif not valid_custom_notes:
+                st.error(custom_notes_msg)
+            else:
+                ingredient_list = [
+                    normalize_text(item)
+                    for item in re.split(r",|;|\n", custom_ingredients)
+                    if normalize_text(item)
+                ]
+                note = (
+                    "Participant added their own recipe idea. "
+                    f"Ingredients planned: {', '.join(ingredient_list)}. "
+                    f"{custom_notes}"
+                ).strip()
+                save_recommendation_log(
+                    user_id,
+                    f"Custom Recipe: {custom_recipe_name.strip()}",
+                    custom_meal_type,
+                    0,
+                    ingredient_list,
+                    [],
+                    feedback=note,
+                    used_recommendation="No",
+                )
+                st.success("Your recipe idea was saved to Recommendation History.")
+                st.rerun()
 
     make_now = [item for item in recommendations if item["recommendation_category"] == "Meals You Can Make Now"]
-    almost = [item for item in recommendations if item["recommendation_category"] == "Possible Substitutions / Almost There"]
+    almost = [item for item in recommendations if item["recommendation_category"] == "Smart Swaps / Almost There"]
+    more_ideas = [item for item in recommendations if item["recommendation_category"] == "Need More Ingredients"]
 
-    tab_now, tab_subs, tab_elsewhere = st.tabs(
+    ready_options = make_now + almost
+
+    tab_ready, tab_more, tab_elsewhere = st.tabs(
         [
-            "Meals You Can Make Now",
-            "Possible Substitutions / Almost There",
-            "Used Ingredients Elsewhere / Discarded",
+            f"Make Now / Smart Swaps ({len(ready_options)})",
+            f"More Ideas ({len(more_ideas)})",
+            "Used Elsewhere / Discarded",
         ]
     )
 
@@ -2775,11 +3342,53 @@ def show_recommendations():
             st.info(f"No meals in {tab_label.lower()} yet.")
             return
 
+        if "Make Now" in tab_label:
+            st.markdown(
+                """
+                <div class="recommendation-section-note section-green">
+                    🟢 These meals use exact pantry ingredients and should be the fastest options to make now.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        elif "Smart Swaps" in tab_label:
+            st.markdown(
+                """
+                <div class="recommendation-section-note section-blue">
+                    🔵 These meals need a realistic swap or amount adjustment, so review the Smart Swap note first.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        elif "More Ideas" in tab_label:
+            st.markdown(
+                """
+                <div class="recommendation-section-note section-orange">
+                    🟠 These are still useful ideas, but you may need extra ingredients before making them.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
         for index, item in enumerate(items):
             recipe = item["recipe"]
             safe_key = re.sub(r"[^a-zA-Z0-9_]", "_", f"{tab_label}_{index}_{recipe['name']}")
 
-            with st.expander(f"{recipe['name']} — Smart Score: {item['score']}/100 — {item['match_percent']}% pantry match"):
+            exact_percent = item.get("exact_match_percent", item.get("match_percent", 0))
+            coverage_percent = item.get("coverage_percent", exact_percent)
+            if item.get("recommendation_category") == "Smart Swaps / Almost There":
+                tier_label = "🔵 Smart Swap Match"
+            elif item.get("recommendation_category") == "Meals You Can Make Now":
+                tier_label = "🟢 Make Now"
+            else:
+                tier_label = item.get("match_tier", get_match_tier(exact_percent))
+
+            with st.expander(
+                f"{recipe['name']} — {tier_label} "
+                f"— Smart Score: {item['score']}/100 "
+                f"— Exact Match: {exact_percent}% "
+                f"— Coverage With Swaps: {coverage_percent}%"
+            ):
                 st.write(f"**Meal Type:** {recipe['meal_type']}")
                 st.write(f"**Cuisine Type:** {recipe.get('cuisine_type', 'Not listed')}")
                 st.write(f"**Cook Time:** {recipe['cook_time']}")
@@ -2788,26 +3397,46 @@ def show_recommendations():
                 st.write(f"**Carbs:** {recipe['carbs']}g")
                 st.write(f"**Fat:** {recipe['fat']}g")
                 if item.get("ml_health_score") is not None:
-                    st.write(f"**Random Forest Nutrition Fit:** {item['ml_health_score']}/15")
+                    st.write(f"**Nutrition Fit:** {format_number(item['ml_health_score'])}/15")
                 if item.get("recipe_quality_score") is not None:
                     st.write(f"**Everyday Recipe Fit:** {item['recipe_quality_score']}/100")
+
+                st.write(f"**Exact Pantry Match:** {exact_percent}%")
+                st.write(f"**Coverage With Smart Swaps:** {coverage_percent}%")
+                if item.get("recommendation_category") == "Smart Swaps / Almost There":
+                    st.info("This is in Smart Swaps because at least one ingredient is not an exact make-now match, even if the meal can still work.")
 
                 st.write("**Ingredients Needed:**")
                 for requirement in item["requirements"]:
                     st.write(f"- {format_number(requirement['amount'])} {requirement['unit']} {requirement['ingredient']}")
 
-                st.write("**Ingredients Available in Your Pantry:**")
+                st.write("**Exact Ingredients Available in Your Pantry:**")
                 st.write(", ".join(item["matched_ingredients"]) if item["matched_ingredients"] else "None")
 
                 selected_substitutions = {}
 
                 if item["substitutions"]:
-                    st.subheader("Possible Substitutions")
+                    st.subheader("Smart Swap Options")
                     for sub_index, substitution in enumerate(item["substitutions"]):
                         missing = substitution["missing"]
                         substitute = substitution["substitute"]
+                        substitution_type = substitution.get("substitution_type", "functional_substitute")
+                        message = substitution.get(
+                            "message",
+                            f"This recipe calls for {missing}. You have {substitute}."
+                        )
+
+                        if substitution_type == "same_food_family":
+                            st.success(f"🍗 Smart Swap: {message}")
+                        elif substitution_type == "quantity_adjustment":
+                            st.info(f"🥚 Amount Adjustment: {message}")
+                        elif substitution_type == "optional_flavor_substitute":
+                            st.warning(f"🧅 Flavor Swap: {message}")
+                        else:
+                            st.info(f"🔁 Smart Swap: {message}")
+
                         use_sub = st.checkbox(
-                            f"This recipe calls for {missing}. You have {substitute}. Use {substitute} as a substitute?",
+                            f"Use {substitute} for {missing}?",
                             value=True,
                             key=f"sub_{safe_key}_{sub_index}",
                         )
@@ -2830,12 +3459,9 @@ def show_recommendations():
                 if item["expiring_ingredients"]:
                     st.warning("Expiring soon: " + ", ".join(item["expiring_ingredients"]))
 
-                st.write("**Why this meal was recommended:**")
-                st.write(
-                    f"This meal matched {len(item['matched_ingredients'])} exact pantry ingredient(s), "
-                    f"has {len(item['substitutions'])} possible substitution(s), and received a Smart Score of "
-                    f"{item['score']}/100 based on pantry match, expiration timing, preferences, and nutrition fit."
-                )
+                st.write("**Why this meal?**")
+                for reason in build_why_this_meal(item):
+                    st.write(f"- {reason}")
 
                 st.write("**Instructions:**")
                 st.write(recipe["instructions"])
@@ -3193,21 +3819,23 @@ def show_recommendations():
                     else:
                         st.error(message)
 
-    with tab_now:
+    with tab_ready:
         if not recommendations:
             st.warning(
                 "No meal matches were found yet. Add a few more pantry items or check that item names are simple, like chicken, rice, eggs, bread, or cheese."
             )
+        elif not ready_options:
+            st.info("No Make Now or Smart Swap meals are available yet. Check More Ideas for recipes that may need extra ingredients.")
         else:
-            render_recommendation_list(make_now, "Meals You Can Make Now")
+            render_recommendation_list(ready_options, "Ready Options")
 
-    with tab_subs:
+    with tab_more:
         if not recommendations:
             st.warning(
-                "No substitution or almost-there meals were found yet. Add a few more pantry items or check your item names."
+                "No extra meal ideas were found yet. Add a few more pantry items or check your item names."
             )
         else:
-            render_recommendation_list(almost, "Possible Substitutions / Almost There")
+            render_recommendation_list(more_ideas, "More Ideas")
 
     with tab_elsewhere:
         render_used_elsewhere_and_discard_tab()
@@ -3226,7 +3854,8 @@ def show_recommendation_history():
     st.markdown(
         """
         <div class="friendly-note">
-            Here’s what you’ve used, saved, or updated so far.
+            This page shows your recent Smart Pantry activity in one clean view. It includes meals you made,
+            meals made with a substitution, ingredients used somewhere else, and items that were discarded.
         </div>
         """,
         unsafe_allow_html=True,
@@ -3259,44 +3888,91 @@ def show_recommendation_history():
         used = clean_history_value(row.get("used_recommendation", ""))
 
         if meal_name == "Ingredient Used Elsewhere":
-            return "🟤 Used Ingredient Elsewhere", "history-brown"
+            return "Used Ingredient Elsewhere", "Used Elsewhere"
 
         if meal_name == "Expired or Discarded Item":
-            return "🔴 Expired / Discarded", "history-red"
+            return "Expired / Discarded", "Discarded"
 
         if "->" in matched or "substitute" in feedback or "instead of" in feedback:
-            return "🟣 Made With Substitution", "history-purple"
+            return "Made With Substitution", "Substitution"
 
         if used == "Yes" or "made this recommended meal" in feedback:
-            return "🟢 Made Recommended Meal", "history-green"
+            return "Made Recommended Meal", "Recommended Meal"
 
         if "saved recommendation" in feedback:
-            return "🔵 Saved Recommendation", "history-blue"
+            return "Saved Recommendation", "Saved"
 
         if "did not like" in feedback or "did not use" in feedback:
-            return "⚪ Not Used / Feedback", "history-gray"
+            return "Not Used / Feedback", "Feedback"
 
-        return "🔵 Pantry Action", "history-blue"
+        return "Pantry Action", "Pantry Action"
+
+    def format_history_date(value):
+        try:
+            parsed = pd.to_datetime(value)
+            if pd.isna(parsed):
+                return "Not listed"
+            return parsed.strftime("%b %d, %Y")
+        except Exception:
+            return "Not listed"
 
     participant_view = logs_df.copy()
+    participant_view["Activity"] = participant_view.apply(lambda row: classify_history_action(row)[0], axis=1)
+    participant_view["Category"] = participant_view.apply(lambda row: classify_history_action(row)[1], axis=1)
     participant_view["Meal or Ingredient"] = participant_view.apply(get_participant_item, axis=1)
-    participant_view["Action Label"] = participant_view.apply(lambda row: classify_history_action(row)[0], axis=1)
-    participant_view["Card Class"] = participant_view.apply(lambda row: classify_history_action(row)[1], axis=1)
 
-    participant_view = participant_view[["Action Label", "Meal or Ingredient", "Card Class"]]
+    date_column = "created_at" if "created_at" in participant_view.columns else None
+    if date_column:
+        participant_view["Date"] = participant_view[date_column].apply(format_history_date)
+    else:
+        participant_view["Date"] = "Not listed"
+
+    participant_view = participant_view[["Date", "Activity", "Meal or Ingredient", "Category"]]
     participant_view = participant_view.drop_duplicates().reset_index(drop=True)
 
-    for _, row in participant_view.iterrows():
-        st.markdown(
-            f"""
-            <div class="history-card {row['Card Class']}">
-                <div class="history-title">{row['Action Label']}</div>
-                <div class="history-item">{row['Meal or Ingredient']}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    made_count = int((participant_view["Category"] == "Recommended Meal").sum())
+    substitution_count = int((participant_view["Category"] == "Substitution").sum())
+    used_elsewhere_count = int((participant_view["Category"] == "Used Elsewhere").sum())
+    discarded_count = int((participant_view["Category"] == "Discarded").sum())
 
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Recommended Meals Made", made_count)
+    with col2:
+        st.metric("Made With Swaps", substitution_count)
+    with col3:
+        st.metric("Used Elsewhere", used_elsewhere_count)
+    with col4:
+        st.metric("Discarded / Expired", discarded_count)
+
+    st.subheader("Activity Log")
+
+    filter_options = ["All Activity"] + sorted(participant_view["Activity"].dropna().unique().tolist())
+    selected_filter = st.selectbox("Filter history", filter_options)
+
+    if selected_filter != "All Activity":
+        display_df = participant_view[participant_view["Activity"] == selected_filter].copy()
+    else:
+        display_df = participant_view.copy()
+
+    if display_df.empty:
+        st.info("No history records match this filter yet.")
+        return
+
+    st.dataframe(
+        display_df[["Date", "Activity", "Meal or Ingredient", "Category"]],
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.markdown(
+        """
+        <div class="friendly-note">
+            This table helps show what happened after recommendations were made. That matters for the study because it connects the app suggestions to real ingredient use.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode("utf-8")
@@ -3312,35 +3988,68 @@ def safe_percent(numerator, denominator):
         return 0
 
 
-def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df):
+def parse_survey_response_json(value):
+    try:
+        if pd.isna(value) or not str(value).strip():
+            return {}
+        parsed = json.loads(str(value))
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def survey_question_average(surveys_df, survey_type, question_key):
+    if surveys_df.empty or "survey_responses" not in surveys_df.columns:
+        return 0
+    values = []
+    subset = surveys_df[surveys_df["survey_type"] == survey_type]
+    for _, row in subset.iterrows():
+        responses = parse_survey_response_json(row.get("survey_responses", ""))
+        try:
+            value = responses.get(question_key)
+            if isinstance(value, (int, float)):
+                values.append(float(value))
+        except Exception:
+            pass
+    if not values:
+        return 0
+    return round(sum(values) / len(values), 2)
+
+
+def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df, surveys_df):
     st.subheader("Study Metrics")
     st.write(
-        "These local milestone metrics summarize pantry activity, recommendation usage, and ingredient use. "
-        "The pre/post study survey will be added back during the research study phase."
+        "These metrics convert pantry activity, recommendation logs, ingredient usage, and survey responses "
+        "into evidence for pantry awareness, recommendation usefulness, and ingredient utilization."
     )
 
     participant_count = len(users_df[users_df["role"] == "participant"]) if not users_df.empty and "role" in users_df.columns else 0
-    total_recommendations = len(recommendation_df)
+    pre_count = len(surveys_df[surveys_df["survey_type"] == "Pre-Study"]) if not surveys_df.empty else 0
+    post_count = len(surveys_df[surveys_df["survey_type"] == "Post-Study"]) if not surveys_df.empty else 0
 
+    pre_awareness = survey_question_average(surveys_df, "Pre-Study", "pantry_awareness")
+    post_awareness = survey_question_average(surveys_df, "Post-Study", "pantry_awareness")
+    awareness_change = round(post_awareness - pre_awareness, 2) if pre_awareness and post_awareness else 0
+
+    pre_utilization = survey_question_average(surveys_df, "Pre-Study", "ingredient_utilization")
+    post_utilization = survey_question_average(surveys_df, "Post-Study", "ingredient_utilization")
+    utilization_change = round(post_utilization - pre_utilization, 2) if pre_utilization and post_utilization else 0
+
+    post_recommendation_usefulness = survey_question_average(surveys_df, "Post-Study", "recommendation_usefulness")
+    compared_awareness = survey_question_average(surveys_df, "Post-Study", "compared_awareness")
+    compared_recommendations = survey_question_average(surveys_df, "Post-Study", "compared_recommendations")
+    compared_utilization = survey_question_average(surveys_df, "Post-Study", "compared_utilization")
+
+    total_recommendations = len(recommendation_df)
     meals_made = 0
-    saved_recommendations = 0
-    disliked_or_skipped = 0
-    if not recommendation_df.empty:
-        if "used_recommendation" in recommendation_df.columns:
-            meals_made = len(recommendation_df[recommendation_df["used_recommendation"] == "Yes"])
-        if "feedback_type" in recommendation_df.columns:
-            feedback_text = recommendation_df["feedback_type"].astype(str).str.lower()
-            saved_recommendations = feedback_text.str.contains("save", regex=False).sum()
-            disliked_or_skipped = feedback_text.str.contains("dislike|skip", regex=True).sum()
+    if not recommendation_df.empty and "used_recommendation" in recommendation_df.columns:
+        meals_made = len(recommendation_df[recommendation_df["used_recommendation"] == "Yes"])
 
     total_pantry_items = len(pantry_df)
-    active_categories = pantry_df["category"].nunique() if not pantry_df.empty and "category" in pantry_df.columns else 0
     total_usage_events = len(usage_df)
     total_quantity_used = 0
     used_elsewhere_count = 0
     expired_discarded_count = 0
-    recommended_meal_usage_count = 0
-
     if not usage_df.empty:
         if "quantity_used" in usage_df.columns:
             total_quantity_used = round(pd.to_numeric(usage_df["quantity_used"], errors="coerce").fillna(0).sum(), 2)
@@ -3348,7 +4057,6 @@ def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df):
             usage_type_text = usage_df["usage_type"].astype(str).str.lower()
             used_elsewhere_count = usage_type_text.str.contains("outside|elsewhere", regex=True).sum()
             expired_discarded_count = usage_type_text.str.contains("expired|discard", regex=True).sum()
-            recommended_meal_usage_count = usage_type_text.str.contains("recommended meal", regex=False).sum()
 
     acceptance_rate = safe_percent(meals_made, total_recommendations)
     ingredient_utilization_rate = safe_percent(total_usage_events, total_pantry_items)
@@ -3356,10 +4064,10 @@ def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Participants", participant_count)
-        st.metric("Pantry Items", total_pantry_items)
+        st.metric("Pre-Surveys", pre_count)
     with col2:
-        st.metric("Pantry Categories", active_categories)
-        st.metric("Recommendations Logged", total_recommendations)
+        st.metric("Post-Surveys", post_count)
+        st.metric("Pantry Items Added", total_pantry_items)
     with col3:
         st.metric("Meals Made", meals_made)
         st.metric("Recommendation Acceptance", f"{acceptance_rate}%")
@@ -3368,31 +4076,25 @@ def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df):
         st.metric("Ingredient Utilization Rate", f"{ingredient_utilization_rate}%")
 
     st.subheader("Outcome Summary")
-    summary_df = pd.DataFrame([
-        {"Outcome Area": "Pantry awareness evidence", "Metric": "Pantry items added", "Value": total_pantry_items},
-        {"Outcome Area": "Pantry awareness evidence", "Metric": "Pantry categories represented", "Value": active_categories},
-        {"Outcome Area": "Recommendation usefulness evidence", "Metric": "Recommendations logged", "Value": total_recommendations},
-        {"Outcome Area": "Recommendation usefulness evidence", "Metric": "Meals marked as made", "Value": meals_made},
-        {"Outcome Area": "Recommendation usefulness evidence", "Metric": "Recommendation acceptance rate (%)", "Value": acceptance_rate},
-        {"Outcome Area": "Ingredient utilization evidence", "Metric": "Recommended meal usage events", "Value": recommended_meal_usage_count},
-        {"Outcome Area": "Ingredient utilization evidence", "Metric": "Ingredients used elsewhere", "Value": used_elsewhere_count},
-        {"Outcome Area": "Ingredient utilization evidence", "Metric": "Expired/discarded items", "Value": expired_discarded_count},
-        {"Outcome Area": "Ingredient utilization evidence", "Metric": "Total quantity used", "Value": total_quantity_used},
-    ])
+    summary_rows = [
+        {"Outcome": "Pantry awareness", "Pre Average": pre_awareness, "Post Average": post_awareness, "Change": awareness_change},
+        {"Outcome": "Ingredient utilization", "Pre Average": pre_utilization, "Post Average": post_utilization, "Change": utilization_change},
+        {"Outcome": "Recommendation usefulness", "Pre Average": 0, "Post Average": post_recommendation_usefulness, "Change": post_recommendation_usefulness},
+        {"Outcome": "Compared to previous method - awareness", "Pre Average": 0, "Post Average": compared_awareness, "Change": compared_awareness},
+        {"Outcome": "Compared to previous method - recommendations", "Pre Average": 0, "Post Average": compared_recommendations, "Change": compared_recommendations},
+        {"Outcome": "Compared to previous method - utilization", "Pre Average": 0, "Post Average": compared_utilization, "Change": compared_utilization},
+    ]
+    summary_df = pd.DataFrame(summary_rows)
     st.dataframe(summary_df, use_container_width=True)
 
-    chart_df = summary_df[["Metric", "Value"]].copy()
-    chart_df["Value"] = pd.to_numeric(chart_df["Value"], errors="coerce").fillna(0)
-    chart_df = chart_df[chart_df["Value"] > 0].set_index("Metric")
+    chart_df = summary_df[summary_df["Post Average"] > 0][["Outcome", "Post Average"]].set_index("Outcome")
     if not chart_df.empty:
         st.bar_chart(chart_df)
 
     st.subheader("Usage and Recommendation Evidence")
     evidence_df = pd.DataFrame([
         {"Metric": "Total recommendations logged", "Value": total_recommendations},
-        {"Metric": "Saved recommendations", "Value": saved_recommendations},
         {"Metric": "Meals marked as made", "Value": meals_made},
-        {"Metric": "Disliked/skipped recommendations", "Value": disliked_or_skipped},
         {"Metric": "Ingredients used elsewhere", "Value": used_elsewhere_count},
         {"Metric": "Expired/discarded items", "Value": expired_discarded_count},
         {"Metric": "Total quantity used", "Value": total_quantity_used},
@@ -3402,13 +4104,14 @@ def show_study_metrics(users_df, pantry_df, recommendation_df, usage_df):
     st.dataframe(evidence_df, use_container_width=True)
 
 
+
 def show_admin_dashboard():
     st.title("Admin Dashboard")
 
     st.write(
         """
         This dashboard is for the researcher to review participant activity,
-        pantry usage, recommendation logs, and ingredient usage.
+        pantry usage, survey results, and recommendation usage.
         """
     )
 
@@ -3416,6 +4119,7 @@ def show_admin_dashboard():
     pantry_df = get_all_pantry_items()
     recommendation_df = get_all_recommendation_logs()
     usage_df = get_all_ingredient_usage()
+    surveys_df = get_all_surveys()
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -3435,19 +4139,20 @@ def show_admin_dashboard():
             used_count = len(recommendation_df[recommendation_df["used_recommendation"] == "Yes"])
         st.metric("Recommendations Used", used_count)
 
-    tab_metrics, tab_users, tab_pantry, tab_recommendations, tab_usage, tab_exports = st.tabs(
+    tab_metrics, tab_users, tab_pantry, tab_recommendations, tab_usage, tab_surveys, tab_exports = st.tabs(
         [
             "Study Metrics",
             "Users",
             "Pantry Data",
             "Recommendation Logs",
             "Ingredient Usage",
+            "Survey Results",
             "Export Data",
         ]
     )
 
     with tab_metrics:
-        show_study_metrics(users_df, pantry_df, recommendation_df, usage_df)
+        show_study_metrics(users_df, pantry_df, recommendation_df, usage_df, surveys_df)
 
     with tab_users:
         st.subheader("Participants and Users")
@@ -3464,6 +4169,23 @@ def show_admin_dashboard():
     with tab_usage:
         st.subheader("Ingredient Usage Logs")
         st.dataframe(usage_df, use_container_width=True)
+
+    with tab_surveys:
+        st.subheader("Survey Results")
+        st.dataframe(surveys_df, use_container_width=True)
+
+        if not surveys_df.empty:
+            st.subheader("Average Survey Scores by Survey Type")
+
+            score_cols = [
+                "pantry_awareness",
+                "recommendation_usefulness",
+                "ingredient_utilization",
+                "ease_of_use",
+            ]
+
+            summary_df = surveys_df.groupby("survey_type")[score_cols].mean().round(2)
+            st.dataframe(summary_df, use_container_width=True)
 
     with tab_exports:
         st.subheader("Download CSV Files")
@@ -3496,6 +4218,12 @@ def show_admin_dashboard():
             mime="text/csv",
         )
 
+        st.download_button(
+            "Download Surveys CSV",
+            data=convert_df_to_csv(surveys_df),
+            file_name="smart_pantry_surveys.csv",
+            mime="text/csv",
+        )
 
 
 def show_participant_view_for_admin():
@@ -3516,12 +4244,16 @@ def main():
         show_home()
     elif page == "Profile":
         show_profile()
+    elif page == "Pre-Study Survey":
+        show_survey("Pre-Study")
     elif page == "My Pantry":
         show_pantry()
     elif page == "Meal Recommendations":
         show_recommendations()
     elif page == "Recommendation History":
         show_recommendation_history()
+    elif page == "Post-Study Survey":
+        show_survey("Post-Study")
     elif page == "Admin Dashboard":
         show_admin_dashboard()
     elif page == "Participant View":
