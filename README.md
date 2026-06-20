@@ -1,4 +1,4 @@
-# SmartPantry AI
+# SmartPantry 
 
 SmartPantry AI is an intelligent pantry management and meal recommendation application developed as a graduate capstone project for Full Sail University. The system helps users reduce food waste, organize pantry inventory, and discover meal recommendations using AI-driven ingredient matching and nutrition analysis.
 
