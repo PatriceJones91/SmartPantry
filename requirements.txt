@@ -1,0 +1,7 @@
+streamlit
+pandas
+supabase
+python-dotenv
+joblib
+scikit-learn
+plotly
