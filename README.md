@@ -153,5 +153,6 @@ data/barcode_lookup.csv
 ## Author
 
 Patrice Jones  
+Masters in Computer Science
 Graduate Capstone Project  
 Full Sail University
