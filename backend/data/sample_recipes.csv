@@ -1,0 +1,11 @@
+recipe_name,ingredients,meal_type,cuisine_type,calories,protein,carbs,fat,instructions
+Chicken Rice Bowl,"chicken,rice,cheese,bell pepper",Dinner,American,520,35,58,16,"Cook rice, season chicken, saute vegetables, and serve together."
+Egg Toast,"eggs,bread,cheese",Breakfast,American,410,22,34,18,"Toast bread, cook eggs, add cheese, and serve warm."
+Tuna Pasta,"tuna,pasta,cheese",Lunch,American,480,31,55,12,"Cook pasta, mix tuna and cheese, and heat until combined."
+Vegetable Omelet,"eggs,bell pepper,cheese",Breakfast,American,360,24,12,22,"Whisk eggs, add vegetables, cook in skillet, and top with cheese."
+Rice and Beans,"rice,beans,cheese",Dinner,American,440,18,70,10,"Cook rice and beans, season, and top with cheese."
+Chicken Salad Wrap,"chicken,tortilla,lettuce,cheese",Lunch,American,390,30,35,13,"Add cooked chicken, lettuce, and cheese to tortilla and wrap."
+Cereal Bowl,"cereal,milk",Breakfast,American,300,10,52,8,"Add cereal and milk to a bowl."
+Grilled Cheese,"bread,cheese,butter",Lunch,American,420,16,36,23,"Butter bread, add cheese, and grill until golden."
+Bean Quesadilla,"tortilla,beans,cheese",Dinner,American,460,20,48,18,"Fill tortilla with beans and cheese, fold, and toast in a skillet."
+Turkey Sandwich,"turkey,bread,cheese,lettuce",Lunch,American,430,29,38,14,"Layer turkey, cheese, and lettuce on bread."
