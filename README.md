@@ -1,4 +1,3 @@
-cat > README.md <<'EOF'
 # Smart Pantry
 
 ## Smart Pantry 2.0 - React + FastAPI + Supabase Version
