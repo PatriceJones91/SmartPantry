@@ -2268,3 +2268,226 @@ button {
     border-radius: 22px !important;
   }
 }
+
+/* Milestone 6 Receipt OCR / Grocery Input */
+.receiptOcrCard {
+  display: grid;
+  gap: 16px;
+}
+
+.receiptOcrHeader h2 {
+  margin: 4px 0 8px;
+  color: #0f172a;
+  font-size: 1.55rem;
+  font-weight: 950;
+}
+
+.receiptOcrHeader p {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.receiptUploadBox {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.receiptUploadButton,
+.scanReceiptButton,
+.groceryInputActions button,
+.addDetectedButton {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #2563eb;
+  color: white;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.16);
+}
+
+.receiptUploadButton input {
+  display: none;
+}
+
+.secondaryUpload {
+  background: #0f766e;
+}
+
+.scanReceiptButton {
+  background: #16a34a;
+}
+
+.scanReceiptButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.receiptPreviewGrid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 14px;
+  align-items: start;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.receiptPreviewGrid strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.receiptPreviewGrid img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+}
+
+.receiptPreviewGrid p {
+  margin: 10px 0 0;
+  color: #475569;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.ocrProgressBar {
+  height: 14px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.ocrProgressBar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #16a34a, #2563eb);
+  transition: width 0.25s ease;
+}
+
+.ocrTextArea {
+  width: 100%;
+  min-height: 150px;
+  border: 1px solid #cbd5e1;
+  border-radius: 18px;
+  padding: 14px;
+  background: white;
+  color: #0f172a;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.groceryInputActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detectedReviewBox {
+  display: grid;
+  gap: 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.detectedReviewBox h3 {
+  margin: 0;
+  color: #2563eb;
+  font-weight: 950;
+}
+
+.detectedReviewBox p {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.detectedTableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: white;
+}
+
+.detectedTable {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+}
+
+.detectedTable th {
+  background: #eff6ff;
+  color: #0f172a;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 950;
+  padding: 9px;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.detectedTable td {
+  padding: 7px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detectedTable input,
+.detectedTable select {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: white;
+  font-size: 0.78rem;
+}
+
+.detectedTable input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+.addDetectedButton {
+  width: fit-content;
+  background: #16a34a;
+}
+
+@media (max-width: 950px) {
+  .receiptUploadBox,
+  .groceryInputActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .receiptUploadButton,
+  .scanReceiptButton,
+  .groceryInputActions button,
+  .addDetectedButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .receiptPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .detectedTable {
+    min-width: 780px;
+  }
+}
