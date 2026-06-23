@@ -19,11 +19,17 @@ export default function Navbar() {
 
   return (
     <aside className="sidebar">
-      <div className="brand">
-        <div className="logo">🥤</div>
+      <div className="brand navBrandClean">
+        <img
+          src="/SmartPantry_logo.png"
+          alt="Smart Pantry logo"
+          className="sidebarLogo"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
         <div>
           <h2>Smart Pantry</h2>
-          <p>2.0 React + API</p>
         </div>
       </div>
 
@@ -34,11 +40,11 @@ export default function Navbar() {
 
       <nav>
         <NavLink to="/">Dashboard</NavLink>
-        <NavLink to="/pantry">My Pantry</NavLink>
         <NavLink to="/profile">Profile</NavLink>
+        <NavLink to="/pantry">My Pantry</NavLink>
+        <NavLink to="/recommendations">Meal Recommendation</NavLink>
+        <NavLink to="/history">Recommendation History</NavLink>
         <NavLink to="/pre-survey">Pre-Study Survey</NavLink>
-        <NavLink to="/recommendations">Recommendations</NavLink>
-        <NavLink to="/history">History</NavLink>
         <NavLink to="/post-survey">Post-Study Survey</NavLink>
 
         {user.role === "admin" && (
@@ -46,8 +52,8 @@ export default function Navbar() {
         )}
       </nav>
 
-      <button className="ghostButton" onClick={logout}>
-        Logout
+      <button className="navLogoutButton" onClick={logout}>
+        Log Out
       </button>
     </aside>
   );

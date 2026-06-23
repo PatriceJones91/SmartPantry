@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar.jsx";
 import Login from "./pages/Login.jsx";
@@ -12,7 +12,11 @@ import History from "./pages/History.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function getUser() {
-  return JSON.parse(localStorage.getItem("sp2_user"));
+  try {
+    return JSON.parse(localStorage.getItem("sp2_user"));
+  } catch {
+    return null;
+  }
 }
 
 function ProtectedRoute({ children }) {
@@ -40,9 +44,11 @@ function AdminRoute({ children }) {
 }
 
 function AppLayout({ children }) {
+  const location = useLocation();
   const user = getUser();
+  const isLoginPage = location.pathname === "/login";
 
-  if (!user) {
+  if (isLoginPage || !user) {
     return children;
   }
 
@@ -70,19 +76,19 @@ export default function App() {
         />
 
         <Route
-          path="/pantry"
+          path="/profile"
           element={
             <ProtectedRoute>
-              <Pantry />
+              <Profile />
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/profile"
+          path="/pantry"
           element={
             <ProtectedRoute>
-              <Profile />
+              <Pantry />
             </ProtectedRoute>
           }
         />

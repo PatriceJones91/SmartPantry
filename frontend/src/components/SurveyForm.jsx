@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 
 function getUser() {
@@ -27,9 +28,21 @@ export default function SurveyForm({ surveyType, title, description, questions }
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [status, setStatus] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
 
   useEffect(() => {
-    api.getSurveyStatus(user.id).then(setStatus).catch(() => {});
+    async function loadStatus() {
+      try {
+        const data = await api.getSurveyStatus(user.id);
+        setStatus(data);
+      } catch {
+        setStatus({ pre: false, post: false });
+      } finally {
+        setLoadingStatus(false);
+      }
+    }
+
+    loadStatus();
   }, [user.id]);
 
   function change(questionId, value) {
@@ -58,6 +71,7 @@ export default function SurveyForm({ surveyType, title, description, questions }
       });
 
       setMessage("Survey submitted. Thank you.");
+
       const updatedStatus = await api.getSurveyStatus(user.id);
       setStatus(updatedStatus);
     } catch (err) {
@@ -68,18 +82,67 @@ export default function SurveyForm({ surveyType, title, description, questions }
   const alreadyCompleted =
     surveyType === "pre" ? status?.pre : surveyType === "post" ? status?.post : false;
 
+  if (loadingStatus) {
+    return (
+      <div>
+        <div className="pageHeader">
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+
+        <section className="card">
+          Loading survey status...
+        </section>
+      </div>
+    );
+  }
+
+  if (alreadyCompleted) {
+    return (
+      <div>
+        <div className="pageHeader">
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+
+        <section className="card surveyCompleteCard">
+          <div className="surveyCompleteIcon">✓</div>
+
+          <div>
+            <h2>
+              {surveyType === "pre"
+                ? "Pre-Study Survey Complete"
+                : "Post-Study Survey Complete"}
+            </h2>
+
+            <p>
+              Thank you. Your survey response has already been saved for the Smart Pantry study.
+              You do not need to complete this survey again.
+            </p>
+
+            <div className="surveyCompleteActions">
+              <Link to="/">Back to Dashboard</Link>
+
+              {surveyType === "pre" && (
+                <Link to="/pantry">Continue to My Pantry</Link>
+              )}
+
+              {surveyType === "post" && (
+                <Link to="/history">View Recommendation History</Link>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="pageHeader">
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-
-      {alreadyCompleted && (
-        <div className="card success">
-          This survey has already been submitted. You can update and submit again if you need to correct something.
-        </div>
-      )}
 
       <section className="card">
         <form className="surveyForm" onSubmit={submit}>

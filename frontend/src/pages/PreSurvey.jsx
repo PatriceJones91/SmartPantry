@@ -6,7 +6,7 @@ export default function PreSurvey() {
     <SurveyForm
       surveyType="pre"
       title="Pre-Study Survey"
-      description="Answer these before using Smart Pantry during the 7–14 day study period."
+      description="Please complete this survey before using Smart Pantry. These questions help measure your normal pantry habits before the study begins."
       questions={preStudyQuestions}
     />
   );

@@ -7,8 +7,94 @@ export default function Login() {
   const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("participant");
   const [error, setError] = useState("");
-  async function submit(e) { e.preventDefault(); setError(""); try { const user = mode === "login" ? await api.login({ username, password }) : await api.register({ username, password, role }); localStorage.setItem("sp2_user", JSON.stringify(user)); navigate("/"); } catch (err) { setError(err.message); } }
-  return <div className="loginPage"><div className="loginCard"><h1>Welcome to Smart Pantry</h1><p>Track pantry items, view alerts, and get meal ideas.</p><form onSubmit={submit}><label>Username</label><input value={username} onChange={(e) => setUsername(e.target.value)} /><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />{mode === "register" && <><label>Role</label><select value={role} onChange={(e) => setRole(e.target.value)}><option value="participant">participant</option><option value="admin">admin</option></select></>}{error && <div className="error">{error}</div>}<button type="submit">{mode === "login" ? "Login" : "Create Account"}</button></form><button className="linkButton" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Create a participant account" : "Back to login"}</button><p className="hint">Demo admin: admin / Admin123!</p></div></div>;
+  const [loading, setLoading] = useState(false);
+
+  const isRegister = mode === "register";
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      if (isRegister) {
+        await api.register({
+          username,
+          password,
+          role: "participant",
+        });
+      }
+
+      const user = await api.login({ username, password });
+      localStorage.setItem("sp2_user", JSON.stringify(user));
+      navigate("/");
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="brightLoginPage">
+      <section className="brightLoginCard">
+        <img
+          src="/SmartPantry_logo.png"
+          alt="Smart Pantry logo"
+          className="brightLoginLogo"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+
+        <form onSubmit={submit} className="brightLoginForm">
+          <div className="loginField">
+            <label>Username</label>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username"
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="loginField">
+            <label>Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              type="password"
+              autoComplete={isRegister ? "new-password" : "current-password"}
+            />
+          </div>
+
+          {error && <p className="error">{error}</p>}
+
+          <button type="submit" disabled={loading}>
+            {loading ? "Please wait..." : isRegister ? "Create Account" : "Login"}
+          </button>
+        </form>
+
+        <div className="loginCreateArea">
+          {isRegister ? (
+            <>
+              <span>Already have an account?</span>
+              <button type="button" onClick={() => setMode("login")}>
+                Back to Login
+              </button>
+            </>
+          ) : (
+            <>
+              <span>New participant?</span>
+              <button type="button" onClick={() => setMode("register")}>
+                Create Account
+              </button>
+            </>
+          )}
+        </div>
+      </section>
+    </div>
+  );
 }

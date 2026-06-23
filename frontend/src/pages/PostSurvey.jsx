@@ -6,7 +6,7 @@ export default function PostSurvey() {
     <SurveyForm
       surveyType="post"
       title="Post-Study Survey"
-      description="Answer these after using Smart Pantry during the study period."
+      description="Please complete this survey after using Smart Pantry. These questions help measure your experience, satisfaction, and whether the app supported pantry awareness and ingredient use."
       questions={postStudyQuestions}
     />
   );
