@@ -1,4 +1,4 @@
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request, Response
 from fastapi import FastAPI
 
 from routes import auth, pantry, surveys, recommendations, admin, barcodes, profile
@@ -12,14 +12,35 @@ app = FastAPI(
     description="Backend API for Smart Pantry 2.0 React and Supabase application.",
 )
 
-# CORS settings for deployed public testing
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Direct CORS middleware for deployed Vercel frontend
+@app.middleware("http")
+async def smart_pantry_cors_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+
+    allowed = {
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://smart-pantry-kappa.vercel.app",
+        "https://smart-pantry-capstone.vercel.app",
+    }
+
+    is_vercel_preview = bool(origin and origin.endswith(".vercel.app"))
+    is_allowed = bool(origin and (origin in allowed or is_vercel_preview))
+
+    if request.method == "OPTIONS":
+        response = Response(status_code=200)
+    else:
+        response = await call_next(request)
+
+    if is_allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
+
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Max-Age"] = "86400"
+
+    return response
 
 
 
