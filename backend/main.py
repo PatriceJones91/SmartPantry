@@ -9,6 +9,25 @@ app = FastAPI(
     description="Backend API for Smart Pantry 2.0 React and Supabase application.",
 )
 
+
+
+# CORS settings for local development and deployed frontend
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://smart-pantry-kappa.vercel.app",
+    "https://smart-pantry-capstone.vercel.app",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\\.vercel\\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
