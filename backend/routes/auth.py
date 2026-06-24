@@ -8,7 +8,7 @@ router = APIRouter()
 class RegisterPayload(BaseModel):
     username: str
     password: str | None = None
-    role: str = "participant"
+    role: str | None = "participant"
 
 
 class LoginPayload(BaseModel):
@@ -20,28 +20,28 @@ def clean_user(user: dict) -> dict:
     return {
         "id": user.get("id"),
         "username": user.get("username"),
-        "role": user.get("role", "participant"),
+        "role": user.get("role") or "participant",
     }
 
 
 @router.post("/register")
 def register(payload: RegisterPayload):
-    username = payload.username.strip()
+    username = (payload.username or "").strip()
 
     if not username:
         raise HTTPException(status_code=400, detail="Username is required.")
+
+    role = payload.role or "participant"
 
     existing = table("sp2_users").select("*").eq("username", username).execute()
 
     if existing.data:
         return clean_user(existing.data[0])
 
-    new_user = {
+    created = table("sp2_users").insert({
         "username": username,
-        "role": payload.role or "participant",
-    }
-
-    created = table("sp2_users").insert(new_user).execute()
+        "role": role,
+    }).execute()
 
     if not created.data:
         raise HTTPException(status_code=500, detail="Could not create user.")
@@ -51,7 +51,7 @@ def register(payload: RegisterPayload):
 
 @router.post("/login")
 def login(payload: LoginPayload):
-    username = payload.username.strip()
+    username = (payload.username or "").strip()
 
     if not username:
         raise HTTPException(status_code=400, detail="Username is required.")
@@ -61,5 +61,4 @@ def login(payload: LoginPayload):
     if not result.data:
         raise HTTPException(status_code=401, detail="User not found. Please create an account first.")
 
-    user = result.data[0]
-    return clean_user(user)
+    return clean_user(result.data[0])
