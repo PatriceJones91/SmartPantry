@@ -5,6 +5,13 @@ from routes import auth, pantry, surveys, recommendations, admin, barcodes, prof
 
 app = FastAPI(
 
+
+
+    title="Smart Pantry 2.0 API",
+    version="1.0.0",
+    description="Backend API for Smart Pantry 2.0 React and Supabase application.",
+)
+
 # CORS settings for Smart Pantry local and deployed frontend
 allowed_origins = [
     "http://localhost:5173",
@@ -22,19 +29,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-    title="Smart Pantry 2.0 API",
-    version="1.0.0",
-    description="Backend API for Smart Pantry 2.0 React and Supabase application.",
-)
 
 
 
 
 
-# CORS settings for Smart Pantry local and deployed frontend
 
 
-# CORS settings for local development and deployed frontend
 
 
 @app.get("/api/health")
