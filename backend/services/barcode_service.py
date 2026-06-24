@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 
-BARCODE_PATH = Path(__file__).resolve().parent.parent / "data" / "barcode_lookup.csv"
+BARCODE_PATH = Path(__file__).resolve().parent.parent / "data" / "openfoodfacts_barcode_lookup.csv"
 
 
 def normalize_key(value: str) -> str:
@@ -59,7 +59,7 @@ def lookup_barcode(barcode: str) -> Optional[Dict]:
                 "unit": get_first(row, ["unit", "serving_unit"], "item"),
                 "container_type": get_first(row, ["container_type", "container", "package_type"], ""),
                 "brand": get_first(row, ["brand", "brands"], ""),
-                "source": get_first(row, ["source"], "barcode_lookup.csv"),
+                "source": get_first(row, ["source"], "Open Food Facts Barcode Dataset"),
             }
 
     return None
@@ -93,7 +93,7 @@ def search_items(query: str, limit: int = 20) -> List[Dict]:
                     "unit": get_first(row, ["unit", "serving_unit"], "item"),
                     "container_type": get_first(row, ["container_type", "container", "package_type"], ""),
                     "brand": get_first(row, ["brand", "brands"], ""),
-                    "source": get_first(row, ["source"], "barcode_lookup.csv"),
+                    "source": get_first(row, ["source"], "Open Food Facts Barcode Dataset"),
                 }
             )
 

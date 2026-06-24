@@ -12,20 +12,20 @@ except Exception:
     joblib = None
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-ML_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "recommendation_model.pkl"
+ML_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "random_forest_nutrition_fit_model.pkl"
 _ML_MODEL = None
 _ML_MODEL_CHECKED = False
 
 RECIPE_SOURCES = [
     {
-        "path": DATA_DIR / "sample_recipes.csv",
+        "path": DATA_DIR / "sample_recipe_seed_data.csv",
         "source_type": "core",
         "source_label": "Core everyday meals",
         "source_boost": 15,
         "limit": None,
     },
     {
-        "path": DATA_DIR / "smart_pantry_recipes_clean.csv",
+        "path": DATA_DIR / "smart_pantry_recipe_dataset.csv",
         "source_type": "expanded",
         "source_label": "Expanded recipe library",
         "source_boost": 0,
