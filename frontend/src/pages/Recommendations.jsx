@@ -519,9 +519,9 @@ export default function Recommendations() {
 
             <div className="nutritionFactsBox">
               <div className="nutritionFactsHeader">
-                <h3>Nutrition Facts + ML Fit</h3>
+                <h3>Nutrition Facts</h3>
                 <span>
-                  ML Nutrition Fit: {displayNumber(recipe.ml_nutrition_fit, "/15")}
+                  Nutrition Fit: {displayNumber(recipe.ml_nutrition_fit, "/15")}
                 </span>
               </div>
 
@@ -545,9 +545,8 @@ export default function Recommendations() {
               </div>
 
               <div className="mlEvidenceLine">
-                <strong>Random Forest Output:</strong>{" "}
-                {displayNumber(recipe.ml_nutrition_fit_percent, "%")} using{" "}
-                {recipe.ml_model_used || "RandomForestRegressor"}
+                <strong>Nutrition Fit Score:</strong>{" "}
+                {displayNumber(recipe.ml_nutrition_fit_percent, "%")} based on calories, protein, carbs, fat, and ingredient count.
               </div>
             </div>
 
