@@ -6,7 +6,15 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    import joblib
+except Exception:
+    joblib = None
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+ML_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "recommendation_model.pkl"
+_ML_MODEL = None
+_ML_MODEL_CHECKED = False
 
 RECIPE_SOURCES = [
     {
@@ -476,6 +484,104 @@ def preference_boost(recipe: Dict[str, Any], profile: Optional[Dict[str, Any]]) 
 
 
 
+
+def safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value in [None, ""]:
+            return default
+
+        cleaned = str(value).replace("g", "").replace("cal", "").replace(",", "").strip()
+        return float(cleaned)
+    except Exception:
+        return default
+
+
+def load_ml_model():
+    global _ML_MODEL, _ML_MODEL_CHECKED
+
+    if _ML_MODEL_CHECKED:
+        return _ML_MODEL
+
+    _ML_MODEL_CHECKED = True
+
+    if joblib is None:
+        return None
+
+    if not ML_MODEL_PATH.exists():
+        return None
+
+    try:
+        _ML_MODEL = joblib.load(ML_MODEL_PATH)
+        return _ML_MODEL
+    except Exception:
+        _ML_MODEL = None
+        return None
+
+
+def calculate_ml_nutrition_fit(recipe: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Random Forest nutrition fit for Smart Pantry.
+
+    The model was trained with:
+    calories, protein, carbs, fat, ingredient_count
+
+    The raw model prediction is treated as a 0-100 nutrition fit output.
+    For the project interface, it is also displayed as a 0-15 ML Nutrition Fit
+    because the original Smart Pantry prototype used Nutrition Fit out of 15.
+    """
+    calories = safe_float(recipe.get("calories"))
+    protein = safe_float(recipe.get("protein"))
+    carbs = safe_float(recipe.get("carbs"))
+    fat = safe_float(recipe.get("fat"))
+    ingredient_count = len(recipe.get("ingredients_list", []))
+
+    model = load_ml_model()
+
+    if model is None:
+        return {
+            "ml_nutrition_fit": None,
+            "ml_nutrition_fit_percent": None,
+            "ml_model_used": "RandomForest model unavailable",
+            "ml_feature_inputs": {
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fat": fat,
+                "ingredient_count": ingredient_count,
+            },
+        }
+
+    try:
+        prediction = float(model.predict([[calories, protein, carbs, fat, ingredient_count]])[0])
+        prediction = max(0.0, min(100.0, prediction))
+
+        return {
+            "ml_nutrition_fit": round((prediction / 100.0) * 15.0, 1),
+            "ml_nutrition_fit_percent": round(prediction, 1),
+            "ml_model_used": type(model).__name__,
+            "ml_feature_inputs": {
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fat": fat,
+                "ingredient_count": ingredient_count,
+            },
+        }
+    except Exception:
+        return {
+            "ml_nutrition_fit": None,
+            "ml_nutrition_fit_percent": None,
+            "ml_model_used": "RandomForest prediction failed",
+            "ml_feature_inputs": {
+                "calories": calories,
+                "protein": protein,
+                "carbs": carbs,
+                "fat": fat,
+                "ingredient_count": ingredient_count,
+            },
+        }
+
+
 def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if recipe_contains_avoided_food(recipe, profile):
         return {
@@ -498,6 +604,8 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
             "why": "Filtered out because it conflicts with saved allergies or foods to avoid.",
             "filtered_out": True,
         }
+
+    nutrition_fit = calculate_ml_nutrition_fit(recipe)
 
     recipe_ingredients = recipe.get("ingredients_list", [])
     matched = []
@@ -600,6 +708,10 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "protein": recipe.get("protein"),
         "carbs": recipe.get("carbs"),
         "fat": recipe.get("fat"),
+        "ml_nutrition_fit": nutrition_fit.get("ml_nutrition_fit"),
+        "ml_nutrition_fit_percent": nutrition_fit.get("ml_nutrition_fit_percent"),
+        "ml_model_used": nutrition_fit.get("ml_model_used"),
+        "ml_feature_inputs": nutrition_fit.get("ml_feature_inputs"),
         "cook_time": recipe.get("cook_time"),
         "instructions": recipe.get("instructions"),
         "score": score,

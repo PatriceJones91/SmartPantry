@@ -2491,3 +2491,79 @@ button {
     min-width: 780px;
   }
 }
+
+/* ML Nutrition Fit restore */
+.nutritionFactsBox {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #bfdbfe;
+}
+
+.nutritionFactsHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.nutritionFactsHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.nutritionFactsHeader span {
+  font-weight: 900;
+  color: #2563eb;
+}
+
+.nutritionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.nutritionGrid div {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+}
+
+.nutritionGrid strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #0f172a;
+}
+
+.nutritionGrid span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.mlEvidenceLine {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .nutritionFactsHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .nutritionGrid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}

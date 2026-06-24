@@ -35,6 +35,25 @@ function scoreClass(score) {
   return "scoreLow";
 }
 
+function nutritionValue(recipe, key) {
+  const value = recipe?.[key];
+
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? Math.round(numberValue * 10) / 10 : null;
+}
+
+function displayNumber(value, suffix = "") {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+
+  return `${value}${suffix}`;
+}
+
 function normalizeText(value) {
   return String(value || "").toLowerCase().trim();
 }
@@ -497,6 +516,41 @@ export default function Recommendations() {
               {recipe.calories && <span>{recipe.calories} cal</span>}
               {recipe.protein && <span>{recipe.protein}g protein</span>}
             </div>
+
+            <div className="nutritionFactsBox">
+              <div className="nutritionFactsHeader">
+                <h3>Nutrition Facts + ML Fit</h3>
+                <span>
+                  ML Nutrition Fit: {displayNumber(recipe.ml_nutrition_fit, "/15")}
+                </span>
+              </div>
+
+              <div className="nutritionGrid">
+                <div>
+                  <strong>{displayNumber(nutritionValue(recipe, "calories"))}</strong>
+                  <span>Calories</span>
+                </div>
+                <div>
+                  <strong>{displayNumber(nutritionValue(recipe, "protein"), "g")}</strong>
+                  <span>Protein</span>
+                </div>
+                <div>
+                  <strong>{displayNumber(nutritionValue(recipe, "carbs"), "g")}</strong>
+                  <span>Carbs</span>
+                </div>
+                <div>
+                  <strong>{displayNumber(nutritionValue(recipe, "fat"), "g")}</strong>
+                  <span>Fat</span>
+                </div>
+              </div>
+
+              <div className="mlEvidenceLine">
+                <strong>Random Forest Output:</strong>{" "}
+                {displayNumber(recipe.ml_nutrition_fit_percent, "%")} using{" "}
+                {recipe.ml_model_used || "RandomForestRegressor"}
+              </div>
+            </div>
+
 
             {recipe.expiring_items && recipe.expiring_items.length > 0 && (
               <div className="expiringBox">
