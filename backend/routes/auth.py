@@ -1,31 +1,65 @@
-import hashlib
 from fastapi import APIRouter, HTTPException
-from models.schemas import RegisterRequest, LoginRequest
-from services.supabase_service import table, row
+from pydantic import BaseModel
+from services.supabase_service import table
 
 router = APIRouter()
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+class RegisterPayload(BaseModel):
+    username: str
+    password: str | None = None
+    role: str = "participant"
+
+
+class LoginPayload(BaseModel):
+    username: str
+    password: str | None = None
+
+
+def clean_user(user: dict) -> dict:
+    return {
+        "id": user.get("id"),
+        "username": user.get("username"),
+        "role": user.get("role", "participant"),
+    }
+
 
 @router.post("/register")
-def register(payload: RegisterRequest):
-    existing = table("sp2_users").select("*").eq("username", payload.username).execute()
+def register(payload: RegisterPayload):
+    username = payload.username.strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+
+    existing = table("sp2_users").select("*").eq("username", username).execute()
+
     if existing.data:
-        raise HTTPException(status_code=400, detail="Username already exists.")
-    role = payload.role if payload.role in ["participant", "admin"] else "participant"
-    created = table("sp2_users").insert({
-        "username": payload.username,
-        "password_hash": hash_password(payload.password),
-        "role": role,
-    }).execute()
-    user = row(created)
-    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+        return clean_user(existing.data[0])
+
+    new_user = {
+        "username": username,
+        "role": payload.role or "participant",
+    }
+
+    created = table("sp2_users").insert(new_user).execute()
+
+    if not created.data:
+        raise HTTPException(status_code=500, detail="Could not create user.")
+
+    return clean_user(created.data[0])
+
 
 @router.post("/login")
-def login(payload: LoginRequest):
-    found = table("sp2_users").select("*").eq("username", payload.username).execute()
-    user = row(found)
-    if not user or user["password_hash"] != hash_password(payload.password):
-        raise HTTPException(status_code=401, detail="Invalid username or password.")
-    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+def login(payload: LoginPayload):
+    username = payload.username.strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required.")
+
+    result = table("sp2_users").select("*").eq("username", username).execute()
+
+    if not result.data:
+        raise HTTPException(status_code=401, detail="User not found. Please create an account first.")
+
+    user = result.data[0]
+    return clean_user(user)
