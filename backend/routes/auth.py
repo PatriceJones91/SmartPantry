@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from services.supabase_service import table
+import hashlib
 import re
 
 router = APIRouter()
@@ -15,6 +16,10 @@ class RegisterPayload(BaseModel):
 class LoginPayload(BaseModel):
     username: str
     password: str
+
+
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 def validate_username(username: str) -> str:
@@ -59,26 +64,6 @@ def find_user(username: str):
         raise HTTPException(status_code=500, detail=f"Could not read user table: {str(exc)}")
 
 
-def create_user(username: str, password: str, role: str):
-    insert_attempts = [
-        {"username": username, "password": password, "role": role},
-        {"username": username, "role": role},
-        {"username": username},
-    ]
-
-    last_error = None
-
-    for new_user in insert_attempts:
-        try:
-            created = table("sp2_users").insert(new_user).execute()
-            if created.data:
-                return created.data[0]
-        except Exception as exc:
-            last_error = str(exc)
-
-    raise HTTPException(status_code=500, detail=f"Could not create user: {last_error}")
-
-
 @router.post("/register")
 def register(payload: RegisterPayload):
     username = validate_username(payload.username)
@@ -88,13 +73,29 @@ def register(payload: RegisterPayload):
     existing = find_user(username)
 
     if existing:
-        existing_password = existing.get("password")
-        if existing_password and existing_password != password:
+        stored_hash = existing.get("password_hash")
+        entered_hash = hash_password(password)
+
+        if stored_hash and stored_hash not in [entered_hash, password]:
             raise HTTPException(status_code=401, detail="Username already exists with a different password.")
+
         return clean_user(existing)
 
-    created_user = create_user(username, password, role)
-    return clean_user(created_user)
+    new_user = {
+        "username": username,
+        "password_hash": hash_password(password),
+        "role": role,
+    }
+
+    try:
+        created = table("sp2_users").insert(new_user).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not create user: {str(exc)}")
+
+    if not created.data:
+        raise HTTPException(status_code=500, detail="Could not create user.")
+
+    return clean_user(created.data[0])
 
 
 @router.post("/login")
@@ -107,9 +108,10 @@ def login(payload: LoginPayload):
     if not user:
         raise HTTPException(status_code=401, detail="User not found. Please create an account first.")
 
-    stored_password = user.get("password")
+    stored_hash = user.get("password_hash")
+    entered_hash = hash_password(password)
 
-    if stored_password and stored_password != password:
+    if stored_hash and stored_hash not in [entered_hash, password]:
         raise HTTPException(status_code=401, detail="Incorrect password.")
 
     return clean_user(user)
