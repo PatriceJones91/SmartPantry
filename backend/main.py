@@ -1,5 +1,5 @@
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
 
 from routes import auth, pantry, surveys, recommendations, admin, barcodes, profile
 
@@ -11,7 +11,9 @@ app = FastAPI(
 
 
 
-# CORS settings for local development and deployed frontend
+
+
+# CORS settings for Smart Pantry local and deployed frontend
 allowed_origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
@@ -22,12 +24,13 @@ allowed_origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\\.vercel\\.app",
-    allow_credentials=True,
+    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# CORS settings for local development and deployed frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
