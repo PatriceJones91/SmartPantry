@@ -22,13 +22,13 @@ export const api = {
   register: (payload) =>
     request("/auth/register", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ role: "participant", ...payload }),
     }),
 
   login: (payload) =>
     request("/auth/register", {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ role: "participant", ...payload }),
     }),
 
   getPantry: (userId) => request(`/pantry/${userId}`),
