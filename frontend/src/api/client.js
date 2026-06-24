@@ -26,7 +26,7 @@ export const api = {
     }),
 
   login: (payload) =>
-    request("/auth/login", {
+    request("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
