@@ -582,6 +582,56 @@ def calculate_ml_nutrition_fit(recipe: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+def calculate_everyday_recipe_fit(recipe: Dict[str, Any]) -> float:
+    """
+    Measures whether a recipe is realistic for everyday pantry use.
+    This is separate from the ML Nutrition Fit.
+    """
+    fit = 70.0
+
+    ingredient_count = len(recipe.get("ingredients_list", []))
+    cook_time = recipe.get("cook_time")
+
+    if recipe.get("source_type") == "core":
+        fit += 15
+    elif recipe.get("source_type") == "expanded":
+        fit += 5
+
+    if ingredient_count <= 5:
+        fit += 10
+    elif ingredient_count <= 8:
+        fit += 5
+    elif ingredient_count > 12:
+        fit -= 8
+
+    if cook_time is not None:
+        if cook_time <= 20:
+            fit += 8
+        elif cook_time <= 35:
+            fit += 4
+        elif cook_time > 60:
+            fit -= 8
+
+    return round(max(0, min(fit, 100)), 1)
+
+
+def estimate_coverage_with_smart_swaps(matched: List[str], missing: List[str], total_ingredients: int) -> float:
+    """
+    Estimates recipe coverage after allowing minor pantry substitutions.
+    Full smart swap option details are handled in the next phase.
+    """
+    total = max(total_ingredients, 1)
+
+    easy_missing = [
+        item for item in missing
+        if clean_ingredient(item) in LOW_VALUE_MISSING
+    ]
+
+    coverage = ((len(matched) + len(easy_missing)) / total) * 100
+
+    return round(max(0, min(coverage, 100)), 1)
+
+
 def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if recipe_contains_avoided_food(recipe, profile):
         return {
@@ -596,6 +646,10 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
             "cook_time": recipe.get("cook_time"),
             "instructions": recipe.get("instructions"),
             "score": -1,
+            "exact_pantry_match_percent": 0,
+            "coverage_with_smart_swaps_percent": 0,
+            "everyday_recipe_fit": 0,
+            "score_breakdown": {},
             "matched_ingredients": [],
             "missing_ingredients": [],
             "expiring_items": [],
@@ -630,6 +684,9 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
 
     total_ingredients = max(len(recipe_ingredients), 1)
     match_ratio = len(matched) / total_ingredients
+    exact_pantry_match_percent = round(match_ratio * 100, 1)
+    coverage_with_smart_swaps_percent = estimate_coverage_with_smart_swaps(matched, missing, total_ingredients)
+    everyday_recipe_fit = calculate_everyday_recipe_fit(recipe)
 
     match_score = match_ratio * 48
     matched_count_bonus = min(len(matched) * 4, 12)
@@ -695,6 +752,16 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
 
     score = max(0, min(round(score, 1), 100))
 
+    score_breakdown = {
+        "pantry_match": round(match_score + matched_count_bonus, 1),
+        "expiration_priority": round(expiring_bonus, 1),
+        "simplicity": round(simplicity_bonus, 1),
+        "data_source": round(source_boost, 1),
+        "profile_fit": round(profile_boost, 1),
+        "missing_penalty": round(missing_penalty, 1),
+        "no_match_penalty": round(no_match_penalty, 1),
+    }
+
     matched = [item for item in matched if is_real_ingredient(item)]
     missing = [item for item in missing if is_real_ingredient(item)]
     expiring_items = [item for item in expiring_items if item]
@@ -715,6 +782,10 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "cook_time": recipe.get("cook_time"),
         "instructions": recipe.get("instructions"),
         "score": score,
+        "exact_pantry_match_percent": exact_pantry_match_percent,
+        "coverage_with_smart_swaps_percent": coverage_with_smart_swaps_percent,
+        "everyday_recipe_fit": everyday_recipe_fit,
+        "score_breakdown": score_breakdown,
         "matched_ingredients": matched,
         "missing_ingredients": missing,
         "expiring_items": list(dict.fromkeys([item for item in expiring_items if item])),

@@ -2567,3 +2567,60 @@ button {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }
+
+/* Recommendation evidence restore */
+.recommendationEvidenceBox {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.recommendationEvidenceBox h3 {
+  margin: 0 0 12px;
+  color: #064e3b;
+}
+
+.evidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.evidenceGrid div {
+  background: #ffffff;
+  border: 1px solid #dcfce7;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+}
+
+.evidenceGrid strong {
+  display: block;
+  color: #052e16;
+  font-size: 1.1rem;
+}
+
+.evidenceGrid span {
+  display: block;
+  margin-top: 4px;
+  color: #166534;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.scoreBreakdownLine {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #dcfce7;
+  color: #14532d;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .evidenceGrid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}

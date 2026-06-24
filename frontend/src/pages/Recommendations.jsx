@@ -559,7 +559,38 @@ export default function Recommendations() {
 
             <div className="ingredientColumns">
               <div>
-                <h3>Matched Pantry Items</h3>
+  
+              <div className="recommendationEvidenceBox">
+                <h3>Recommendation Evidence</h3>
+
+                <div className="evidenceGrid">
+                  <div>
+                    <strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong>
+                    <span>Exact pantry match</span>
+                  </div>
+                  <div>
+                    <strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong>
+                    <span>Coverage with swaps</span>
+                  </div>
+                  <div>
+                    <strong>{displayNumber(recipe.everyday_recipe_fit, "/100")}</strong>
+                    <span>Everyday recipe fit</span>
+                  </div>
+                  <div>
+                    <strong>{displayNumber(recipe.score, "/100")}</strong>
+                    <span>Smart score</span>
+                  </div>
+                </div>
+
+                {recipe.score_breakdown && (
+                  <div className="scoreBreakdownLine">
+                    <strong>Smart Score is based on:</strong>{" "}
+                    pantry match, expiration priority, simplicity, profile fit, missing ingredients, and recipe source.
+                  </div>
+                )}
+              </div>
+
+              <h3>Matched Pantry Items</h3>
                 <div className="pillList goodPills">
                   {(recipe.matched_ingredients || []).length === 0 ? (
                     <span>None</span>
