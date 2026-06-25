@@ -801,13 +801,20 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
     total_ingredients = max(len(recipe_ingredients), 1)
     match_ratio = len(matched) / total_ingredients
     exact_pantry_match_percent = round(match_ratio * 100, 1)
-    smart_swaps = find_smart_swaps(missing, active_pantry)
-    coverage_with_smart_swaps_percent = estimate_coverage_with_smart_swaps(
-        matched,
-        missing,
-        total_ingredients,
-        smart_swaps,
-    )
+    try:
+        smart_swaps = find_smart_swaps(missing, active_pantry)
+    except Exception:
+        smart_swaps = []
+
+    try:
+        coverage_with_smart_swaps_percent = estimate_coverage_with_smart_swaps(
+            matched,
+            missing,
+            total_ingredients,
+            smart_swaps,
+        )
+    except Exception:
+        coverage_with_smart_swaps_percent = exact_pantry_match_percent
     everyday_recipe_fit = calculate_everyday_recipe_fit(recipe)
 
     match_score = match_ratio * 48
