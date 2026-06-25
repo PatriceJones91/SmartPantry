@@ -3003,3 +3003,86 @@ button {
     font-size: 0.58rem !important;
   }
 }
+
+/* Survey number-button scale replacement */
+.numberScaleGroup {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.numberScaleLabels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.numberScaleButtons {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(32px, 1fr));
+  gap: 8px;
+}
+
+.numberScaleButton {
+  min-height: 36px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.numberScaleGroup.hasSelection .numberScaleButton {
+  opacity: 0.45;
+}
+
+.numberScaleGroup.hasSelection .numberScaleButton.selected {
+  opacity: 1;
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.numberScaleSelected {
+  margin: 10px 0 0;
+  color: #2563eb;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+@media (max-width: 650px) {
+  .numberScaleGroup {
+    padding: 10px;
+  }
+
+  .numberScaleLabels {
+    font-size: 0.72rem;
+  }
+
+  .numberScaleButtons {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+  }
+
+  .numberScaleButton {
+    min-height: 34px;
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  .numberScaleSelected {
+    font-size: 0.8rem;
+  }
+}

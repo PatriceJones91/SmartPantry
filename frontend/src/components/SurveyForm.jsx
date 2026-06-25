@@ -153,20 +153,38 @@ export default function SurveyForm({ surveyType, title, description, questions }
               </label>
 
               {question.type === "scale" && (
-                <>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={answers[question.id]}
-                    onChange={(e) => change(question.id, e.target.value)}
-                  />
-                  <div className="scaleRow">
+                <div
+                  className={`numberScaleGroup ${answers[question.id] ? "hasSelection" : ""}`}
+                  role="radiogroup"
+                  aria-label={question.text}
+                >
+                  <div className="numberScaleLabels">
                     <span>1 - Low</span>
-                    <strong className="sliderValueBadge">Answer: {answers[question.id]} / 10</strong>
                     <span>10 - High</span>
                   </div>
-                </>
+
+                  <div className="numberScaleButtons">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number) => {
+                      const selected = String(answers[question.id]) === String(number);
+
+                      return (
+                        <button
+                          key={number}
+                          type="button"
+                          className={`numberScaleButton ${selected ? "selected" : ""}`}
+                          onClick={() => change(question.id, String(number))}
+                          aria-pressed={selected}
+                        >
+                          {number}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <p className="numberScaleSelected">
+                    Selected: {answers[question.id]} / 10
+                  </p>
+                </div>
               )}
 
               {question.type === "select" && (
