@@ -3191,3 +3191,136 @@ button {
     font-size: 0.82rem;
   }
 }
+
+/* Mockup-style Likert survey buttons */
+.likertScaleGroup {
+  margin-top: 14px !important;
+  padding: 14px !important;
+  border: 1px solid #dbeafe !important;
+  border-radius: 18px !important;
+  background: #f8fbff !important;
+}
+
+.likertButtons {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+.likertButton {
+  min-height: 48px !important;
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 42px 1fr !important;
+  align-items: center !important;
+  text-align: left !important;
+  padding: 10px 14px !important;
+  border: 1px solid #d7e3f0 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+}
+
+.likertScaleGroup.hasSelection .likertButton {
+  opacity: 0.55 !important;
+}
+
+.likertScaleGroup.hasSelection .likertButton.selected {
+  opacity: 1 !important;
+  border-color: #2563eb !important;
+  background: linear-gradient(135deg, #2563eb, #16a34a) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25) !important;
+}
+
+.likertNumber {
+  width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+}
+
+.likertButton.selected .likertNumber {
+  background: #ffffff !important;
+  color: #2563eb !important;
+}
+
+.likertLabel {
+  display: block !important;
+  font-size: 0.9rem !important;
+  line-height: 1.15 !important;
+  font-weight: 900 !important;
+}
+
+.likertSelected {
+  margin: 12px 0 0 !important;
+  padding: 8px 10px !important;
+  border-radius: 999px !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+}
+
+@media (min-width: 900px) {
+  .likertButtons {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+
+  .likertButton {
+    min-height: 78px !important;
+    grid-template-columns: 1fr !important;
+    justify-items: center !important;
+    text-align: center !important;
+    padding: 12px 8px !important;
+  }
+
+  .likertNumber {
+    margin-bottom: 8px !important;
+  }
+
+  .likertLabel {
+    font-size: 0.82rem !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .likertScaleGroup {
+    padding: 10px !important;
+  }
+
+  .likertButton {
+    min-height: 44px !important;
+    grid-template-columns: 36px 1fr !important;
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .likertNumber {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.72rem !important;
+  }
+
+  .likertLabel {
+    font-size: 0.78rem !important;
+  }
+
+  .likertSelected {
+    font-size: 0.75rem !important;
+    padding: 6px 8px !important;
+  }
+}
