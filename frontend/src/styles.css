@@ -2826,3 +2826,113 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* Fix survey answer badge size on desktop and mobile */
+.scaleRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  min-height: 46px !important;
+}
+
+.scaleRow span {
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+}
+
+.scaleRow strong {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 92px !important;
+  max-width: 120px !important;
+  height: 34px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 0.95rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* Smaller survey answer badge on phones */
+@media (max-width: 650px) {
+  .scaleRow {
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    min-height: 42px !important;
+  }
+
+  .scaleRow span {
+    font-size: 0.72rem !important;
+  }
+
+  .scaleRow strong {
+    min-width: 76px !important;
+    max-width: 90px !important;
+    height: 28px !important;
+    padding: 3px 8px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* Fix survey answer badge size on desktop and mobile */
+.scaleRow {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  min-height: 46px !important;
+}
+
+.scaleRow span {
+  font-size: 0.85rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+}
+
+.scaleRow strong {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 92px !important;
+  max-width: 120px !important;
+  height: 34px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 0.95rem !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* Smaller survey answer badge on phones */
+@media (max-width: 650px) {
+  .scaleRow {
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    min-height: 42px !important;
+  }
+
+  .scaleRow span {
+    font-size: 0.72rem !important;
+  }
+
+  .scaleRow strong {
+    min-width: 76px !important;
+    max-width: 90px !important;
+    height: 28px !important;
+    padding: 3px 8px !important;
+    font-size: 0.78rem !important;
+  }
+}
