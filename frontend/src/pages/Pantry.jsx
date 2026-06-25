@@ -988,12 +988,15 @@ async function scanReceiptWithOcr() {
         </form>
 
         <form className="formGrid pantryAddGrid" onSubmit={addItem}>
-          <input
+          <div className="formField" data-field-label="item-name">
+            <label className="fieldLabel">Item name</label>
+            <input
             placeholder="Item name"
             value={form.item_name}
             onChange={(e) => change("item_name", e.target.value)}
             required
           />
+          </div>
 
           <select
             value={form.category}
@@ -1004,7 +1007,9 @@ async function scanReceiptWithOcr() {
             ))}
           </select>
 
-          <input
+          <div className="formField" data-field-label="quantity">
+            <label className="fieldLabel">Quantity</label>
+            <input
             type="number"
             step="0.1"
             min="0"
@@ -1012,12 +1017,18 @@ async function scanReceiptWithOcr() {
             value={form.quantity}
             onChange={(e) => change("quantity", e.target.value)}
           />
-          <select value={form.unit} onChange={(e) => change("unit", e.target.value)}>
+          </div>
+          <div className="formField" data-field-label="unit">
+            <label className="fieldLabel">Unit</label>
+            <select value={form.unit} onChange={(e) => change("unit", e.target.value)}>
             {UNIT_OPTIONS.map((unit) => (
               <option key={unit}>{unit}</option>
             ))}
           </select>
-          <select
+          </div>
+          <div className="formField" data-field-label="container-type">
+            <label className="fieldLabel">Container type</label>
+            <select
             value={form.container_type}
             onChange={(e) => change("container_type", e.target.value)}
           >
@@ -1026,30 +1037,43 @@ async function scanReceiptWithOcr() {
               <option key={container}>{container}</option>
             ))}
           </select>
-          <input
+          </div>
+          <div className="formField" data-field-label="expiration-date">
+            <label className="fieldLabel">Expiration date</label>
+            <input
             type="date"
             value={form.expiration_date}
             onChange={(e) => change("expiration_date", e.target.value)}
           />
+          </div>
 
-          <input
+          <div className="formField" data-field-label="barcode-upc">
+            <label className="fieldLabel">Barcode / UPC</label>
+            <input
             placeholder="Barcode / UPC"
             value={form.barcode}
             onChange={(e) => change("barcode", e.target.value)}
           />
+          </div>
 
-          <input
+          <div className="formField" data-field-label="brand">
+            <label className="fieldLabel">Brand</label>
+            <input
             placeholder="Brand"
             value={form.brand}
             onChange={(e) => change("brand", e.target.value)}
           />
+          </div>
 
-          <input
+          <div className="formField" data-field-label="notes">
+            <label className="fieldLabel">Notes</label>
+            <input
             className="wideInput"
             placeholder="Notes"
             value={form.notes}
             onChange={(e) => change("notes", e.target.value)}
           />
+          </div>
 
           <button>Add Item</button>
         </form>
