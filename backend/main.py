@@ -1,5 +1,6 @@
 from fastapi import Request, Response
 from fastapi import FastAPI
+from routes.barcodes import router as barcodes_router
 
 from routes import auth, pantry, surveys, recommendations, admin, barcodes, profile
 
@@ -56,3 +57,6 @@ app.include_router(recommendations.router, prefix="/api/recommendations", tags=[
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(barcodes.router, prefix="/api/barcodes", tags=["barcodes"])
 app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
+
+
+app.include_router(barcodes_router, prefix="/api", tags=["barcodes"])
