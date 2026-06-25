@@ -3443,3 +3443,81 @@ button {
     font-size: 0.8rem !important;
   }
 }
+
+/* TRUE FINAL survey colors - overrides old blue/green gradient */
+.likertScaleGroup.hasSelection .likertButton {
+  opacity: 1 !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  background: #ffffff !important;
+}
+
+.likertScaleGroup.hasSelection .likertButton .likertLabel {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+/* Strongly Disagree */
+.likertScaleGroup.hasSelection .likertButton.selected:nth-child(1) {
+  background: #fee2e2 !important;
+  border: 2px solid #ef4444 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.16) !important;
+}
+
+/* Disagree */
+.likertScaleGroup.hasSelection .likertButton.selected:nth-child(2) {
+  background: #ffedd5 !important;
+  border: 2px solid #f97316 !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(249, 115, 22, 0.16) !important;
+}
+
+/* Neither Agree Nor Disagree */
+.likertScaleGroup.hasSelection .likertButton.selected:nth-child(3) {
+  background: #fef3c7 !important;
+  border: 2px solid #f59e0b !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.16) !important;
+}
+
+/* Agree */
+.likertScaleGroup.hasSelection .likertButton.selected:nth-child(4) {
+  background: #dcfce7 !important;
+  border: 2px solid #22c55e !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.16) !important;
+}
+
+/* Strongly Agree */
+.likertScaleGroup.hasSelection .likertButton.selected:nth-child(5) {
+  background: #d1fae5 !important;
+  border: 2px solid #16a34a !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.18) !important;
+}
+
+.likertScaleGroup.hasSelection .likertButton.selected .likertLabel {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+.likertSelected {
+  background: transparent !important;
+  color: #16a34a !important;
+  font-weight: 900 !important;
+  font-size: 0.95rem !important;
+}
+
+/* Keep mobile clean */
+@media (max-width: 650px) {
+  .likertButton {
+    min-height: 48px !important;
+  }
+
+  .likertLabel {
+    font-size: 0.84rem !important;
+    color: #0f172a !important;
+    font-weight: 900 !important;
+  }
+}
