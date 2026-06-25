@@ -28,3 +28,7 @@ def survey_status(user_id: str):
 def get_user_surveys(user_id: str):
     response = table("sp2_surveys").select("*").eq("user_id", user_id).execute()
     return rows(response)
+
+@router.get("/user/{user_id}")
+def get_user_surveys_by_user_path(user_id: str):
+    return get_user_surveys(user_id)
