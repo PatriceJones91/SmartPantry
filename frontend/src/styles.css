@@ -2936,3 +2936,70 @@ button {
     font-size: 0.78rem !important;
   }
 }
+
+/* FINAL survey slider answer layout fix */
+.surveyScaleRow {
+  display: grid !important;
+  grid-template-columns: minmax(52px, 1fr) auto minmax(60px, 1fr) !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  min-height: 40px !important;
+  overflow: hidden !important;
+}
+
+.surveyScaleRow .scaleEndpoint {
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  color: #334155 !important;
+  white-space: nowrap !important;
+}
+
+.surveyScaleRow .scaleEndpoint:last-child {
+  text-align: right !important;
+}
+
+.surveyAnswerValue {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 88px !important;
+  max-width: 110px !important;
+  min-height: 24px !important;
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  font-size: 0.78rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  position: static !important;
+  transform: none !important;
+  margin: 0 auto !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 650px) {
+  .surveyScaleRow {
+    grid-template-columns: 48px auto 58px !important;
+    gap: 4px !important;
+    padding: 6px 8px !important;
+    min-height: 34px !important;
+  }
+
+  .surveyScaleRow .scaleEndpoint {
+    font-size: 0.62rem !important;
+  }
+
+  .surveyAnswerValue {
+    min-width: 68px !important;
+    max-width: 78px !important;
+    min-height: 21px !important;
+    padding: 2px 5px !important;
+    font-size: 0.58rem !important;
+  }
+}
