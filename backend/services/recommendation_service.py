@@ -2,6 +2,7 @@ import ast
 import csv
 import json
 import re
+import warnings
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -11,10 +12,16 @@ try:
 except Exception:
     joblib = None
 
+try:
+    import pandas as pd
+except Exception:
+    pd = None
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 ML_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "random_forest_nutrition_fit_model.pkl"
 _ML_MODEL = None
 _ML_MODEL_CHECKED = False
+ML_FEATURE_NAMES = ["calories", "protein", "carbs", "fat", "ingredient_count"]
 
 RECIPE_SOURCES = [
     {
@@ -552,7 +559,22 @@ def calculate_ml_nutrition_fit(recipe: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     try:
-        prediction = float(model.predict([[calories, protein, carbs, fat, ingredient_count]])[0])
+        feature_values = {
+            "calories": calories,
+            "protein": protein,
+            "carbs": carbs,
+            "fat": fat,
+            "ingredient_count": ingredient_count,
+        }
+
+        if pd is not None:
+            features = pd.DataFrame([feature_values], columns=ML_FEATURE_NAMES)
+        else:
+            features = [[calories, protein, carbs, fat, ingredient_count]]
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            prediction = float(model.predict(features)[0])
         prediction = max(0.0, min(100.0, prediction))
 
         return {
