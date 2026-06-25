@@ -603,7 +603,28 @@ export default function Recommendations() {
               </div>
 
               <div>
-                <h3>Missing Ingredients</h3>
+                
+              {recipe.smart_swaps && recipe.smart_swaps.length > 0 && (
+                <div className="smartSwapOptionsBox">
+                  <h3>Smart Swap Options</h3>
+                  <p>
+                    These are possible pantry-based swaps. Review them before cooking to make sure they make sense for the meal.
+                  </p>
+
+                  <div className="smartSwapList">
+                    {recipe.smart_swaps.map((swap, index) => (
+                      <div className="smartSwapCard" key={`${swap.needed}-${swap.use_instead}-${index}`}>
+                        <strong>
+                          Use {swap.use_instead} for {swap.needed}
+                        </strong>
+                        <span>{swap.reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+<h3>Missing Ingredients</h3>
                 <div className="pillList missingPills">
                   {(recipe.missing_ingredients || []).length === 0 ? (
                     <span>None</span>

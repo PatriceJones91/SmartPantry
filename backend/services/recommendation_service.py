@@ -637,10 +637,101 @@ def calculate_everyday_recipe_fit(recipe: Dict[str, Any]) -> float:
     return round(max(0, min(fit, 100)), 1)
 
 
-def estimate_coverage_with_smart_swaps(matched: List[str], missing: List[str], total_ingredients: int) -> float:
+
+
+SMART_SWAP_FAMILIES = {
+    "protein": ["chicken", "turkey", "beef", "lamb", "fish", "salmon", "tuna", "shrimp", "egg", "eggs", "tofu", "beans", "lentils", "sausage"],
+    "grain": ["rice", "pasta", "noodle", "noodles", "bread", "tortilla", "flour", "oats", "quinoa", "cereal", "corn", "potato", "potatoes"],
+    "dairy": ["milk", "cheese", "cheddar", "mozzarella", "parmesan", "cream", "yogurt", "butter", "sour cream", "cottage cheese"],
+    "vegetable": ["broccoli", "cauliflower", "carrot", "pepper", "bell pepper", "onion", "spinach", "lettuce", "tomato", "tomatoes", "celery", "corn", "peas"],
+    "sauce_or_liquid": ["tomato sauce", "marinara", "salsa", "broth", "stock", "soup", "gravy", "dressing", "sauce"],
+    "fat_or_oil": ["oil", "olive oil", "vegetable oil", "canola oil", "butter"],
+    "seasoning": ["salt", "pepper", "garlic powder", "onion powder", "paprika", "seasoning", "italian seasoning"],
+    "sweetener": ["sugar", "honey", "syrup", "brown sugar"],
+}
+
+
+def get_pantry_item_name(item: Any) -> str:
+    if isinstance(item, dict):
+        return str(item.get("item_name") or item.get("name") or item.get("ingredient") or item.get("food") or "")
+    return str(item or "")
+
+
+def ingredient_family(name: str) -> str | None:
+    clean_name = clean_ingredient(name)
+
+    for family, terms in SMART_SWAP_FAMILIES.items():
+        for term in terms:
+            clean_term = clean_ingredient(term)
+            if clean_name == clean_term or clean_term in clean_name or clean_name in clean_term:
+                return family
+
+    return None
+
+
+def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+    pantry_names = []
+
+    for item in active_pantry:
+        item_name = get_pantry_item_name(item).strip()
+        if item_name:
+            pantry_names.append(item_name)
+
+    swaps = []
+    used_pairs = set()
+
+    for needed in missing:
+        needed_clean = clean_ingredient(needed)
+
+        if needed_clean in LOW_VALUE_MISSING:
+            continue
+
+        needed_family = ingredient_family(needed)
+
+        if not needed_family:
+            continue
+
+        for pantry_item in pantry_names:
+            pantry_clean = clean_ingredient(pantry_item)
+
+            if pantry_clean == needed_clean:
+                continue
+
+            pantry_family = ingredient_family(pantry_item)
+
+            if pantry_family != needed_family:
+                continue
+
+            pair_key = (needed_clean, pantry_clean)
+
+            if pair_key in used_pairs:
+                continue
+
+            used_pairs.add(pair_key)
+
+            swaps.append({
+                "needed": needed,
+                "use_instead": pantry_item,
+                "family": needed_family,
+                "confidence": "Possible",
+                "reason": "This pantry item is in the same ingredient family, so it may work as a practical swap depending on the recipe.",
+            })
+
+            break
+
+        if len(swaps) >= limit:
+            break
+
+    return swaps
+
+def estimate_coverage_with_smart_swaps(
+    matched: List[str],
+    missing: List[str],
+    total_ingredients: int,
+    smart_swaps: Optional[List[Dict[str, Any]]] = None,
+) -> float:
     """
     Estimates recipe coverage after allowing minor pantry substitutions.
-    Full smart swap option details are handled in the next phase.
     """
     total = max(total_ingredients, 1)
 
@@ -649,7 +740,9 @@ def estimate_coverage_with_smart_swaps(matched: List[str], missing: List[str], t
         if clean_ingredient(item) in LOW_VALUE_MISSING
     ]
 
-    coverage = ((len(matched) + len(easy_missing)) / total) * 100
+    swap_count = len(smart_swaps or [])
+
+    coverage = ((len(matched) + len(easy_missing) + swap_count) / total) * 100
 
     return round(max(0, min(coverage, 100)), 1)
 
@@ -670,6 +763,7 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
             "score": -1,
             "exact_pantry_match_percent": 0,
             "coverage_with_smart_swaps_percent": 0,
+            "smart_swaps": [],
             "everyday_recipe_fit": 0,
             "score_breakdown": {},
             "matched_ingredients": [],
@@ -707,7 +801,13 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
     total_ingredients = max(len(recipe_ingredients), 1)
     match_ratio = len(matched) / total_ingredients
     exact_pantry_match_percent = round(match_ratio * 100, 1)
-    coverage_with_smart_swaps_percent = estimate_coverage_with_smart_swaps(matched, missing, total_ingredients)
+    smart_swaps = find_smart_swaps(missing, active_pantry)
+    coverage_with_smart_swaps_percent = estimate_coverage_with_smart_swaps(
+        matched,
+        missing,
+        total_ingredients,
+        smart_swaps,
+    )
     everyday_recipe_fit = calculate_everyday_recipe_fit(recipe)
 
     match_score = match_ratio * 48
@@ -806,6 +906,7 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "score": score,
         "exact_pantry_match_percent": exact_pantry_match_percent,
         "coverage_with_smart_swaps_percent": coverage_with_smart_swaps_percent,
+        "smart_swaps": smart_swaps,
         "everyday_recipe_fit": everyday_recipe_fit,
         "score_breakdown": score_breakdown,
         "matched_ingredients": matched,
