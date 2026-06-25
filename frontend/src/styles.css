@@ -2624,3 +2624,46 @@ button {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }
+
+/* Smart Swap restore */
+.smartSwapOptionsBox {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+}
+
+.smartSwapOptionsBox h3 {
+  margin: 0 0 8px;
+  color: #155e75;
+}
+
+.smartSwapOptionsBox p {
+  margin: 0 0 12px;
+  color: #164e63;
+  font-weight: 700;
+}
+
+.smartSwapList {
+  display: grid;
+  gap: 10px;
+}
+
+.smartSwapCard {
+  background: #ffffff;
+  border: 1px solid #cffafe;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.smartSwapCard strong {
+  display: block;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.smartSwapCard span {
+  color: #475569;
+  font-size: 0.9rem;
+}
