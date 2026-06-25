@@ -163,7 +163,7 @@ export default function SurveyForm({ surveyType, title, description, questions }
                   />
                   <div className="scaleRow">
                     <span>1 - Low</span>
-                    <strong className="sliderValueBadge">Selected answer: {answers[question.id]} / 10</strong>
+                    <strong className="sliderValueBadge">Answer: {answers[question.id]} / 10</strong>
                     <span>10 - High</span>
                   </div>
                 </>

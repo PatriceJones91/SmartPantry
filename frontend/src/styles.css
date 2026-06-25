@@ -2745,3 +2745,22 @@ button {
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* Smaller survey selected answer badge */
+.sliderValueBadge {
+  min-width: auto !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  background: #e8f1ff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #b9d3ff !important;
+}
+
+.scaleRow {
+  align-items: center !important;
+  gap: 10px !important;
+}
