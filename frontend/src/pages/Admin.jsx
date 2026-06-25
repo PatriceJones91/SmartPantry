@@ -165,6 +165,173 @@ function downloadCsv(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
+
+
+function AdminAccountTools() {
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
+
+  const [resetForm, setResetForm] = useState({
+    admin_password: "",
+    target_username: "",
+    new_password: "Smart1234",
+  });
+
+  const [deleteForm, setDeleteForm] = useState({
+    admin_password: "",
+    target_username: "",
+    confirm_text: "",
+  });
+
+  const [toolMessage, setToolMessage] = useState("");
+  const [toolError, setToolError] = useState("");
+
+  function getAdminUsername() {
+    try {
+      const user = JSON.parse(localStorage.getItem("sp2_user") || "{}");
+      return user.username || "admin";
+    } catch {
+      return "admin";
+    }
+  }
+
+  function updateReset(field, value) {
+    setResetForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateDelete(field, value) {
+    setDeleteForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function sendAdminRequest(path, payload) {
+    setToolMessage("");
+    setToolError("");
+
+    const response = await fetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.detail || "The admin request did not work.");
+    }
+
+    return data;
+  }
+
+  async function handleResetPassword() {
+    try {
+      if (!resetForm.target_username || !resetForm.new_password || !resetForm.admin_password) {
+        setToolError("Enter the participant username, temporary password, and admin password.");
+        return;
+      }
+
+      const data = await sendAdminRequest("/auth/admin/reset-password", {
+        admin_username: getAdminUsername(),
+        admin_password: resetForm.admin_password,
+        target_username: resetForm.target_username,
+        new_password: resetForm.new_password,
+      });
+
+      setToolMessage(data.message || "Participant password was reset.");
+      setResetForm((current) => ({ ...current, admin_password: "" }));
+    } catch (err) {
+      setToolError(err.message);
+    }
+  }
+
+  async function handleDeleteTester() {
+    try {
+      if (!deleteForm.target_username || !deleteForm.confirm_text || !deleteForm.admin_password) {
+        setToolError("Enter the tester username, confirmation text, and admin password.");
+        return;
+      }
+
+      const data = await sendAdminRequest("/auth/admin/delete-test-user", {
+        admin_username: getAdminUsername(),
+        admin_password: deleteForm.admin_password,
+        target_username: deleteForm.target_username,
+        confirm_text: deleteForm.confirm_text,
+      });
+
+      setToolMessage(data.message || "Tester account was deleted.");
+      setDeleteForm({
+        admin_password: "",
+        target_username: "",
+        confirm_text: "",
+      });
+    } catch (err) {
+      setToolError(err.message);
+    }
+  }
+
+  return (
+    <section className="adminAccountTools">
+      <div>
+        <p className="sectionEyebrow">Admin account support</p>
+        <h2>Participant Account Tools</h2>
+        <p>
+          Use this section if a participant forgets their password or if a fake tester account needs to be removed.
+          Passwords are reset, not viewed.
+        </p>
+      </div>
+
+      <div className="adminToolGrid">
+        <div className="adminToolCard">
+          <h3>Reset participant password</h3>
+          <input
+            placeholder="Participant username"
+            value={resetForm.target_username}
+            onChange={(e) => updateReset("target_username", e.target.value)}
+          />
+          <input
+            placeholder="Temporary password"
+            value={resetForm.new_password}
+            onChange={(e) => updateReset("new_password", e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Admin password"
+            value={resetForm.admin_password}
+            onChange={(e) => updateReset("admin_password", e.target.value)}
+          />
+          <button type="button" onClick={handleResetPassword}>
+            Reset Password
+          </button>
+        </div>
+
+        <div className="adminToolCard dangerTool">
+          <h3>Delete fake/test account</h3>
+          <input
+            placeholder="Tester username"
+            value={deleteForm.target_username}
+            onChange={(e) => updateDelete("target_username", e.target.value)}
+          />
+          <input
+            placeholder='Type: DELETE username'
+            value={deleteForm.confirm_text}
+            onChange={(e) => updateDelete("confirm_text", e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Admin password"
+            value={deleteForm.admin_password}
+            onChange={(e) => updateDelete("admin_password", e.target.value)}
+          />
+          <button type="button" className="dangerButton" onClick={handleDeleteTester}>
+            Delete Tester Account
+          </button>
+        </div>
+      </div>
+
+      {toolMessage && <p className="success">{toolMessage}</p>}
+      {toolError && <p className="error">{toolError}</p>}
+    </section>
+  );
+}
+
 export default function Admin() {
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
@@ -631,7 +798,9 @@ export default function Admin() {
         <div className="adminSectionHeader">
           <div>
             <h2>Admin Evidence Tables</h2>
-            <p>Raw evidence tables for users, surveys, pantry items, and logs.</p>
+            <AdminAccountTools />
+
+        <p>Raw evidence tables for users, surveys, pantry items, and logs.</p>
           </div>
         </div>
 
