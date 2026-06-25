@@ -2724,3 +2724,24 @@ button {
   width: 100%;
   min-width: 0;
 }
+
+/* Survey slider selected value display */
+.sliderValueBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: #0f3f91;
+  border: 1px solid #b9d3ff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.scaleRow {
+  gap: 12px;
+  flex-wrap: wrap;
+}
