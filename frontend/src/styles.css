@@ -2667,3 +2667,28 @@ button {
   color: #475569;
   font-size: 0.9rem;
 }
+
+/* Participant pantry form polish */
+.fieldLabel {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.secondaryButton {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  padding: 14px 18px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background: #eff6ff;
+}

@@ -112,7 +112,7 @@ function normalizeItem(item) {
 
 function friendlyFetchError(err) {
   if (String(err.message || "").toLowerCase().includes("failed to fetch")) {
-    return "Failed to fetch. Make sure the backend terminal is running at http://127.0.0.1:8000.";
+    return "Could not connect to Smart Pantry. Please refresh the page and try again.";
   }
 
   return err.message || "Something went wrong.";
@@ -648,7 +648,27 @@ export default function Pantry() {
     setMessage("Receipt image loaded. Click Scan Receipt with OCR next.");
   }
 
-  async function scanReceiptWithOcr() {
+  
+function clearReceiptScan() {
+  if (receiptPreview) {
+    URL.revokeObjectURL(receiptPreview);
+  }
+
+  setReceiptFile(null);
+  setReceiptPreview("");
+  setOcrText("");
+  setDetectedItems([]);
+  setOcrProgress(0);
+  setMessage("");
+  setError("");
+
+  const fileInput = document.querySelector('input[type="file"][accept*="image"]');
+  if (fileInput) {
+    fileInput.value = "";
+  }
+}
+
+async function scanReceiptWithOcr() {
     setMessage("");
     setError("");
 
@@ -949,11 +969,22 @@ export default function Pantry() {
           <input
             value={barcodeSearch}
             onChange={(e) => setBarcodeSearch(e.target.value)}
-            placeholder="Search by barcode / UPC"
+            placeholder="Search by item name, barcode, or UPC"
           />
           <button type="submit" disabled={barcodeLoading}>
             {barcodeLoading ? "Searching..." : "Search UPC"}
           </button>
+
+              {(receiptFile || receiptPreview || ocrText || detectedItems.length > 0) && (
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  onClick={clearReceiptScan}
+                >
+                  Clear Receipt / Start Over
+                </button>
+              )}
+
         </form>
 
         <form className="formGrid pantryAddGrid" onSubmit={addItem}>
@@ -981,13 +1012,11 @@ export default function Pantry() {
             value={form.quantity}
             onChange={(e) => change("quantity", e.target.value)}
           />
-
           <select value={form.unit} onChange={(e) => change("unit", e.target.value)}>
             {UNIT_OPTIONS.map((unit) => (
               <option key={unit}>{unit}</option>
             ))}
           </select>
-
           <select
             value={form.container_type}
             onChange={(e) => change("container_type", e.target.value)}
@@ -997,7 +1026,6 @@ export default function Pantry() {
               <option key={container}>{container}</option>
             ))}
           </select>
-
           <input
             type="date"
             value={form.expiration_date}
