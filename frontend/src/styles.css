@@ -3324,3 +3324,122 @@ button {
     padding: 6px 8px !important;
   }
 }
+
+/* FINAL mockup-style survey agreement cards */
+.likertScaleGroup {
+  width: 100% !important;
+  margin-top: 14px !important;
+  padding: 14px !important;
+  border: 1px solid #dbeafe !important;
+  border-radius: 18px !important;
+  background: #f8fbff !important;
+}
+
+.likertButtons {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 14px !important;
+}
+
+.likertButton {
+  width: 100% !important;
+  min-height: 86px !important;
+  padding: 14px 10px !important;
+  border: 1px solid #d7e3f0 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Hide number/thumb area so only the words show */
+.likertNumber {
+  display: none !important;
+}
+
+.likertLabel {
+  display: block !important;
+  color: #0f172a !important;
+  font-size: 0.95rem !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+}
+
+/* Dim unselected cards after user chooses one */
+.likertScaleGroup.hasSelection .likertButton {
+  opacity: 0.45 !important;
+}
+
+/* Selected card stays clear */
+.likertScaleGroup.hasSelection .likertButton.selected {
+  opacity: 1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Color by selected answer */
+.likertButton.selected:nth-child(1) {
+  border-color: #ef4444 !important;
+  background: #fee2e2 !important;
+}
+
+.likertButton.selected:nth-child(2) {
+  border-color: #f97316 !important;
+  background: #ffedd5 !important;
+}
+
+.likertButton.selected:nth-child(3) {
+  border-color: #f59e0b !important;
+  background: #fef3c7 !important;
+}
+
+.likertButton.selected:nth-child(4) {
+  border-color: #22c55e !important;
+  background: #dcfce7 !important;
+}
+
+.likertButton.selected:nth-child(5) {
+  border-color: #16a34a !important;
+  background: #d1fae5 !important;
+}
+
+.likertSelected {
+  margin: 12px 0 0 !important;
+  color: #16a34a !important;
+  font-size: 0.95rem !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+}
+
+/* Mobile: stack answer cards so they are easy to tap */
+@media (max-width: 650px) {
+  .likertScaleGroup {
+    padding: 10px !important;
+  }
+
+  .likertButtons {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .likertButton {
+    min-height: 46px !important;
+    padding: 10px 12px !important;
+    text-align: center !important;
+  }
+
+  .likertLabel {
+    font-size: 0.84rem !important;
+  }
+
+  .likertSelected {
+    font-size: 0.8rem !important;
+  }
+}
