@@ -2,6 +2,20 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client.js";
 
+const LIKERT_OPTIONS = [
+  { value: "1", label: "Strongly Disagree" },
+  { value: "2", label: "Disagree" },
+  { value: "3", label: "Neither Agree Nor Disagree" },
+  { value: "4", label: "Agree" },
+  { value: "5", label: "Strongly Agree" },
+];
+
+function getLikertLabel(value) {
+  const found = LIKERT_OPTIONS.find((option) => option.value === String(value));
+  return found ? found.label : "Not selected";
+}
+
+
 function getUser() {
   return JSON.parse(localStorage.getItem("sp2_user"));
 }
@@ -11,7 +25,7 @@ function getDefaultAnswers(questions) {
 
   questions.forEach((question) => {
     if (question.type === "scale") {
-      answers[question.id] = "5";
+      answers[question.id] = "3";
     } else if (question.type === "select") {
       answers[question.id] = question.options?.[0] || "";
     } else {
@@ -154,35 +168,31 @@ export default function SurveyForm({ surveyType, title, description, questions }
 
               {question.type === "scale" && (
                 <div
-                  className={`numberScaleGroup ${answers[question.id] ? "hasSelection" : ""}`}
+                  className={`likertScaleGroup ${answers[question.id] ? "hasSelection" : ""}`}
                   role="radiogroup"
                   aria-label={question.text}
                 >
-                  <div className="numberScaleLabels">
-                    <span>1 - Low</span>
-                    <span>10 - High</span>
-                  </div>
-
-                  <div className="numberScaleButtons">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((number) => {
-                      const selected = String(answers[question.id]) === String(number);
+                  <div className="likertButtons">
+                    {LIKERT_OPTIONS.map((option) => {
+                      const selected = String(answers[question.id]) === option.value;
 
                       return (
                         <button
-                          key={number}
+                          key={option.value}
                           type="button"
-                          className={`numberScaleButton ${selected ? "selected" : ""}`}
-                          onClick={() => change(question.id, String(number))}
+                          className={`likertButton ${selected ? "selected" : ""}`}
+                          onClick={() => change(question.id, option.value)}
                           aria-pressed={selected}
                         >
-                          {number}
+                          <span className="likertNumber">{option.value}</span>
+                          <span className="likertLabel">{option.label}</span>
                         </button>
                       );
                     })}
                   </div>
 
-                  <p className="numberScaleSelected">
-                    Selected: {answers[question.id]} / 10
+                  <p className="likertSelected">
+                    Selected: {getLikertLabel(answers[question.id])}
                   </p>
                 </div>
               )}

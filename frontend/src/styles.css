@@ -3086,3 +3086,108 @@ button {
     font-size: 0.8rem;
   }
 }
+
+/* Likert-style survey agreement buttons */
+.likertScaleGroup {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.likertButtons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.likertButton {
+  min-height: 88px;
+  padding: 12px 10px;
+  border: 1px solid #d7e3f0;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.likertScaleGroup.hasSelection .likertButton {
+  opacity: 0.45;
+}
+
+.likertScaleGroup.hasSelection .likertButton.selected {
+  opacity: 1;
+  border-color: #16a34a;
+  background: #ecfdf5;
+  color: #065f46;
+  box-shadow: 0 10px 20px rgba(22, 163, 74, 0.18);
+}
+
+.likertNumber {
+  display: block;
+  margin: 0 auto 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  line-height: 28px;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.likertButton.selected .likertNumber {
+  background: #16a34a;
+  color: white;
+}
+
+.likertLabel {
+  display: block;
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+
+.likertSelected {
+  margin: 12px 0 0;
+  color: #16a34a;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+@media (max-width: 850px) {
+  .likertButtons {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .likertButton {
+    min-height: 52px;
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    align-items: center;
+    text-align: left;
+    padding: 9px 12px;
+  }
+
+  .likertNumber {
+    margin: 0;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+
+  .likertLabel {
+    font-size: 0.85rem;
+  }
+
+  .likertSelected {
+    font-size: 0.82rem;
+  }
+}
