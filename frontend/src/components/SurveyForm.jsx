@@ -70,7 +70,7 @@ export default function SurveyForm({ surveyType, title, description, questions }
         comments: textResponses,
       });
 
-      setMessage("Survey submitted. Thank you.");
+      setMessage("Survey saved successfully. You may continue using Smart Pantry.");
 
       const updatedStatus = await api.getSurveyStatus(user.id);
       setStatus(updatedStatus);
