@@ -49,8 +49,15 @@ STOP_WORDS = {
 }
 
 LOW_VALUE_MISSING = {
-    "salt", "pepper", "water", "ice", "cooking spray", "spray", "seasoning",
-    "garlic powder", "onion powder", "paprika", "parsley", "basil", "oregano",
+    "salt", "sea salt", "kosher salt", "table salt", "truffle salt",
+    "pepper", "black pepper", "white pepper", "ground pepper",
+    "water", "ice", "ice water", "cooking spray", "spray", "nonstick spray",
+    "seasoning", "seasoning salt", "italian seasoning", "taco seasoning",
+    "garlic powder", "onion powder", "paprika", "smoked paprika",
+    "cayenne", "cayenne pepper", "red pepper flakes", "chili powder",
+    "parsley", "basil", "oregano", "thyme", "rosemary", "cilantro", "cumin",
+    "oil", "cooking oil", "vegetable oil", "olive oil", "canola oil",
+    "vinegar", "white vinegar", "apple cider vinegar",
 }
 
 
@@ -70,6 +77,307 @@ METADATA_INGREDIENT_WORDS = {
     "none",
     "nan",
 }
+
+
+# Ported from the original Smart Pantry recommendation quality filters.
+OPTIONAL_STAPLES = {
+    "salt", "sea salt", "kosher salt", "table salt", "truffle salt",
+    "pepper", "black pepper", "white pepper", "ground pepper",
+    "garlic powder", "onion powder", "paprika", "smoked paprika",
+    "cayenne", "cayenne pepper", "red pepper flakes", "chili powder",
+    "seasoning", "seasoning salt", "italian seasoning", "taco seasoning",
+    "cinnamon", "nutmeg", "oregano", "basil", "thyme", "rosemary",
+    "parsley", "cilantro", "cumin", "bay leaf", "bay leaves",
+    "water", "ice", "ice water", "cooking spray", "nonstick spray",
+    "oil", "cooking oil", "vegetable oil", "olive oil", "canola oil",
+    "vinegar", "white vinegar", "apple cider vinegar",
+}
+
+COMMON_PANTRY_INGREDIENTS = {
+    "rice", "pasta", "spaghetti", "macaroni", "bread", "tortilla", "tortillas",
+    "eggs", "egg", "milk", "cheese", "butter", "yogurt", "sour cream",
+    "chicken", "turkey", "ground beef", "beef", "tuna", "salmon", "shrimp", "fish",
+    "beans", "black beans", "pinto beans", "kidney beans", "chickpeas", "lentils",
+    "potatoes", "sweet potatoes", "tomatoes", "tomato", "tomato sauce", "salsa",
+    "lettuce", "spinach", "broccoli", "carrots", "peas", "corn", "onion", "onions",
+    "bell pepper", "peppers", "celery", "zucchini", "cabbage", "cucumber",
+    "apples", "apple", "bananas", "banana", "strawberries", "blueberries", "berries",
+    "oats", "cereal", "flour", "sugar", "peanut butter", "jelly", "jam",
+    "crackers", "soup", "chicken broth", "broth", "sausage", "bacon", "tofu",
+}
+
+PRACTICAL_CUISINES = {
+    "american", "italian", "mexican", "southern", "mediterranean", "asian",
+    "chinese", "japanese", "thai", "indian", "middle eastern", "caribbean", "french",
+}
+
+UNWANTED_DISH_TERMS = {
+    "cocktail", "cocktails", "drink", "drinks", "beverage", "sauce", "marinade",
+    "dressing", "dip", "condiment", "seasoning", "spice mix", "syrup",
+}
+
+BAD_RECIPE_TERMS = {
+    "dog", "dogs", "puppy", "puppies", "cat", "cats", "kitten", "pet", "pets",
+    "kibble", "hamster", "horse", "bird", "slime", "playdough", "soap", "lotion",
+    "shampoo", "cleaner", "detergent", "paint", "glue",
+}
+
+BLOG_NAME_PATTERNS = [
+    r"^eat for (?:eight|8) bucks:\s*",
+    r"^\$?\d+\s*(?:dollar|buck)s?:\s*",
+    r"\bgrandma(?:'s)?\b",
+    r"\bgrandmother(?:'s)?\b",
+    r"\bmom(?:'s)?\b",
+    r"\bmama(?:'s)?\b",
+    r"\bdad(?:'s)?\b",
+    r"\baunt(?:ie's|'s)?\b",
+    r"\bnana(?:'s)?\b",
+    r"\bcopycat\b",
+    r"\bfamous\b",
+    r"\baward winning\b",
+    r"\bbest ever\b",
+    r"\bworld's best\b",
+    r"\brestaurant style\b",
+]
+
+DISH_STYLE_TERMS = {
+    "casserole": ["casserole", "bake", "baked"],
+    "salad": ["salad"],
+    "sandwich": ["sandwich", "melt", "toast"],
+    "wrap": ["wrap", "tortilla", "burrito", "quesadilla", "taco"],
+    "soup": ["soup", "stew", "chili"],
+    "pasta": ["pasta", "spaghetti", "macaroni", "noodle", "noodles"],
+    "rice_bowl": ["rice", "bowl", "fried rice"],
+    "breakfast": ["egg", "toast", "oat", "pancake", "waffle", "breakfast"],
+    "skillet": ["skillet", "stir fry", "stir-fry"],
+}
+
+
+def normalize_plural_ingredient(value):
+    value = clean_ingredient(value)
+
+    irregular = {
+        "tomatoes": "tomato",
+        "potatoes": "potato",
+        "mushrooms": "mushroom",
+        "strawberries": "strawberry",
+        "blueberries": "blueberry",
+        "tortillas": "tortilla",
+        "eggs": "egg",
+        "slices": "slice",
+    }
+
+    if value in irregular:
+        return irregular[value]
+
+    if len(value) > 4 and value.endswith("ies"):
+        return value[:-3] + "y"
+
+    if len(value) > 3 and value.endswith("es"):
+        return value[:-2]
+
+    if len(value) > 3 and value.endswith("s") and not value.endswith("ss"):
+        return value[:-1]
+
+    return value
+
+
+def clean_recipe_display_name(name):
+    cleaned = str(name or "Recipe").strip()
+
+    if ":" in cleaned:
+        prefix, rest = cleaned.split(":", 1)
+        if re.search(r"buck|dollar|budget|eat for|quick tip|recipe", prefix, re.I):
+            cleaned = rest.strip()
+
+    for pattern in BLOG_NAME_PATTERNS:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.I).strip()
+
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    cleaned = cleaned.strip(" -_.,:;'")
+
+    if not cleaned:
+        cleaned = str(name or "Recipe").strip()
+
+    return cleaned[:80].title()
+
+
+def is_optional_staple(ingredient):
+    ingredient = normalize_plural_ingredient(ingredient)
+
+    if ingredient in OPTIONAL_STAPLES:
+        return True
+
+    return any(staple in ingredient for staple in OPTIONAL_STAPLES if len(staple.split()) > 1)
+
+
+def is_low_value_missing(ingredient):
+    return is_optional_staple(ingredient)
+
+
+def get_main_recipe_ingredients(ingredients):
+    cleaned = []
+    seen = set()
+
+    for ingredient in ingredients:
+        ingredient = normalize_plural_ingredient(ingredient)
+
+        if not ingredient or ingredient in seen:
+            continue
+
+        if is_optional_staple(ingredient):
+            continue
+
+        if len(ingredient) <= 1:
+            continue
+
+        cleaned.append(ingredient)
+        seen.add(ingredient)
+
+    return cleaned
+
+
+def recipe_has_bad_title(recipe_name):
+    name = str(recipe_name or "").lower()
+    words = set(re.sub(r"[^a-z0-9\s]", " ", name).split())
+
+    if not name.strip():
+        return True
+
+    if len(name) > 95:
+        return True
+
+    if words.intersection(BAD_RECIPE_TERMS):
+        # Allow "hot dog" as human food, but block dog food/pet records.
+        if "hot" not in words:
+            return True
+
+    if re.search(r"\bdog\s+food\b|\bdog\s+treats?\b|\btreats?\s+for\s+dogs?\b|\bcat\s+food\b|\bpet\s+food\b|\bkibble\b", name):
+        return True
+
+    return False
+
+
+def calculate_recipe_quality_score(recipe_name, ingredients, cuisine="", meal_type="", dish_type=""):
+    name = str(recipe_name or "").lower()
+    cuisine_text = str(cuisine or "").lower()
+    meal_text = f"{meal_type} {dish_type}".lower()
+    ingredient_count = len(ingredients)
+
+    score = 50
+
+    if 3 <= ingredient_count <= 8:
+        score += 20
+    elif ingredient_count == 2 or 9 <= ingredient_count <= 10:
+        score += 10
+    elif ingredient_count > 10:
+        score -= min((ingredient_count - 10) * 5, 30)
+    else:
+        score -= 20
+
+    common_count = sum(
+        1
+        for item in ingredients
+        if item in COMMON_PANTRY_INGREDIENTS
+        or any(item in common or common in item for common in COMMON_PANTRY_INGREDIENTS)
+    )
+
+    if ingredient_count:
+        common_ratio = common_count / ingredient_count
+        score += int(common_ratio * 25)
+
+    if any(cuisine in cuisine_text for cuisine in PRACTICAL_CUISINES):
+        score += 8
+
+    if any(
+        term in name or term in meal_text
+        for term in [
+            "pasta", "spaghetti", "rice", "bowl", "sandwich", "wrap", "soup",
+            "salad", "casserole", "taco", "quesadilla", "toast", "skillet", "bake",
+        ]
+    ):
+        score += 8
+
+    if any(term in name or term in meal_text for term in UNWANTED_DISH_TERMS):
+        score -= 35
+
+    if recipe_has_bad_title(recipe_name):
+        score -= 60
+
+    if len(str(recipe_name)) > 90:
+        score -= 8
+
+    if re.search(r"\b(test|mock|unknown)\b", name):
+        score -= 20
+
+    return max(0, min(score, 100))
+
+
+def get_dish_style(recipe_name, ingredients):
+    text = clean_ingredient(str(recipe_name) + " " + " ".join(ingredients))
+
+    for style, terms in DISH_STYLE_TERMS.items():
+        if any(term in text for term in terms):
+            return style
+
+    return "general"
+
+
+def get_core_recipe_groups(ingredients):
+    groups = []
+
+    for ingredient in ingredients:
+        group = ingredient_family(ingredient)
+
+        if group and group not in groups:
+            groups.append(group)
+
+    return groups
+
+
+def get_recipe_family_key_from_values(recipe_name, ingredients):
+    ingredients = [clean_ingredient(item) for item in ingredients]
+    dish_style = get_dish_style(recipe_name, ingredients)
+    core_groups = get_core_recipe_groups(ingredients)
+
+    protein_groups = [
+        group for group in core_groups
+        if group in ["protein"]
+    ]
+
+    base_groups = [
+        group for group in core_groups
+        if group in ["grain", "vegetable", "sauce_or_liquid"]
+    ]
+
+    protein_key = "+".join(sorted(protein_groups[:2])) or "no_main_protein"
+    base_key = "+".join(sorted(base_groups[:2])) or "no_main_base"
+
+    title_words = [
+        word for word in clean_ingredient(recipe_name).split()
+        if word not in {"easy", "simple", "quick", "best", "homemade", "classic", "with", "and", "the", "recipe"}
+    ]
+
+    title_key = "+".join(sorted(title_words[:5]))
+
+    return f"{protein_key}|{base_key}|{dish_style}|{title_key}"
+
+
+def prioritize_recommendation_diversity(recommendations):
+    first_best_by_family = []
+    duplicate_family_backups = []
+    seen_families = set()
+
+    for item in recommendations:
+        family_key = item.get("recipe_family_key", "")
+
+        if family_key not in seen_families:
+            first_best_by_family.append(item)
+            seen_families.add(family_key)
+        else:
+            duplicate_family_backups.append(item)
+
+    return first_best_by_family + duplicate_family_backups
 
 
 def normalize_key(value: str) -> str:
@@ -292,20 +600,37 @@ def row_to_recipe(row: Dict[str, Any], source: Dict[str, Any]) -> Optional[Dict[
         ],
     )
 
+    display_name = clean_recipe_display_name(name)
     ingredients = parse_ingredients(ingredients_value)
+    ingredients = get_main_recipe_ingredients(ingredients)
 
-    if not name or len(ingredients) < 2 or len(ingredients) > 18:
+    if not display_name or len(ingredients) < 2 or len(ingredients) > 10:
         return None
 
     category = get_first(row, ["category", "recipe_category", "RecipeCategory", "dish_type"], "")
-    meal_type = get_first(row, ["meal_type", "meal", "course", "MealType"], "") or infer_meal_type(name, category)
+    meal_type = get_first(row, ["meal_type", "meal", "course", "MealType"], "") or infer_meal_type(display_name, category)
+    cuisine_type = get_first(row, ["cuisine_type", "cuisine", "Cuisine", "region"], "Everyday")
+    dish_type = get_first(row, ["dish_type", "RecipeCategory", "category"], category or "Meal")
+
+    recipe_quality_score = calculate_recipe_quality_score(
+        display_name,
+        ingredients,
+        cuisine=cuisine_type,
+        meal_type=meal_type,
+        dish_type=dish_type,
+    )
+
+    if recipe_quality_score < 40:
+        return None
 
     return {
-        "recipe_name": name,
+        "recipe_name": display_name,
+        "recipe_family_key": get_recipe_family_key_from_values(display_name, ingredients),
+        "recipe_quality_score": recipe_quality_score,
         "ingredients_list": ingredients,
         "meal_type": meal_type,
-        "cuisine_type": get_first(row, ["cuisine_type", "cuisine", "Cuisine", "region"], "Everyday"),
-        "dish_type": get_first(row, ["dish_type", "RecipeCategory", "category"], category or "Meal"),
+        "cuisine_type": cuisine_type,
+        "dish_type": dish_type,
         "calories": get_first(row, ["calories", "Calories"], ""),
         "protein": get_first(row, ["protein", "ProteinContent", "protein_g"], ""),
         "carbs": get_first(row, ["carbs", "CarbohydrateContent", "carbohydrates", "carbs_g"], ""),
@@ -343,7 +668,7 @@ def load_recipes() -> List[Dict[str, Any]]:
                 if not recipe:
                     continue
 
-                name_key = simplify(recipe["recipe_name"])
+                name_key = recipe.get("recipe_family_key") or simplify(recipe["recipe_name"])
 
                 if name_key in seen_names:
                     continue
@@ -683,7 +1008,7 @@ def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], li
     for needed in missing:
         needed_clean = clean_ingredient(needed)
 
-        if needed_clean in LOW_VALUE_MISSING:
+        if is_low_value_missing(needed_clean):
             continue
 
         needed_family = ingredient_family(needed)
@@ -737,7 +1062,7 @@ def estimate_coverage_with_smart_swaps(
 
     easy_missing = [
         item for item in missing
-        if clean_ingredient(item) in LOW_VALUE_MISSING
+        if is_low_value_missing(item)
     ]
 
     swap_count = len(smart_swaps or [])
@@ -798,11 +1123,15 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         else:
             missing.append(ingredient)
 
+    missing = [item for item in missing if not is_low_value_missing(item)]
+    matched = [item for item in matched if not is_low_value_missing(item)]
+    recipe_ingredients = [item for item in recipe_ingredients if not is_low_value_missing(item)]
+
     total_ingredients = max(len(recipe_ingredients), 1)
     match_ratio = len(matched) / total_ingredients
     exact_pantry_match_percent = round(match_ratio * 100, 1)
     try:
-        smart_swaps = find_smart_swaps(missing, active_pantry)
+        smart_swaps = find_smart_swaps(missing, pantry_items)
     except Exception:
         smart_swaps = []
 
@@ -864,7 +1193,7 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
 
     source_boost = recipe.get("source_boost", 0)
     profile_boost = preference_boost(recipe, profile)
-    missing_penalty = len([item for item in missing if item not in LOW_VALUE_MISSING]) * 5
+    missing_penalty = len([item for item in missing if not is_low_value_missing(item)]) * 5
     no_match_penalty = 18 if len(matched) == 0 else 0
 
     score = (
@@ -891,8 +1220,8 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "no_match_penalty": round(no_match_penalty, 1),
     }
 
-    matched = [item for item in matched if is_real_ingredient(item)]
-    missing = [item for item in missing if is_real_ingredient(item)]
+    matched = [item for item in matched if is_real_ingredient(item) and not is_low_value_missing(item)]
+    missing = [item for item in missing if is_real_ingredient(item) and not is_low_value_missing(item)]
     expiring_items = [item for item in expiring_items if item]
 
     return {
@@ -921,6 +1250,8 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "expiring_items": list(dict.fromkeys([item for item in expiring_items if item])),
         "source_type": recipe.get("source_type"),
         "source_label": recipe.get("source_label"),
+        "recipe_family_key": recipe.get("recipe_family_key"),
+        "recipe_quality_score": recipe.get("recipe_quality_score"),
         "why": build_reason(matched, missing, expiring_items, recipe, profile),
     }
 
@@ -960,15 +1291,25 @@ def generate_recommendations(pantry_items: List[Dict[str, Any]], profile: Option
     scored = [recipe for recipe in scored if recipe.get("recipe_name") and not recipe.get("filtered_out") and recipe.get("score", 0) >= 0]
     scored.sort(key=lambda item: item["score"], reverse=True)
 
+    scored = prioritize_recommendation_diversity(scored)
+
     selected = []
     selected_names = set()
+    selected_families = set()
 
     for recipe in scored:
         if len(selected) >= 10:
             break
 
+        name_key = simplify(recipe["recipe_name"])
+        family_key = recipe.get("recipe_family_key") or name_key
+
+        if name_key in selected_names or family_key in selected_families:
+            continue
+
         selected.append(recipe)
-        selected_names.add(simplify(recipe["recipe_name"]))
+        selected_names.add(name_key)
+        selected_families.add(family_key)
 
     expanded_added = 0
 
@@ -980,8 +1321,9 @@ def generate_recommendations(pantry_items: List[Dict[str, Any]], profile: Option
             continue
 
         name_key = simplify(recipe["recipe_name"])
+        family_key = recipe.get("recipe_family_key") or name_key
 
-        if name_key in selected_names:
+        if name_key in selected_names or family_key in selected_families:
             continue
 
         if recipe.get("score", 0) < 25:
@@ -989,6 +1331,7 @@ def generate_recommendations(pantry_items: List[Dict[str, Any]], profile: Option
 
         selected.append(recipe)
         selected_names.add(name_key)
+        selected_families.add(family_key)
         expanded_added += 1
 
     return selected
@@ -999,7 +1342,7 @@ def grocery_suggestions(recommendations: List[Dict[str, Any]]) -> List[str]:
 
     for rec in recommendations[:8]:
         for item in rec.get("missing_ingredients", []):
-            if item in LOW_VALUE_MISSING:
+            if is_low_value_missing(item):
                 continue
 
             counts[item] = counts.get(item, 0) + 1
