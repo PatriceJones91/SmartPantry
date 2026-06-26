@@ -113,6 +113,7 @@ export default function Recommendations() {
   const [feedback, setFeedback] = useState({});
   const [filter, setFilter] = useState("all");
   const [usageByRecipe, setUsageByRecipe] = useState({});
+  const [selectedSmartSwaps, setSelectedSmartSwaps] = useState({});
   const [customMealName, setCustomMealName] = useState("");
   const [customMealNotes, setCustomMealNotes] = useState("");
   const [customUsageRows, setCustomUsageRows] = useState([
@@ -130,6 +131,131 @@ export default function Recommendations() {
       setError("Could not load pantry items for ingredient tracking.");
     });
   }, []);
+
+
+  function normalizeSmartSwapText(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function findPantryItemForSwap(swap) {
+    const swapName = swap.use_instead || swap.substitute || swap.useInstead || "";
+    const cleanSwapName = normalizeSmartSwapText(swapName);
+
+    if (!cleanSwapName) {
+      return null;
+    }
+
+    return pantryItems.find((item) => {
+      const cleanItemName = normalizeSmartSwapText(item.item_name || item.name || "");
+
+      if (!cleanItemName) {
+        return false;
+      }
+
+      return (
+        cleanItemName === cleanSwapName ||
+        cleanItemName.includes(cleanSwapName) ||
+        cleanSwapName.includes(cleanItemName)
+      );
+    });
+  }
+
+  function getSelectedSwapsForRecipe(recipe) {
+    return selectedSmartSwaps[recipe.recipe_name] || [];
+  }
+
+  function buildSmartSwapNotes(recipe) {
+    const swaps = getSelectedSwapsForRecipe(recipe);
+
+    if (!swaps.length) {
+      return "";
+    }
+
+    return swaps
+      .map((swap) => {
+        const needed = swap.needed || swap.missing || "missing ingredient";
+        const useInstead = swap.use_instead || swap.substitute || "selected pantry item";
+        return `${useInstead} used instead of ${needed}`;
+      })
+      .join("; ");
+  }
+
+  function buildActionNotes(recipe) {
+    const typedNote = feedback[recipe.recipe_name] || "";
+    const swapNote = buildSmartSwapNotes(recipe);
+
+    if (typedNote && swapNote) {
+      return `${typedNote}\nSmart Swap Used: ${swapNote}`;
+    }
+
+    if (swapNote) {
+      return `Smart Swap Used: ${swapNote}`;
+    }
+
+    return typedNote;
+  }
+
+  function selectSmartSwap(recipe, swap) {
+    const pantryItem = findPantryItemForSwap(swap);
+    const needed = swap.needed || swap.missing || "the missing ingredient";
+    const useInstead = swap.use_instead || swap.substitute || swap.useInstead || "";
+
+    if (!pantryItem) {
+      setError(`I could not find ${useInstead} in this pantry account. Add it to My Pantry first, then select the swap again.`);
+      return;
+    }
+
+    setError("");
+    setMessage(`Smart swap selected: use ${useInstead} instead of ${needed}. Enter the amount used, then click Made Meal or Used Elsewhere.`);
+
+    setSelectedSmartSwaps((previous) => {
+      const current = previous[recipe.recipe_name] || [];
+      const exists = current.some((item) => {
+        const currentNeeded = item.needed || item.missing || "";
+        const currentUseInstead = item.use_instead || item.substitute || "";
+        return (
+          normalizeSmartSwapText(currentNeeded) === normalizeSmartSwapText(needed) &&
+          normalizeSmartSwapText(currentUseInstead) === normalizeSmartSwapText(useInstead)
+        );
+      });
+
+      if (exists) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [recipe.recipe_name]: [...current, swap],
+      };
+    });
+
+    setUsageByRecipe((previous) => {
+      const currentRows = previous[recipe.recipe_name] || [];
+      const alreadyAdded = currentRows.some((row) => row.item_id === pantryItem.id);
+
+      if (alreadyAdded) {
+        return previous;
+      }
+
+      const swapRow = {
+        item_id: pantryItem.id,
+        item_name: pantryItem.item_name || pantryItem.name || useInstead,
+        amount_used: "",
+        unit: pantryItem.unit || "item",
+        current_quantity: pantryItem.quantity ?? pantryItem.current_quantity ?? "",
+      };
+
+      return {
+        ...previous,
+        [recipe.recipe_name]: [...currentRows, swapRow],
+      };
+    });
+  }
+
 
   async function generate() {
     setLoading(true);
@@ -247,7 +373,7 @@ export default function Recommendations() {
         recipe_name: recipe.recipe_name,
         action: actionName,
         score: recipe.score,
-        feedback: feedback[recipe.recipe_name] || "",
+        feedback: buildActionNotes(recipe),
         used_ingredients:
           usedIngredientSummary.length > 0
             ? usedIngredientSummary
@@ -644,7 +770,21 @@ export default function Recommendations() {
 
             {(usageByRecipe[recipe.recipe_name] || []).length > 0 && (
               <div className="ingredientUsageMiniBox">
-                <h3>Amount Used</h3>
+  
+              {getSelectedSwapsForRecipe(recipe).length > 0 && (
+                <div className="selectedSwapsBox">
+                  <h3>Selected Smart Swaps</h3>
+                  {getSelectedSwapsForRecipe(recipe).map((swap, index) => (
+                    <div key={`${recipe.recipe_name}-selected-swap-${index}`} className="selectedSwapItem">
+                      <strong>
+                        {swap.use_instead || swap.substitute} used instead of {swap.needed || swap.missing}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <h3>Amount Used</h3>
                 <p>
                   Optional: enter the amount used before clicking Made Meal or Used Elsewhere. This updates the pantry amount left.
                 </p>

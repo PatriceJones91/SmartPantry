@@ -3521,3 +3521,42 @@ button {
     font-weight: 900 !important;
   }
 }
+
+/* Actionable Smart Swaps */
+.smallActionButton {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none;
+  background: #16a34a;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.smallActionButton:hover {
+  background: #15803d;
+}
+
+.selectedSwapsBox {
+  margin-top: 14px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #ecfdf5;
+  border: 1px solid #86efac;
+}
+
+.selectedSwapsBox h3 {
+  margin-top: 0;
+  color: #14532d;
+}
+
+.selectedSwapItem {
+  background: white;
+  border-left: 6px solid #16a34a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  color: #14532d;
+}
