@@ -35,6 +35,7 @@ function actionLabel(action) {
     saved: "Saved for Later",
     not_used: "Did Not Use",
     custom_meal: "Custom Meal",
+    general_feedback: "General Feedback",
   };
 
   return labels[action] || action || "Unknown";
@@ -47,6 +48,7 @@ function actionClass(action) {
     saved: "historySaved",
     not_used: "historyNotUsed",
     custom_meal: "historyCustomMeal",
+    general_feedback: "historyGeneralFeedback",
   };
 
   return classes[action] || "historyNotUsed";
@@ -273,8 +275,8 @@ function AdminAccountTools() {
         <p className="sectionEyebrow">Admin account support</p>
         <h2>Participant Account Tools</h2>
         <p>
-          Use this section if a participant forgets their password or if a fake tester account needs to be removed.
-          Passwords are reset, not viewed.
+          Use this section if a participant forgets their password or needs account support. 
+          Passwords are reset, not viewed, so participant privacy stays protected.
         </p>
       </div>
 
@@ -421,13 +423,15 @@ export default function Admin() {
   }, [participantUsers, surveys, userMap]);
 
   const metrics = useMemo(() => {
-    const made = logs.filter((log) => log.action === "made").length;
-    const usedElsewhere = logs.filter(
+    const recommendationLogs = logs.filter((log) => log.action !== "general_feedback");
+
+    const made = recommendationLogs.filter((log) => log.action === "made").length;
+    const usedElsewhere = recommendationLogs.filter(
       (log) => log.action === "used_elsewhere"
     ).length;
-    const saved = logs.filter((log) => log.action === "saved").length;
-    const notUsed = logs.filter((log) => log.action === "not_used").length;
-    const customMeal = logs.filter((log) => log.action === "custom_meal").length;
+    const saved = recommendationLogs.filter((log) => log.action === "saved").length;
+    const notUsed = recommendationLogs.filter((log) => log.action === "not_used").length;
+    const customMeal = recommendationLogs.filter((log) => log.action === "custom_meal").length;
 
     const preComplete = surveySummary.filter((item) => item.pre).length;
     const postComplete = surveySummary.filter((item) => item.post).length;
@@ -435,7 +439,9 @@ export default function Admin() {
 
     const positiveActions = made + usedElsewhere + saved + customMeal;
     const acceptanceRate =
-      logs.length > 0 ? Math.round((positiveActions / logs.length) * 100) : 0;
+      recommendationLogs.length > 0
+        ? Math.round((positiveActions / recommendationLogs.length) * 100)
+        : 0;
 
     return {
       participants: participantUsers.length,
@@ -443,7 +449,7 @@ export default function Admin() {
       preComplete,
       postComplete,
       pantryItems: activePantryItems.length,
-      recommendationActions: logs.length,
+      recommendationActions: recommendationLogs.length,
       made,
       usedElsewhere,
       saved,
@@ -556,8 +562,9 @@ export default function Admin() {
       pre_survey: row.pre ? "Complete" : "Not Done",
       post_survey: row.post ? "Complete" : "Not Done",
       pantry_items: pantry.filter((item) => item.user_id === row.user_id).length,
-      recommendation_actions: logs.filter((log) => log.user_id === row.user_id)
-        .length,
+      recommendation_actions: logs.filter(
+        (log) => log.user_id === row.user_id && log.action !== "general_feedback"
+      ).length,
     }));
 
     downloadCsv("smart_pantry_participant_activity.csv", rows);
@@ -748,7 +755,11 @@ export default function Admin() {
                       </span>
                     </td>
                     <td>{pantry.filter((item) => item.user_id === row.user_id).length}</td>
-                    <td>{logs.filter((log) => log.user_id === row.user_id).length}</td>
+                    <td>
+                      {logs.filter(
+                        (log) => log.user_id === row.user_id && log.action !== "general_feedback"
+                      ).length}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -794,13 +805,13 @@ export default function Admin() {
         )}
       </section>
 
+      <AdminAccountTools />
+
       <section className="card adminSectionCard">
         <div className="adminSectionHeader">
           <div>
             <h2>Admin Evidence Tables</h2>
-            <AdminAccountTools />
-
-        <p>Raw evidence tables for users, surveys, pantry items, and logs.</p>
+            <p>Raw evidence tables for users, surveys, pantry items, and logs.</p>
           </div>
         </div>
 

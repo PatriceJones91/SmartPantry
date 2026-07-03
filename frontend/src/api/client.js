@@ -26,9 +26,9 @@ export const api = {
     }),
 
   login: (payload) =>
-    request("/auth/register", {
+    request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ role: "participant", ...payload }),
+      body: JSON.stringify(payload),
     }),
 
   getPantry: (userId) => request(`/pantry/${userId}`),
@@ -83,6 +83,12 @@ export const api = {
   updateProfile: (userId, payload) =>
     request(`/profile/${userId}`, {
       method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+
+  submitGeneralFeedback: (payload) =>
+    request("/recommendations/feedback", {
+      method: "POST",
       body: JSON.stringify(payload),
     }),
 

@@ -48,6 +48,14 @@ export default function Login() {
           }}
         />
 
+        <div className="loginWelcomeText">
+          <h1>Welcome to Smart Pantry!!!</h1>
+          <p>
+            Log in or create your participant account to track pantry items,
+            complete study steps, and receive meal recommendations.
+          </p>
+        </div>
+
         <form onSubmit={submit} className="brightLoginForm">
           <div className="loginField">
             <label>Username</label>
@@ -76,6 +84,15 @@ export default function Login() {
             {loading ? "Please wait..." : isRegister ? "Create Account" : "Login"}
           </button>
         </form>
+
+        <div className="loginHelpBox">
+          <strong>Need help logging in?</strong>
+          <p>
+            If you forgot your password or cannot get into your account, contact
+            the study admin so your password can be reset. Passwords are reset,
+            not viewed.
+          </p>
+        </div>
 
         <div className="loginCreateArea">
           {isRegister ? (

@@ -9,6 +9,7 @@ import PreSurvey from "./pages/PreSurvey.jsx";
 import PostSurvey from "./pages/PostSurvey.jsx";
 import Recommendations from "./pages/Recommendations.jsx";
 import History from "./pages/History.jsx";
+import Feedback from "./pages/Feedback.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function getUser() {
@@ -125,6 +126,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <PostSurvey />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/feedback"
+          element={
+            <ProtectedRoute>
+              <Feedback />
             </ProtectedRoute>
           }
         />

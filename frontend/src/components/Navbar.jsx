@@ -46,6 +46,7 @@ export default function Navbar() {
         <NavLink to="/history">Recommendation History</NavLink>
         <NavLink to="/pre-survey">Pre-Study Survey</NavLink>
         <NavLink to="/post-survey">Post-Study Survey</NavLink>
+        <NavLink to="/feedback">Feedback</NavLink>
 
         {user.role === "admin" && (
           <NavLink to="/admin">Admin Dashboard</NavLink>
