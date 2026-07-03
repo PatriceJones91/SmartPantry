@@ -1,10 +1,16 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from models.schemas import RecommendationGenerateRequest, RecommendationActionRequest
 from services.supabase_service import get_supabase
 from services.recommendation_service import generate_recommendations, grocery_suggestions
 
 router = APIRouter()
+
+
+class GeneralFeedbackRequest(BaseModel):
+    user_id: str
+    feedback: str
 
 
 @router.post("/generate")
@@ -64,6 +70,39 @@ def save_action(payload: RecommendationActionRequest):
         raise HTTPException(status_code=400, detail="Could not save recommendation action.")
 
     return response.data[0]
+
+
+@router.post("/feedback")
+def save_general_feedback(payload: GeneralFeedbackRequest):
+    supabase = get_supabase()
+    feedback_text = (payload.feedback or "").strip()
+
+    if not feedback_text:
+        raise HTTPException(status_code=400, detail="Feedback message is required.")
+
+    response = (
+        supabase.table("sp2_recommendation_logs")
+        .insert(
+            {
+                "user_id": payload.user_id,
+                "recipe_name": "General App Feedback",
+                "action": "general_feedback",
+                "score": 0,
+                "feedback": feedback_text,
+                "used_ingredients": [],
+            }
+        )
+        .execute()
+    )
+
+    if not response.data:
+        raise HTTPException(status_code=400, detail="Could not save general feedback.")
+
+    return {
+        "status": "ok",
+        "message": "Feedback saved. Thank you.",
+        "feedback": response.data[0],
+    }
 
 
 @router.get("/history/{user_id}")

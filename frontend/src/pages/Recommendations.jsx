@@ -58,6 +58,51 @@ function normalizeText(value) {
   return String(value || "").toLowerCase().trim();
 }
 
+function normalizeIngredientName(value) {
+  const stopWords = new Set([
+    "fresh", "frozen", "canned", "can", "package", "pkg", "cup", "cups", "tbsp",
+    "tsp", "tablespoon", "tablespoons", "teaspoon", "teaspoons", "chopped", "diced",
+    "sliced", "shredded", "grated", "large", "small", "medium", "thin", "thick",
+    "optional", "cooked", "uncooked", "boneless", "skinless", "ground", "whole",
+    "pieces", "piece", "oz", "ounce", "ounces", "lb", "lbs", "pound", "pounds",
+  ]);
+
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\b\d+[\/\d.]*\b/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((word) => word.trim())
+    .filter((word) => word && !stopWords.has(word))
+    .map((word) => {
+      if (word === "tomatoes") return "tomato";
+      if (word === "potatoes") return "potato";
+      if (word === "tortillas") return "tortilla";
+      if (word === "eggs") return "egg";
+      if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+      if (word.length > 3 && word.endsWith("es")) return word.slice(0, -2);
+      if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+      return word;
+    })
+    .join(" ")
+    .trim();
+}
+
+function ingredientNamesMatch(pantryName, recipeIngredient) {
+  const pantryClean = normalizeIngredientName(pantryName);
+  const ingredientClean = normalizeIngredientName(recipeIngredient);
+
+  if (!pantryClean || !ingredientClean) return false;
+  if (pantryClean === ingredientClean) return true;
+  if (pantryClean.includes(ingredientClean) || ingredientClean.includes(pantryClean)) return true;
+
+  const pantryTokens = new Set(pantryClean.split(/\s+/).filter((token) => token.length > 2));
+  const ingredientTokens = ingredientClean.split(/\s+/).filter((token) => token.length > 2);
+
+  return ingredientTokens.some((token) => pantryTokens.has(token));
+}
+
 function cleanQuantity(value) {
   const number = Number(value || 0);
   if (Number.isNaN(number) || number < 0) return 0;
@@ -69,17 +114,48 @@ function cleanDate(value) {
   return String(value).slice(0, 10);
 }
 
+function phaseClass(phase) {
+  const clean = normalizeText(phase);
+
+  if (clean.includes("expiring")) return "phaseExpiring";
+  if (clean.includes("plan")) return "phasePlan";
+  if (clean.includes("pantry")) return "phaseFull";
+  if (clean.includes("almost")) return "phaseAlmost";
+  if (clean.includes("quick")) return "phaseQuick";
+
+  return "phaseDefault";
+}
+
+function scoreBreakdownRows(recipe) {
+  const breakdown = recipe.score_breakdown || {};
+
+  return [
+    ["Pantry match", breakdown.pantry_match],
+    ["Expiration priority", breakdown.expiration_priority],
+    ["Simplicity", breakdown.simplicity],
+    ["Profile fit", breakdown.profile_fit],
+    ["Nutrition fit", breakdown.nutrition_fit],
+    ["Missing penalty", breakdown.missing_penalty],
+  ].filter((row) => row[1] !== undefined && row[1] !== null);
+}
+
 function findPantryMatches(recipe, pantryItems) {
   const matchedIngredients = recipe.matched_ingredients || [];
+  const seenIds = new Set();
+  const matches = [];
 
-  return pantryItems.filter((pantryItem) => {
-    const pantryName = normalizeText(pantryItem.item_name);
+  matchedIngredients.forEach((ingredient) => {
+    const pantryItem = pantryItems.find((item) =>
+      !seenIds.has(item.id) && ingredientNamesMatch(item.item_name, ingredient)
+    );
 
-    return matchedIngredients.some((ingredient) => {
-      const ingredientName = normalizeText(ingredient);
-      return pantryName.includes(ingredientName) || ingredientName.includes(pantryName);
-    });
+    if (pantryItem) {
+      seenIds.add(pantryItem.id);
+      matches.push(pantryItem);
+    }
   });
+
+  return matches;
 }
 
 function buildUsageRows(recipe, pantryItems) {
@@ -114,6 +190,7 @@ export default function Recommendations() {
   const [filter, setFilter] = useState("all");
   const [usageByRecipe, setUsageByRecipe] = useState({});
   const [selectedSmartSwaps, setSelectedSmartSwaps] = useState({});
+  const [customSwapForms, setCustomSwapForms] = useState({});
   const [customMealName, setCustomMealName] = useState("");
   const [customMealNotes, setCustomMealNotes] = useState("");
   const [customUsageRows, setCustomUsageRows] = useState([
@@ -131,7 +208,6 @@ export default function Recommendations() {
       setError("Could not load pantry items for ingredient tracking.");
     });
   }, []);
-
 
   function normalizeSmartSwapText(value) {
     return String(value || "")
@@ -179,7 +255,8 @@ export default function Recommendations() {
       .map((swap) => {
         const needed = swap.needed || swap.missing || "missing ingredient";
         const useInstead = swap.use_instead || swap.substitute || "selected pantry item";
-        return `${useInstead} used instead of ${needed}`;
+        const source = swap.custom ? "Participant custom swap" : "Suggested Smart Swap";
+        return `${source}: ${useInstead} used instead of ${needed}`;
       })
       .join("; ");
   }
@@ -210,7 +287,7 @@ export default function Recommendations() {
     }
 
     setError("");
-    setMessage(`Smart swap selected: use ${useInstead} instead of ${needed}. Enter the amount used, then click Made Meal or Used Elsewhere.`);
+    setMessage(`Suggested smart swap selected: use ${useInstead} instead of ${needed}. Enter the amount used, then click Made Meal or Used Elsewhere.`);
 
     setSelectedSmartSwaps((previous) => {
       const current = previous[recipe.recipe_name] || [];
@@ -256,6 +333,91 @@ export default function Recommendations() {
     });
   }
 
+  function updateCustomSwapForm(recipeName, field, value) {
+    setCustomSwapForms((previous) => ({
+      ...previous,
+      [recipeName]: {
+        needed: "",
+        pantryItemId: "",
+        note: "",
+        ...(previous[recipeName] || {}),
+        [field]: value,
+      },
+    }));
+  }
+
+  function addCustomSmartSwap(recipe) {
+    const form = customSwapForms[recipe.recipe_name] || {};
+    const pantryItem = pantryItems.find((item) => item.id === form.pantryItemId);
+    const needed = String(form.needed || "").trim();
+
+    if (!needed || !pantryItem) {
+      setError("Choose the missing ingredient and the pantry item you want to use as your swap.");
+      return;
+    }
+
+    const useInstead = pantryItem.item_name || pantryItem.name || "selected pantry item";
+    const customSwap = {
+      needed,
+      use_instead: useInstead,
+      reason: form.note
+        ? `Participant chose this swap: ${form.note}`
+        : "Participant chose this pantry item as their own swap.",
+      custom: true,
+      source: "participant_custom",
+    };
+
+    setError("");
+    setMessage(`Custom smart swap added: use ${useInstead} instead of ${needed}. Enter the amount used, then click Made Meal or Used Elsewhere.`);
+
+    setSelectedSmartSwaps((previous) => {
+      const current = previous[recipe.recipe_name] || [];
+      const exists = current.some((item) => {
+        const currentNeeded = item.needed || item.missing || "";
+        const currentUseInstead = item.use_instead || item.substitute || "";
+        return (
+          normalizeSmartSwapText(currentNeeded) === normalizeSmartSwapText(needed) &&
+          normalizeSmartSwapText(currentUseInstead) === normalizeSmartSwapText(useInstead)
+        );
+      });
+
+      if (exists) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        [recipe.recipe_name]: [...current, customSwap],
+      };
+    });
+
+    setUsageByRecipe((previous) => {
+      const currentRows = previous[recipe.recipe_name] || [];
+      const alreadyAdded = currentRows.some((row) => row.item_id === pantryItem.id);
+
+      if (alreadyAdded) {
+        return previous;
+      }
+
+      const swapRow = {
+        item_id: pantryItem.id,
+        item_name: useInstead,
+        amount_used: "",
+        unit: pantryItem.unit || "item",
+        current_quantity: pantryItem.quantity ?? pantryItem.current_quantity ?? "",
+      };
+
+      return {
+        ...previous,
+        [recipe.recipe_name]: [...currentRows, swapRow],
+      };
+    });
+
+    setCustomSwapForms((previous) => ({
+      ...previous,
+      [recipe.recipe_name]: { needed: "", pantryItemId: "", note: "" },
+    }));
+  }
 
   async function generate() {
     setLoading(true);
@@ -276,6 +438,8 @@ export default function Recommendations() {
 
       if (!data.recommendations || data.recommendations.length === 0) {
         setMessage("No recommendations found yet. Add more pantry items and try again.");
+      } else {
+        setMessage(`Smart Pantry found ${meals.length} ranked meal option(s). Expiring items and pantry matches are shown first.`);
       }
     } catch (err) {
       setError(err.message);
@@ -455,28 +619,63 @@ export default function Recommendations() {
       );
     }
 
+    if (filter === "pantry") {
+      return recommendations.filter(
+        (recipe) =>
+          recipe.recommendation_phase === "Pantry Match" ||
+          ((recipe.missing_ingredients || []).length === 0 &&
+            Number(recipe.exact_pantry_match_percent || 0) >= 99)
+      );
+    }
+
+    if (filter === "almost") {
+      return recommendations.filter((recipe) => recipe.recommendation_phase === "Almost There");
+    }
+
     return recommendations;
   }, [recommendations, filter]);
 
-  const coreCount = recommendations.filter((recipe) => recipe.source_type === "core").length;
-  const expandedCount = recommendations.filter((recipe) => recipe.source_type === "expanded").length;
   const expiringCount = recommendations.filter(
     (recipe) => recipe.expiring_items && recipe.expiring_items.length > 0
   ).length;
 
+  const pantryReadyCount = recommendations.filter(
+    (recipe) =>
+      recipe.recommendation_phase === "Pantry Match" ||
+      ((recipe.missing_ingredients || []).length === 0 &&
+        Number(recipe.exact_pantry_match_percent || 0) >= 99)
+  ).length;
+
+  const almostThereCount = recommendations.filter(
+    (recipe) => recipe.recommendation_phase === "Almost There"
+  ).length;
+
   return (
-    <div>
+    <div className="recommendationsPage">
+      {loading && (
+        <div className="mealLoadingOverlay" role="status" aria-live="polite">
+          <div className="mealLoadingCard">
+            <div className="loadingSpinner" />
+            <h2>Smart Pantry is building your meal recommendations...</h2>
+            <p>
+              Checking pantry items, expiration dates, missing ingredients, profile preferences,
+              Nutrition Fit, and Smart Score. This may take a moment, so please hold tight while your recommendations are prepared.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="pageHeader recommendationsHero">
         <div>
           <h1>Meal Recommendations</h1>
           <p>
-            Smart Pantry uses both the quick everyday recipe set and the expanded recipe library.
-            Expiring pantry items are prioritized first, but regular pantry items can still create meal ideas.
+            Smart Pantry ranks meals by what needs to be used first, what is already in the pantry,
+            what can be made quickly, and how the meal fits the nutrition scoring model.
           </p>
         </div>
 
         <button onClick={generate} disabled={loading}>
-          {loading ? "Finding meals..." : "Find Meals"}
+          {loading ? "Building meals..." : "Build Meal Recommendations"}
         </button>
       </div>
 
@@ -487,19 +686,19 @@ export default function Recommendations() {
         <section className="card recommendationSummary">
           <div>
             <strong>{recommendations.length}</strong>
-            <span>Total recommendations</span>
-          </div>
-          <div>
-            <strong>{coreCount}</strong>
-            <span>Quick everyday meals</span>
-          </div>
-          <div>
-            <strong>{expandedCount}</strong>
-            <span>Expanded recipe options</span>
+            <span>Total ranked meals</span>
           </div>
           <div>
             <strong>{expiringCount}</strong>
-            <span>Use expiring items first</span>
+            <span>Use expiring first</span>
+          </div>
+          <div>
+            <strong>{pantryReadyCount}</strong>
+            <span>Pantry match meals</span>
+          </div>
+          <div>
+            <strong>{almostThereCount}</strong>
+            <span>Almost-there meals</span>
           </div>
         </section>
       )}
@@ -513,6 +712,24 @@ export default function Recommendations() {
             All
           </button>
           <button
+            className={filter === "expiring" ? "activeFilter" : "secondary"}
+            onClick={() => setFilter("expiring")}
+          >
+            Expiring First
+          </button>
+          <button
+            className={filter === "pantry" ? "activeFilter" : "secondary"}
+            onClick={() => setFilter("pantry")}
+          >
+            Pantry Match
+          </button>
+          <button
+            className={filter === "almost" ? "activeFilter" : "secondary"}
+            onClick={() => setFilter("almost")}
+          >
+            Almost There
+          </button>
+          <button
             className={filter === "core" ? "activeFilter" : "secondary"}
             onClick={() => setFilter("core")}
           >
@@ -523,12 +740,6 @@ export default function Recommendations() {
             onClick={() => setFilter("expanded")}
           >
             Expanded Library
-          </button>
-          <button
-            className={filter === "expiring" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("expiring")}
-          >
-            Expiring Items
           </button>
         </section>
       )}
@@ -612,8 +823,8 @@ export default function Recommendations() {
         <section className="card">
           <h2>No meals generated yet</h2>
           <p>
-            Click <strong>Find Meals</strong> to generate recipes from your pantry items.
-            The system will use quick everyday meals first while still including expanded recipe options.
+            Click <strong>Build Meal Recommendations</strong> to generate ranked meals from your pantry.
+            The system will prioritize expiring ingredients first, then full pantry matches, then almost-there meals.
           </p>
         </section>
       )}
@@ -630,18 +841,15 @@ export default function Recommendations() {
               </span>
             </div>
 
+            <div className="recommendationPhaseRow">
+              <span className={`phaseBadge ${phaseClass(recipe.recommendation_phase)}`}>
+                {recipe.recommendation_phase || "Ranked Meal"}
+              </span>
+              {recipe.phase_reason && <small>{recipe.phase_reason}</small>}
+            </div>
+
             <h2>{recipe.recipe_name}</h2>
 
-            <p className="whyText">{recipe.why}</p>
-
-            <div className="meta recipeMeta">
-              {recipe.meal_type && <span>{recipe.meal_type}</span>}
-              {recipe.cuisine_type && <span>{recipe.cuisine_type}</span>}
-              {recipe.dish_type && <span>{recipe.dish_type}</span>}
-              {recipe.cook_time && <span>{recipe.cook_time} min</span>}
-              {recipe.calories && <span>{recipe.calories} cal</span>}
-              {recipe.protein && <span>{recipe.protein}g protein</span>}
-            </div>
 
             <div className="nutritionFactsBox">
               <div className="nutritionFactsHeader">
@@ -671,52 +879,64 @@ export default function Recommendations() {
               </div>
 
               <div className="mlEvidenceLine">
-                <strong>Nutrition Fit Score:</strong>{" "}
+                <strong>Nutrition Fit:</strong>{" "}
                 {displayNumber(recipe.ml_nutrition_fit_percent, "%")} based on calories, protein, carbs, fat, and ingredient count.
               </div>
             </div>
 
-
-            {recipe.expiring_items && recipe.expiring_items.length > 0 && (
+            {recipe.expiring_details && recipe.expiring_details.length > 0 && (
               <div className="expiringBox">
-                <strong>Use First:</strong> {listText(recipe.expiring_items)}
+                <strong>Use First:</strong>
+                <div className="expiringDetailGrid">
+                  {recipe.expiring_details.map((item) => (
+                    <span key={`${recipe.recipe_name}-${item.item_name}`}>
+                      {item.item_name} — {item.label}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="ingredientColumns">
-              <div>
-  
-              <div className="recommendationEvidenceBox">
-                <h3>Recommendation Evidence</h3>
+            <div className="recommendationEvidenceBox">
+              <h3>Recommendation Evidence</h3>
 
-                <div className="evidenceGrid">
-                  <div>
-                    <strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong>
-                    <span>Exact pantry match</span>
-                  </div>
-                  <div>
-                    <strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong>
-                    <span>Coverage with swaps</span>
-                  </div>
-                  <div>
-                    <strong>{displayNumber(recipe.everyday_recipe_fit, "/100")}</strong>
-                    <span>Everyday recipe fit</span>
-                  </div>
-                  <div>
-                    <strong>{displayNumber(recipe.score, "/100")}</strong>
-                    <span>Smart score</span>
-                  </div>
+              <div className="evidenceGrid">
+                <div>
+                  <strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong>
+                  <span>Exact pantry match</span>
                 </div>
-
-                {recipe.score_breakdown && (
-                  <div className="scoreBreakdownLine">
-                    <strong>Smart Score is based on:</strong>{" "}
-                    pantry match, expiration priority, simplicity, profile fit, missing ingredients, and recipe source.
-                  </div>
-                )}
+                <div>
+                  <strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong>
+                  <span>Coverage with swaps</span>
+                </div>
+                <div>
+                  <strong>{displayNumber(recipe.everyday_recipe_fit, "/100")}</strong>
+                  <span>Everyday recipe fit</span>
+                </div>
+                <div>
+                  <strong>{displayNumber(recipe.score, "/100")}</strong>
+                  <span>Smart score</span>
+                </div>
               </div>
 
-              <h3>Matched Pantry Items</h3>
+              {recipe.score_breakdown && (
+                <div className="scoreBreakdownBox">
+                  <h4>Smart Score Breakdown</h4>
+                  <div className="scoreBreakdownGrid">
+                    {scoreBreakdownRows(recipe).map(([label, value]) => (
+                      <span key={`${recipe.recipe_name}-${label}`}>
+                        <strong>{label}</strong>
+                        {displayNumber(value)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="ingredientColumns">
+              <div>
+                <h3>Matched Pantry Items</h3>
                 <div className="pillList goodPills">
                   {(recipe.matched_ingredients || []).length === 0 ? (
                     <span>None</span>
@@ -729,28 +949,7 @@ export default function Recommendations() {
               </div>
 
               <div>
-                
-              {recipe.smart_swaps && recipe.smart_swaps.length > 0 && (
-                <div className="smartSwapOptionsBox">
-                  <h3>Smart Swap Options</h3>
-                  <p>
-                    These are possible pantry-based swaps. Review them before cooking to make sure they make sense for the meal.
-                  </p>
-
-                  <div className="smartSwapList">
-                    {recipe.smart_swaps.map((swap, index) => (
-                      <div className="smartSwapCard" key={`${swap.needed}-${swap.use_instead}-${index}`}>
-                        <strong>
-                          Use {swap.use_instead} for {swap.needed}
-                        </strong>
-                        <span>{swap.reason}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-<h3>Missing Ingredients</h3>
+                <h3>Missing Ingredients</h3>
                 <div className="pillList missingPills">
                   {(recipe.missing_ingredients || []).length === 0 ? (
                     <span>None</span>
@@ -763,6 +962,84 @@ export default function Recommendations() {
               </div>
             </div>
 
+            {((recipe.smart_swaps && recipe.smart_swaps.length > 0) || (recipe.missing_ingredients || []).length > 0) && (
+              <div className="smartSwapOptionsBox">
+                <h3>Suggested Smart Swaps</h3>
+                <p>
+                  These are suggested replacement ideas only. Choose one if it makes sense for the recipe, or add your own swap using an item from your pantry.
+                </p>
+
+                {recipe.smart_swaps && recipe.smart_swaps.length > 0 ? (
+                  <div className="smartSwapList">
+                    {recipe.smart_swaps.map((swap, swapIndex) => (
+                      <div className="smartSwapCard" key={`${swap.needed}-${swap.use_instead}-${swapIndex}`}>
+                        <strong>
+                          Suggested swap: use {swap.use_instead} for {swap.needed}
+                        </strong>
+                        <span>{swap.reason}</span>
+                        <button
+                          type="button"
+                          className="smartSwapSelectButton"
+                          onClick={() => selectSmartSwap(recipe, swap)}
+                        >
+                          Use This Suggested Swap
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="smartSwapEmptyNote">
+                    No close suggested swap was found for this recipe. You can still add your own swap below if you know what you want to use.
+                  </div>
+                )}
+
+                <div className="customSmartSwapBox">
+                  <h4>Add Your Own Swap</h4>
+                  <p>
+                    Use this when you want to replace a missing ingredient with something else from your pantry. This helps Smart Pantry save better study data than only writing it in the feedback box.
+                  </p>
+
+                  <div className="customSwapGrid">
+                    <select
+                      value={(customSwapForms[recipe.recipe_name] || {}).needed || ""}
+                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "needed", e.target.value)}
+                    >
+                      <option value="">Missing ingredient to replace</option>
+                      {(recipe.missing_ingredients || []).map((ingredient) => (
+                        <option key={ingredient} value={ingredient}>{ingredient}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={(customSwapForms[recipe.recipe_name] || {}).pantryItemId || ""}
+                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "pantryItemId", e.target.value)}
+                    >
+                      <option value="">Pantry item to use instead</option>
+                      {pantryItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.item_name} ({item.quantity} {item.unit || "item"} left)
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      value={(customSwapForms[recipe.recipe_name] || {}).note || ""}
+                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "note", e.target.value)}
+                      placeholder="Optional reason, example: I use chicken instead of turkey"
+                    />
+
+                    <button
+                      type="button"
+                      className="smartSwapSelectButton customSwapButton"
+                      onClick={() => addCustomSmartSwap(recipe)}
+                    >
+                      Add My Swap
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <details className="recipeDetails">
               <summary>View instructions</summary>
               <p>{recipe.instructions || "No instructions available for this recipe yet."}</p>
@@ -770,21 +1047,20 @@ export default function Recommendations() {
 
             {(usageByRecipe[recipe.recipe_name] || []).length > 0 && (
               <div className="ingredientUsageMiniBox">
-  
-              {getSelectedSwapsForRecipe(recipe).length > 0 && (
-                <div className="selectedSwapsBox">
-                  <h3>Selected Smart Swaps</h3>
-                  {getSelectedSwapsForRecipe(recipe).map((swap, index) => (
-                    <div key={`${recipe.recipe_name}-selected-swap-${index}`} className="selectedSwapItem">
-                      <strong>
-                        {swap.use_instead || swap.substitute} used instead of {swap.needed || swap.missing}
-                      </strong>
-                    </div>
-                  ))}
-                </div>
-              )}
+                {getSelectedSwapsForRecipe(recipe).length > 0 && (
+                  <div className="selectedSwapsBox">
+                    <h3>Selected Swaps</h3>
+                    {getSelectedSwapsForRecipe(recipe).map((swap, swapIndex) => (
+                      <div key={`${recipe.recipe_name}-selected-swap-${swapIndex}`} className="selectedSwapItem">
+                        <strong>
+                          {swap.custom ? "Custom swap" : "Suggested swap"}: {swap.use_instead || swap.substitute} used instead of {swap.needed || swap.missing}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-              <h3>Amount Used</h3>
+                <h3>Amount Used</h3>
                 <p>
                   Optional: enter the amount used before clicking Made Meal or Used Elsewhere. This updates the pantry amount left.
                 </p>
@@ -813,10 +1089,10 @@ export default function Recommendations() {
             )}
 
             <label className="feedbackLabel">
-              Feedback / notes
+              Meal feedback or notes
               <textarea
                 maxLength="250"
-                placeholder="Example: I made this, I used the cheese somewhere else, or this meal was not realistic."
+                placeholder="Example: I made this meal, saved it for later, used the ingredients somewhere else, or this recommendation was not realistic."
                 value={feedback[recipe.recipe_name] || ""}
                 onChange={(e) => changeFeedback(recipe.recipe_name, e.target.value)}
               />

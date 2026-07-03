@@ -584,6 +584,58 @@ def infer_meal_type(name: str, category: str = "") -> str:
     return "Meal"
 
 
+
+def clean_instruction_display(value: Any, recipe_name: str, ingredients: List[str]) -> str:
+    """
+    Keeps recipe instructions readable for the participant. Some datasets store
+    instructions as JSON/Python lists or leave them blank, so this creates a
+    clean display string without showing raw brackets or metadata.
+    """
+    raw = str(value or "").strip()
+    steps = []
+
+    if raw:
+        parsed = None
+        if raw.startswith("[") or raw.startswith("{"):
+            try:
+                parsed = json.loads(raw)
+            except Exception:
+                try:
+                    parsed = ast.literal_eval(raw)
+                except Exception:
+                    parsed = None
+
+        if isinstance(parsed, list):
+            steps = [str(item).strip() for item in parsed if str(item).strip()]
+        elif isinstance(parsed, dict):
+            possible = parsed.get("instructions") or parsed.get("steps") or parsed.get("directions")
+            if isinstance(possible, list):
+                steps = [str(item).strip() for item in possible if str(item).strip()]
+            elif possible:
+                steps = [str(possible).strip()]
+        else:
+            steps = [raw]
+
+    cleaned_steps = []
+    for step in steps:
+        step = re.sub(r"\\s+", " ", str(step)).strip(" []'\".,")
+        if step and step.lower() not in {"nan", "none", "null"}:
+            cleaned_steps.append(step)
+
+    if cleaned_steps:
+        return " ".join(
+            f"{index + 1}. {step}" if not re.match(r"^\\d+[.)]", step) else step
+            for index, step in enumerate(cleaned_steps[:8])
+        )[:1800]
+
+    main_items = ", ".join(ingredients[:6]) if ingredients else "the listed ingredients"
+    return (
+        f"1. Gather the ingredients for {recipe_name}, including {main_items}. "
+        "2. Wash, cut, and prepare the ingredients as needed. "
+        "3. Cook or assemble the main ingredients until they are safely prepared and heated through. "
+        "4. Taste, adjust seasoning if needed, and serve."
+    )
+
 def row_to_recipe(row: Dict[str, Any], source: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     name = get_first(row, ["recipe_name", "name", "title", "recipe", "Name"])
 
@@ -636,10 +688,14 @@ def row_to_recipe(row: Dict[str, Any], source: Dict[str, Any]) -> Optional[Dict[
         "carbs": get_first(row, ["carbs", "CarbohydrateContent", "carbohydrates", "carbs_g"], ""),
         "fat": get_first(row, ["fat", "FatContent", "fat_g"], ""),
         "cook_time": parse_minutes(get_first(row, ["cook_time", "CookTime", "total_time", "TotalTime", "minutes"])),
-        "instructions": get_first(
-            row,
-            ["instructions", "Instructions", "recipe_instructions", "RecipeInstructions", "directions"],
-            "",
+        "instructions": clean_instruction_display(
+            get_first(
+                row,
+                ["instructions", "Instructions", "recipe_instructions", "RecipeInstructions", "directions"],
+                "",
+            ),
+            display_name,
+            ingredients,
         ),
         "source_type": source["source_type"],
         "source_label": source["source_label"],
@@ -994,7 +1050,111 @@ def ingredient_family(name: str) -> str | None:
     return None
 
 
-def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], limit: int = 5) -> List[Dict[str, Any]]:
+def _contains_any(clean_name: str, terms: List[str]) -> bool:
+    return any(term in clean_name for term in terms)
+
+
+def ingredient_swap_role(name: str) -> str | None:
+    """
+    Uses stricter ingredient roles for Smart Swaps than the broader recipe-family logic.
+    This avoids bad swaps like rice for oats, milk for baking chips, or peppers for tomatoes.
+    """
+    clean_name = clean_ingredient(name)
+
+    if not clean_name:
+        return None
+
+    if _contains_any(clean_name, ["butterscotch chip", "chocolate chip", "white chocolate chip", "baking chip"]):
+        return "baking_chip"
+    if _contains_any(clean_name, ["flour", "cornstarch", "bread crumb", "breadcrumb", "panko"]):
+        return "coating_or_flour"
+    if _contains_any(clean_name, ["oat", "oatmeal"]):
+        return "oats"
+    if _contains_any(clean_name, ["rice", "quinoa"]):
+        return "rice_grain"
+    if _contains_any(clean_name, ["pasta", "spaghetti", "macaroni", "noodle"]):
+        return "pasta"
+    if _contains_any(clean_name, ["bread", "bun", "roll", "bagel", "toast"]):
+        return "bread"
+    if _contains_any(clean_name, ["tortilla", "wrap", "flatbread"]):
+        return "wrap"
+    if _contains_any(clean_name, ["potato"]):
+        return "potato"
+
+    if _contains_any(clean_name, ["chicken", "turkey"]):
+        return "poultry"
+    if _contains_any(clean_name, ["beef", "steak", "lamb"]):
+        return "red_meat"
+    if _contains_any(clean_name, ["tuna", "salmon", "fish", "shrimp"]):
+        return "seafood"
+    if _contains_any(clean_name, ["bean", "lentil", "chickpea", "tofu"]):
+        return "plant_protein"
+    if _contains_any(clean_name, ["egg"]):
+        return "egg"
+
+    if _contains_any(clean_name, ["tomato", "tomatoes"]):
+        return "tomato"
+    if _contains_any(clean_name, ["bell pepper", "green pepper", "red pepper", "pepper"]):
+        return "pepper"
+    if _contains_any(clean_name, ["lettuce", "spinach", "kale", "greens"]):
+        return "leafy_green"
+    if _contains_any(clean_name, ["broccoli", "cauliflower"]):
+        return "cruciferous"
+    if _contains_any(clean_name, ["corn"]):
+        return "corn"
+    if _contains_any(clean_name, ["carrot"]):
+        return "carrot"
+    if _contains_any(clean_name, ["onion"]):
+        # Onions are often omitted for allergy/preference reasons instead of replaced.
+        return None
+
+    if _contains_any(clean_name, ["cheese", "cheddar", "mozzarella", "parmesan"]):
+        return "cheese"
+    if _contains_any(clean_name, ["milk", "cream", "half and half", "yogurt"]):
+        return "milk_or_cream"
+    if _contains_any(clean_name, ["butter", "margarine"]):
+        return "butter"
+    if _contains_any(clean_name, ["oil", "olive oil", "vegetable oil", "canola oil"]):
+        return "oil"
+
+    if _contains_any(clean_name, ["sugar", "brown sugar", "honey", "syrup"]):
+        return "sweetener"
+
+    return None
+
+
+def smart_swap_reason(role: str) -> str:
+    reasons = {
+        "poultry": "This is another poultry option and is usually a practical protein swap.",
+        "red_meat": "This is another red-meat option and may work as a protein swap.",
+        "seafood": "This is another seafood option and may work as a protein swap.",
+        "plant_protein": "This is another plant-based protein option.",
+        "tomato": "This is another tomato-based ingredient and is a close recipe swap.",
+        "pepper": "This is another pepper ingredient and is a close recipe swap.",
+        "leafy_green": "This is another leafy green and is a close produce swap.",
+        "cheese": "This is another cheese option and should work in many similar recipes.",
+        "milk_or_cream": "This is another milk or cream option and may work in the same recipe role.",
+        "butter": "This is another butter-style option and may work for the same recipe role.",
+        "oil": "This is another cooking oil option and may work for the same recipe role.",
+        "rice_grain": "This is another rice or grain option and should only be used for bowl or side-dish style recipes.",
+        "pasta": "This is another pasta or noodle option.",
+        "bread": "This is another bread option and may work for toast or sandwiches.",
+        "wrap": "This is another wrap or tortilla option.",
+        "oats": "This is another oat ingredient and should stay close to the recipe purpose.",
+        "coating_or_flour": "This is another coating or flour-style ingredient.",
+        "baking_chip": "This is another baking chip or mix-in option.",
+        "sweetener": "This is another sweetener option and may work in small amounts.",
+    }
+    return reasons.get(role, "This is a close pantry replacement for the missing ingredient.")
+
+
+def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], limit: int = 3) -> List[Dict[str, Any]]:
+    """
+    Creates only practical Smart Swap options. A swap is shown only when the
+    missing ingredient and pantry item share the same functional recipe role.
+    This prevents weak suggestions such as rice for oats, milk for chips, or
+    peppers for tomatoes.
+    """
     pantry_names = []
 
     for item in active_pantry:
@@ -1005,15 +1165,23 @@ def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], li
     swaps = []
     used_pairs = set()
 
+    allowed_roles = {
+        "poultry", "red_meat", "seafood", "plant_protein",
+        "tomato", "pepper", "leafy_green", "cruciferous", "corn", "carrot",
+        "cheese", "milk_or_cream", "butter", "oil",
+        "pasta", "bread", "wrap", "oats", "coating_or_flour",
+        "baking_chip", "sweetener",
+    }
+
     for needed in missing:
         needed_clean = clean_ingredient(needed)
 
         if is_low_value_missing(needed_clean):
             continue
 
-        needed_family = ingredient_family(needed)
+        needed_role = ingredient_swap_role(needed)
 
-        if not needed_family:
+        if not needed_role or needed_role not in allowed_roles:
             continue
 
         for pantry_item in pantry_names:
@@ -1022,10 +1190,15 @@ def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], li
             if pantry_clean == needed_clean:
                 continue
 
-            pantry_family = ingredient_family(pantry_item)
+            pantry_role = ingredient_swap_role(pantry_item)
 
-            if pantry_family != needed_family:
+            if pantry_role != needed_role:
                 continue
+
+            # Avoid replacing specialty baking items with general liquids or grains.
+            if needed_role in {"oats", "baking_chip", "coating_or_flour"}:
+                if pantry_role != needed_role:
+                    continue
 
             pair_key = (needed_clean, pantry_clean)
 
@@ -1037,9 +1210,9 @@ def find_smart_swaps(missing: List[str], active_pantry: List[Dict[str, Any]], li
             swaps.append({
                 "needed": needed,
                 "use_instead": pantry_item,
-                "family": needed_family,
-                "confidence": "Possible",
-                "reason": "This pantry item is in the same ingredient family, so it may work as a practical swap depending on the recipe.",
+                "family": needed_role,
+                "confidence": "Suggested",
+                "reason": smart_swap_reason(needed_role),
             })
 
             break
@@ -1072,6 +1245,205 @@ def estimate_coverage_with_smart_swaps(
     return round(max(0, min(coverage, 100)), 1)
 
 
+
+def build_expiring_details(matched_pantry_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Builds readable expiration evidence for the frontend.
+    These details help explain why a meal was ranked higher.
+    """
+    details = []
+    seen = set()
+
+    for item in matched_pantry_items:
+        item_name = item.get("item_name") or item.get("name") or ""
+        if not item_name or item_name in seen:
+            continue
+
+        item_days = days_until(item.get("expiration_date"))
+
+        if item_days is None or item_days > 10:
+            continue
+
+        if item_days <= 0:
+            urgency = "expired"
+            label = f"{abs(item_days)} day(s) expired"
+        elif item_days <= 1:
+            urgency = "use_now"
+            label = f"{item_days} day(s) left"
+        elif item_days <= 4:
+            urgency = "use_soon"
+            label = f"{item_days} day(s) left"
+        else:
+            urgency = "plan_ahead"
+            label = f"{item_days} day(s) left"
+
+        details.append({
+            "item_name": item_name,
+            "days": item_days,
+            "urgency": urgency,
+            "label": label,
+        })
+        seen.add(item_name)
+
+    details.sort(key=lambda item: item["days"])
+    return details
+
+
+def classify_recommendation_phase(
+    matched: List[str],
+    missing: List[str],
+    expiring_details: List[Dict[str, Any]],
+    exact_match_percent: float,
+    coverage_with_swaps: float,
+    recipe: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Places recommendations into the Smart Pantry order:
+    expiring items first, true pantry matches second, almost-there recipes third,
+    then quick everyday options and expanded library ideas.
+    """
+    matched_count = len(matched)
+    missing_count = len([item for item in missing if not is_low_value_missing(item)])
+    total_count = max(matched_count + missing_count, 1)
+    pantry_ratio = matched_count / total_count
+
+    if expiring_details:
+        return {
+            "recommendation_phase": "Expiring First",
+            "phase_rank": 1,
+            "phase_reason": "This meal uses pantry items that need attention within the next 10 days.",
+        }
+
+    if missing_count == 0 and matched_count > 0 and exact_match_percent >= 99:
+        return {
+            "recommendation_phase": "Pantry Match",
+            "phase_rank": 2,
+            "phase_reason": "This recipe can be made with the pantry items already entered.",
+        }
+
+    if matched_count >= 1 and missing_count >= 1 and pantry_ratio >= 0.35 and missing_count <= 6:
+        return {
+            "recommendation_phase": "Almost There",
+            "phase_rank": 3,
+            "phase_reason": "This recipe uses some pantry items and shows what may be needed on the next grocery trip.",
+        }
+
+    if recipe.get("source_type") == "core" and matched_count >= 1:
+        return {
+            "recommendation_phase": "Quick Everyday Meal",
+            "phase_rank": 4,
+            "phase_reason": "This is a simple everyday option based on pantry items already entered.",
+        }
+
+    if recipe.get("source_type") == "expanded" and matched_count >= 1:
+        return {
+            "recommendation_phase": "Expanded Library",
+            "phase_rank": 5,
+            "phase_reason": "This is a larger recipe-library option that uses at least one pantry item.",
+        }
+
+    return {
+        "recommendation_phase": "Lower Match",
+        "phase_rank": 9,
+        "phase_reason": "This recipe has fewer pantry matches than the main recommendations.",
+    }
+
+def build_recommendation_explanation(
+    matched: List[str],
+    missing: List[str],
+    expiring_details: List[Dict[str, Any]],
+    recipe: Dict[str, Any],
+    profile: Optional[Dict[str, Any]],
+    phase: Dict[str, Any],
+    exact_match_percent: float,
+    coverage_with_swaps: float,
+    nutrition_fit: Dict[str, Any],
+) -> List[str]:
+    bullets = []
+
+    if expiring_details:
+        expiring_text = ", ".join(
+            f"{item['item_name']} ({item['label']})"
+            for item in expiring_details[:4]
+        )
+        bullets.append(f"Uses expiring pantry item(s): {expiring_text}.")
+
+    if matched:
+        bullets.append(
+            f"Matches {len(matched)} pantry ingredient(s): {', '.join(matched[:6])}."
+        )
+
+    if missing:
+        bullets.append(
+            f"Missing {len(missing)} main ingredient(s): {', '.join(missing[:5])}."
+        )
+    else:
+        bullets.append("No major missing ingredients were found for this recipe.")
+
+    bullets.append(
+        f"Pantry match is {exact_match_percent}% and coverage with possible swaps is {coverage_with_swaps}%."
+    )
+
+    if nutrition_fit.get("ml_nutrition_fit") is not None:
+        bullets.append(
+            f"Nutrition Fit contributes {nutrition_fit.get('ml_nutrition_fit')}/15 to the recommendation evidence."
+        )
+    else:
+        bullets.append("Nutrition Fit evidence is shown when enough nutrition data is available.")
+
+    if profile:
+        preferred_meals = split_profile_list(profile.get("preferred_meal_type", ""))
+        preferred_cuisines = split_profile_list(profile.get("preferred_cuisine", ""))
+
+        if preferred_meals or preferred_cuisines:
+            bullets.append("Profile preferences were checked before ranking this meal.")
+
+    bullets.append(phase.get("phase_reason", "This meal was ranked by the Smart Pantry scoring system."))
+
+    return bullets
+
+
+def build_reason(
+    matched,
+    missing,
+    expiring_items,
+    recipe,
+    profile=None,
+    phase=None,
+    exact_match_percent=None,
+    coverage_with_swaps_percent=None,
+):
+    parts = []
+
+    phase_name = (phase or {}).get("recommendation_phase")
+    if phase_name:
+        parts.append(f"{phase_name}:")
+    elif recipe.get("source_type") == "core":
+        parts.append("Quick everyday meal:")
+    else:
+        parts.append("Expanded recipe option:")
+
+    if expiring_items:
+        unique_expiring = list(dict.fromkeys([item for item in expiring_items if item]))
+        parts.append(f"uses close-to-expiring item(s) first: {', '.join(unique_expiring[:5])}.")
+
+    if matched:
+        parts.append(f"matches pantry item(s): {', '.join(matched[:5])}.")
+
+    if missing:
+        parts.append(f"missing: {', '.join(missing[:4])}.")
+    else:
+        parts.append("no major missing ingredients.")
+
+    if exact_match_percent is not None:
+        parts.append(f"Pantry match: {exact_match_percent}%.")
+
+    if coverage_with_swaps_percent is not None:
+        parts.append(f"Coverage with swaps: {coverage_with_swaps_percent}%.")
+
+    return " ".join(parts)
+
+
 def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], profile: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if recipe_contains_avoided_food(recipe, profile):
         return {
@@ -1094,13 +1466,16 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
             "matched_ingredients": [],
             "missing_ingredients": [],
             "expiring_items": [],
+            "expiring_details": [],
+            "recommendation_phase": "Filtered Out",
+            "phase_rank": 99,
+            "phase_reason": "Filtered out because it conflicts with saved allergies or foods to avoid.",
+            "recommendation_explanation": ["Filtered out because it conflicts with saved allergies or foods to avoid."],
             "source_type": recipe.get("source_type"),
             "source_label": recipe.get("source_label"),
             "why": "Filtered out because it conflicts with saved allergies or foods to avoid.",
             "filtered_out": True,
         }
-
-    nutrition_fit = calculate_ml_nutrition_fit(recipe)
 
     recipe_ingredients = recipe.get("ingredients_list", [])
     matched = []
@@ -1123,13 +1498,14 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         else:
             missing.append(ingredient)
 
-    missing = [item for item in missing if not is_low_value_missing(item)]
-    matched = [item for item in matched if not is_low_value_missing(item)]
-    recipe_ingredients = [item for item in recipe_ingredients if not is_low_value_missing(item)]
+    missing = [item for item in missing if is_real_ingredient(item) and not is_low_value_missing(item)]
+    matched = [item for item in matched if is_real_ingredient(item) and not is_low_value_missing(item)]
+    recipe_ingredients = [item for item in recipe_ingredients if is_real_ingredient(item) and not is_low_value_missing(item)]
 
     total_ingredients = max(len(recipe_ingredients), 1)
     match_ratio = len(matched) / total_ingredients
     exact_pantry_match_percent = round(match_ratio * 100, 1)
+
     try:
         smart_swaps = find_smart_swaps(missing, pantry_items)
     except Exception:
@@ -1144,34 +1520,30 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         )
     except Exception:
         coverage_with_smart_swaps_percent = exact_pantry_match_percent
-    everyday_recipe_fit = calculate_everyday_recipe_fit(recipe)
 
-    match_score = match_ratio * 48
-    matched_count_bonus = min(len(matched) * 4, 12)
+    expiring_details = build_expiring_details(matched_pantry_items)
+    expiring_items = [item["item_name"] for item in expiring_details]
+
+    everyday_recipe_fit = calculate_everyday_recipe_fit(recipe)
+    nutrition_fit = calculate_ml_nutrition_fit(recipe)
+
+    match_score = match_ratio * 44
+    matched_count_bonus = min(len(matched) * 5, 15)
 
     expiring_bonus = 0
-    expiring_items = []
-
-    for item in matched_pantry_items:
-        item_days = days_until(item.get("expiration_date"))
-
-        if item_days is None:
-            continue
+    for detail in expiring_details:
+        item_days = detail.get("days", 99)
 
         if item_days <= 0:
             expiring_bonus += 20
-            expiring_items.append(item.get("item_name"))
         elif item_days <= 1:
             expiring_bonus += 18
-            expiring_items.append(item.get("item_name"))
         elif item_days <= 4:
-            expiring_bonus += 12
-            expiring_items.append(item.get("item_name"))
+            expiring_bonus += 14
         elif item_days <= 10:
-            expiring_bonus += 7
-            expiring_items.append(item.get("item_name"))
+            expiring_bonus += 8
 
-    expiring_bonus = min(expiring_bonus, 30)
+    expiring_bonus = min(expiring_bonus, 34)
 
     ingredient_count = len(recipe_ingredients)
     simplicity_bonus = 0
@@ -1190,25 +1562,40 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
             simplicity_bonus += 8
         elif cook_time <= 30:
             simplicity_bonus += 4
+        elif cook_time > 60:
+            simplicity_bonus -= 6
 
     source_boost = recipe.get("source_boost", 0)
     profile_boost = preference_boost(recipe, profile)
-    missing_penalty = len([item for item in missing if not is_low_value_missing(item)]) * 5
-    no_match_penalty = 18 if len(matched) == 0 else 0
+    missing_penalty = len([item for item in missing if not is_low_value_missing(item)]) * 6
+    no_match_penalty = 25 if len(matched) == 0 else 0
+
+    ml_percent = nutrition_fit.get("ml_nutrition_fit_percent")
+    nutrition_bonus = round((float(ml_percent) / 100.0) * 10.0, 1) if ml_percent is not None else 0.0
 
     score = (
-        10
+        8
         + match_score
         + matched_count_bonus
         + expiring_bonus
         + simplicity_bonus
         + source_boost
         + profile_boost
+        + nutrition_bonus
         - missing_penalty
         - no_match_penalty
     )
 
     score = max(0, min(round(score, 1), 100))
+
+    phase = classify_recommendation_phase(
+        matched=matched,
+        missing=missing,
+        expiring_details=expiring_details,
+        exact_match_percent=exact_pantry_match_percent,
+        coverage_with_swaps=coverage_with_smart_swaps_percent,
+        recipe=recipe,
+    )
 
     score_breakdown = {
         "pantry_match": round(match_score + matched_count_bonus, 1),
@@ -1216,13 +1603,22 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "simplicity": round(simplicity_bonus, 1),
         "data_source": round(source_boost, 1),
         "profile_fit": round(profile_boost, 1),
+        "nutrition_fit": round(nutrition_bonus, 1),
         "missing_penalty": round(missing_penalty, 1),
         "no_match_penalty": round(no_match_penalty, 1),
     }
 
-    matched = [item for item in matched if is_real_ingredient(item) and not is_low_value_missing(item)]
-    missing = [item for item in missing if is_real_ingredient(item) and not is_low_value_missing(item)]
-    expiring_items = [item for item in expiring_items if item]
+    explanation = build_recommendation_explanation(
+        matched=matched,
+        missing=missing,
+        expiring_details=expiring_details,
+        recipe=recipe,
+        profile=profile,
+        phase=phase,
+        exact_match_percent=exact_pantry_match_percent,
+        coverage_with_swaps=coverage_with_smart_swaps_percent,
+        nutrition_fit=nutrition_fit,
+    )
 
     return {
         "recipe_name": recipe.get("recipe_name"),
@@ -1245,96 +1641,112 @@ def score_recipe(recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], pro
         "smart_swaps": smart_swaps,
         "everyday_recipe_fit": everyday_recipe_fit,
         "score_breakdown": score_breakdown,
-        "matched_ingredients": matched,
-        "missing_ingredients": missing,
-        "expiring_items": list(dict.fromkeys([item for item in expiring_items if item])),
+        "matched_ingredients": list(dict.fromkeys(matched)),
+        "missing_ingredients": list(dict.fromkeys(missing)),
+        "expiring_items": list(dict.fromkeys(expiring_items)),
+        "expiring_details": expiring_details,
+        "recommendation_phase": phase.get("recommendation_phase"),
+        "phase_rank": phase.get("phase_rank"),
+        "phase_reason": phase.get("phase_reason"),
+        "recommendation_explanation": explanation,
         "source_type": recipe.get("source_type"),
         "source_label": recipe.get("source_label"),
         "recipe_family_key": recipe.get("recipe_family_key"),
         "recipe_quality_score": recipe.get("recipe_quality_score"),
-        "why": build_reason(matched, missing, expiring_items, recipe, profile),
+        "why": build_reason(
+            matched,
+            missing,
+            expiring_items,
+            recipe,
+            profile,
+            phase,
+            exact_pantry_match_percent,
+            coverage_with_smart_swaps_percent,
+        ),
     }
 
 
-def build_reason(matched, missing, expiring_items, recipe, profile=None):
-    parts = []
-
-    if recipe.get("source_type") == "core":
-        parts.append("This comes from the quick everyday recipe set.")
-    else:
-        parts.append("This comes from the larger expanded recipe library.")
-
-    if matched:
-        parts.append(f"Uses pantry items: {', '.join(matched[:5])}.")
-
-    if expiring_items:
-        unique_expiring = list(dict.fromkeys([item for item in expiring_items if item]))
-        parts.append(f"Prioritizes items close to expiring: {', '.join(unique_expiring[:5])}.")
-
-    if profile:
-        preferred_meals = split_profile_list(profile.get("preferred_meal_type", ""))
-        preferred_cuisines = split_profile_list(profile.get("preferred_cuisine", ""))
-
-        if preferred_meals or preferred_cuisines:
-            parts.append("Also checked against saved profile preferences.")
-
-    if missing:
-        parts.append(f"Missing ingredients: {', '.join(missing[:5])}.")
-
-    return " ".join(parts)
+def recommendation_sort_key(item: Dict[str, Any]):
+    return (
+        item.get("phase_rank", 99),
+        -len(item.get("expiring_items", [])),
+        -float(item.get("score", 0) or 0),
+        -float(item.get("exact_pantry_match_percent", 0) or 0),
+        -float(item.get("coverage_with_smart_swaps_percent", 0) or 0),
+    )
 
 
 def generate_recommendations(pantry_items: List[Dict[str, Any]], profile: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     active_pantry = [item for item in pantry_items if item.get("status") != "deleted"]
 
-    scored = [score_recipe(recipe, active_pantry, profile) for recipe in load_recipes()]
-    scored = [recipe for recipe in scored if recipe.get("recipe_name") and not recipe.get("filtered_out") and recipe.get("score", 0) >= 0]
-    scored.sort(key=lambda item: item["score"], reverse=True)
+    if not active_pantry:
+        return []
 
+    scored = [score_recipe(recipe, active_pantry, profile) for recipe in load_recipes()]
+
+    # Keep recipes that actually connect to the user's pantry. This prevents the app from feeling like
+    # a random recipe dump and keeps the output aligned with the Smart Pantry proposal.
+    scored = [
+        recipe for recipe in scored
+        if recipe.get("recipe_name")
+        and not recipe.get("filtered_out")
+        and recipe.get("score", 0) >= 22
+        and len(recipe.get("matched_ingredients", [])) > 0
+        and recipe.get("phase_rank", 99) < 9
+    ]
+
+    scored.sort(key=recommendation_sort_key)
     scored = prioritize_recommendation_diversity(scored)
+
+    buckets = [
+        ("expiring", lambda recipe: recipe.get("phase_rank") == 1, 10),
+        ("pantry_match", lambda recipe: recipe.get("phase_rank") == 2, 10),
+        ("almost_there", lambda recipe: recipe.get("phase_rank") == 3, 10),
+        ("quick", lambda recipe: recipe.get("phase_rank") == 4, 8),
+        ("expanded", lambda recipe: recipe.get("phase_rank") == 5, 12),
+    ]
 
     selected = []
     selected_names = set()
     selected_families = set()
 
-    for recipe in scored:
-        if len(selected) >= 10:
-            break
-
+    def try_add(recipe):
         name_key = simplify(recipe["recipe_name"])
         family_key = recipe.get("recipe_family_key") or name_key
 
         if name_key in selected_names or family_key in selected_families:
-            continue
+            return False
 
         selected.append(recipe)
         selected_names.add(name_key)
         selected_families.add(family_key)
+        return True
 
-    expanded_added = 0
+    for _bucket_name, test, limit in buckets:
+        added = 0
 
+        for recipe in scored:
+            if added >= limit or len(selected) >= 50:
+                break
+
+            if not test(recipe):
+                continue
+
+            if try_add(recipe):
+                added += 1
+
+    # Fill remaining space with the best ranked recipes without overloading the participant.
     for recipe in scored:
-        if expanded_added >= 4 or len(selected) >= 14:
+        if len(selected) >= 50:
             break
 
-        if recipe.get("source_type") != "expanded":
-            continue
+        try_add(recipe)
 
-        name_key = simplify(recipe["recipe_name"])
-        family_key = recipe.get("recipe_family_key") or name_key
-
-        if name_key in selected_names or family_key in selected_families:
-            continue
-
-        if recipe.get("score", 0) < 25:
-            continue
-
-        selected.append(recipe)
-        selected_names.add(name_key)
-        selected_families.add(family_key)
-        expanded_added += 1
+    selected.sort(key=recommendation_sort_key)
 
     return selected
+
+
 
 
 def grocery_suggestions(recommendations: List[Dict[str, Any]]) -> List[str]:

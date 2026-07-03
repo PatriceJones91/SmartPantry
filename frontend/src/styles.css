@@ -3831,3 +3831,416 @@ button {
     min-height: 170px;
   }
 }
+
+
+/* Milestone 7 Update 1 - recommendation loading, explanation, and ranking polish */
+.recommendationsPage {
+  display: grid;
+  gap: 18px;
+}
+
+.mealLoadingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(15, 23, 42, 0.58);
+  backdrop-filter: blur(6px);
+}
+
+.mealLoadingCard {
+  width: min(560px, 100%);
+  border-radius: 30px;
+  padding: 32px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.35);
+}
+
+.mealLoadingCard h2 {
+  margin: 16px 0 10px;
+  color: #2563eb;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 950;
+}
+
+.mealLoadingCard p {
+  margin: 0;
+  color: #334155;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.loadingSpinner {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto;
+  border-radius: 999px;
+  border: 7px solid #dbeafe;
+  border-top-color: #2563eb;
+  border-right-color: #16a34a;
+  animation: pantrySpin 0.9s linear infinite;
+}
+
+@keyframes pantrySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.recommendationPhaseRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.recommendationPhaseRow small {
+  color: #475569;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.phaseBadge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 950;
+  border: 1px solid transparent;
+}
+
+.phaseExpiring {
+  color: #991b1b;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
+.phasePlan {
+  color: #92400e;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.phaseFull {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.phaseStrong {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #bfdbfe;
+}
+
+.phaseAlmost {
+  color: #6b21a8;
+  background: #f3e8ff;
+  border-color: #e9d5ff;
+}
+
+.phaseQuick,
+.phaseDefault {
+  color: #0f766e;
+  background: #ccfbf1;
+  border-color: #99f6e4;
+}
+
+.recommendationWhyBox {
+  margin: 14px 0;
+  border-radius: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #eff6ff, #ecfdf5);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+}
+
+.recommendationWhyBox h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 1.02rem;
+  font-weight: 950;
+}
+
+.recommendationWhyBox p {
+  margin: 0 0 10px;
+  color: #334155;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.explanationList {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+}
+
+.explanationList li {
+  margin: 7px 0;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.expiringDetailGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.expiringDetailGrid span {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #c2410c;
+  font-weight: 900;
+  font-size: 0.82rem;
+  border: 1px solid #fed7aa;
+}
+
+.scoreBreakdownBox {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #bbf7d0;
+}
+
+.scoreBreakdownBox h4 {
+  margin: 0 0 10px;
+  color: #064e3b;
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.scoreBreakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.scoreBreakdownGrid span {
+  display: grid;
+  gap: 3px;
+  border-radius: 14px;
+  padding: 9px 10px;
+  background: white;
+  color: #14532d;
+  border: 1px solid #dcfce7;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.scoreBreakdownGrid strong {
+  color: #052e16;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.ingredientUsageMiniBox {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+}
+
+.ingredientUsageMiniBox h3 {
+  margin: 0 0 6px;
+  color: #0f172a;
+}
+
+.ingredientUsageMiniBox p {
+  margin: 0 0 10px;
+  color: #475569;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.usageIngredientName {
+  font-weight: 950 !important;
+  color: #0f172a !important;
+}
+
+.smartSwapCard {
+  display: grid;
+  gap: 5px;
+}
+
+@media (max-width: 950px) {
+  .mealLoadingCard {
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .scoreBreakdownGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recommendationPhaseRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .expiringDetailGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .scoreBreakdownGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Milestone 7 Update 1.1 - cleaner recommendation cards and smart swap action button */
+.smartSwapSelectButton {
+  width: fit-content;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: #2563eb;
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.16);
+}
+
+.smartSwapSelectButton:hover {
+  background: #1d4ed8;
+}
+
+.recommendationPhaseRow {
+  margin-bottom: 10px;
+}
+
+.feedbackLabel {
+  margin-top: 14px;
+}
+
+@media (max-width: 950px) {
+  .smartSwapSelectButton {
+    width: 100%;
+  }
+}
+
+
+/* Milestone 7 Update 1.2 recommendation cleanup */
+.recommendationPhaseRow small {
+  color: #334155 !important;
+  font-weight: 800 !important;
+}
+
+.filterBar button {
+  white-space: nowrap;
+}
+
+.recipeMeta {
+  display: none !important;
+}
+
+.smartSwapSelectButton {
+  margin-top: 10px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 9px 13px !important;
+  background: #2563eb !important;
+  color: white !important;
+  font-weight: 950 !important;
+}
+
+.recipeDetails p {
+  line-height: 1.5 !important;
+}
+
+/* Milestone 7 Update 1.3 - clearer suggested/custom Smart Swap tracking */
+.smartSwapOptionsBox h3 {
+  margin-bottom: 6px !important;
+}
+
+.smartSwapOptionsBox > p {
+  max-width: 920px;
+  line-height: 1.45;
+}
+
+.smartSwapCard strong {
+  color: #0f172a !important;
+}
+
+.smartSwapCard span {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.smartSwapEmptyNote {
+  background: #ffffff;
+  border: 1px dashed #67e8f9;
+  border-radius: 14px;
+  padding: 12px;
+  color: #155e75;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.customSmartSwapBox {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #bae6fd;
+}
+
+.customSmartSwapBox h4 {
+  margin: 0 0 6px;
+  color: #075985;
+  font-weight: 950;
+}
+
+.customSmartSwapBox p {
+  margin: 0 0 12px;
+  color: #334155;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.customSwapGrid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1fr) minmax(220px, 1.1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.customSwapGrid select,
+.customSwapGrid input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: white;
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.customSwapButton {
+  margin-top: 0 !important;
+  white-space: nowrap;
+}
+
+.selectedSwapItem strong {
+  line-height: 1.4;
+}
+
+@media (max-width: 950px) {
+  .customSwapGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .customSwapButton {
+    width: 100% !important;
+  }
+}
