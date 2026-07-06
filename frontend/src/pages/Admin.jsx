@@ -166,7 +166,42 @@ function downloadCsv(filename, rows) {
   link.click();
   URL.revokeObjectURL(url);
 }
+function getSupabaseConfig() {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing Supabase settings. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local."
+    );
+  }
+
+  return { url, anonKey };
+}
+
+async function fetchActivity1AdminRows() {
+  const { url, anonKey } = getSupabaseConfig();
+
+  const response = await fetch(`${url}/rest/v1/rpc/activity1_admin_rows`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+    },
+    body: JSON.stringify({}),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message || data?.hint || "Could not load Activity 1 manual tracking data."
+    );
+  }
+
+  return data || [];
+}
 
 
 function AdminAccountTools() {
@@ -340,9 +375,29 @@ export default function Admin() {
   const [surveys, setSurveys] = useState([]);
   const [pantry, setPantry] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [activity1Rows, setActivity1Rows] = useState([]);
+  const [activity1Loading, setActivity1Loading] = useState(false);
+  const [activity1Error, setActivity1Error] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTable, setActiveTable] = useState("users");
+
+  async function loadActivity1Rows() {
+    setActivity1Loading(true);
+    setActivity1Error("");
+
+    try {
+      const data = await fetchActivity1AdminRows();
+      setActivity1Rows(safeArray(data));
+    } catch (err) {
+      setActivity1Error(
+        err.message || "Could not load Activity 1 manual tracking data."
+      );
+      setActivity1Rows([]);
+    } finally {
+      setActivity1Loading(false);
+    }
+  }
 
   async function loadAdminData() {
     setLoading(true);
@@ -372,6 +427,7 @@ export default function Admin() {
 
   useEffect(() => {
     loadAdminData();
+    loadActivity1Rows();
   }, []);
 
   const userMap = useMemo(() => {
@@ -387,6 +443,22 @@ export default function Admin() {
   const participantUsers = useMemo(() => {
     return users.filter((user) => user.role !== "admin");
   }, [users]);
+
+  const activity1ParticipantCount = useMemo(() => {
+    const names = activity1Rows
+      .map((row) => row.username || row.participant_id)
+      .filter(Boolean);
+
+    return new Set(names).size;
+  }, [activity1Rows]);
+
+  const activity1MostRecent = useMemo(() => {
+    if (activity1Rows.length === 0) return null;
+
+    return [...activity1Rows].sort(
+      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    )[0];
+  }, [activity1Rows]);
 
   const surveySummary = useMemo(() => {
     const userSurveyMap = {};
@@ -570,6 +642,23 @@ export default function Admin() {
     downloadCsv("smart_pantry_participant_activity.csv", rows);
   }
 
+  function exportActivity1() {
+    const rows = activity1Rows.map((item) => ({
+      participant: item.username || item.participant_id,
+      participant_id: item.participant_id,
+      row_order: item.row_order,
+      item_name: item.item_name,
+      quantity: item.quantity,
+      unit: item.unit,
+      category: item.category,
+      expiration_date: item.expiration_date,
+      notes: item.notes,
+      saved_at: formatDate(item.created_at),
+    }));
+
+    downloadCsv("activity1_manual_tracking_data.csv", rows);
+  }
+
   return (
     <div className="adminPage">
       <section className="adminHeroCard">
@@ -583,7 +672,14 @@ export default function Admin() {
           </p>
         </div>
 
-        <button onClick={loadAdminData}>Refresh Admin Data</button>
+        <button
+          onClick={() => {
+            loadAdminData();
+            loadActivity1Rows();
+          }}
+        >
+          Refresh Admin Data
+        </button>
       </section>
 
       {loading && <section className="card">Loading admin dashboard...</section>}
@@ -623,6 +719,71 @@ export default function Admin() {
             <span>Acceptance rate</span>
           </div>
         </div>
+      </section>
+
+      <section className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+            <h2>Activity 1 Manual Tracking Data</h2>
+            <p>Manual pantry entries submitted through Pantry Note Tracker.</p>
+          </div>
+          <button onClick={loadActivity1Rows}>Refresh Activity 1 Data</button>
+        </div>
+
+        <div className="polishedAdminGrid">
+          <div>
+            <strong>{activity1ParticipantCount}</strong>
+            <span>Activity 1 participants</span>
+          </div>
+          <div>
+            <strong>{activity1Rows.length}</strong>
+            <span>Manual items entered</span>
+          </div>
+          <div>
+            <strong>{activity1MostRecent ? formatDate(activity1MostRecent.created_at) : "N/A"}</strong>
+            <span>Most recent manual save</span>
+          </div>
+        </div>
+
+        {activity1Loading && <p>Loading Activity 1 manual tracking data...</p>}
+        {activity1Error && <p className="error">{activity1Error}</p>}
+
+        {!activity1Loading && !activity1Error && (
+          activity1Rows.length === 0 ? (
+            <div className="groceryEmpty">No Activity 1 manual tracking entries yet.</div>
+          ) : (
+            <div className="adminTableWrap">
+              <table className="adminDataTable wideAdminTable">
+                <thead>
+                  <tr>
+                    <th>Participant</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Unit</th>
+                    <th>Category</th>
+                    <th>Expiration</th>
+                    <th>Notes</th>
+                    <th>Saved</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activity1Rows.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.username || item.participant_id || "Unknown"}</td>
+                      <td>{item.item_name || "N/A"}</td>
+                      <td>{item.quantity || "N/A"}</td>
+                      <td>{item.unit || "N/A"}</td>
+                      <td>{item.category || "N/A"}</td>
+                      <td>{item.expiration_date || "N/A"}</td>
+                      <td>{item.notes || "N/A"}</td>
+                      <td>{formatDate(item.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
       </section>
 
       <section className="card adminSectionCard">
@@ -710,6 +871,9 @@ export default function Admin() {
           <button onClick={exportPantry}>Export Pantry Data CSV</button>
           <button onClick={exportParticipants}>
             Export Participant Activity CSV
+          </button>
+          <button onClick={exportActivity1}>
+            Export Activity 1 Manual Tracking CSV
           </button>
         </div>
       </section>
@@ -835,6 +999,12 @@ export default function Admin() {
             Pantry Items
           </button>
           <button
+            className={activeTable === "activity1" ? "activeFilter" : "secondary"}
+            onClick={() => setActiveTable("activity1")}
+          >
+            Activity 1 Manual Tracking
+          </button>
+          <button
             className={activeTable === "logs" ? "activeFilter" : "secondary"}
             onClick={() => setActiveTable("logs")}
           >
@@ -920,6 +1090,39 @@ export default function Admin() {
                     <td>{item.barcode || "Manual"}</td>
                     <td>{item.brand || "N/A"}</td>
                     <td>{item.expiration_date || "N/A"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTable === "activity1" && (
+          <div className="adminTableWrap">
+            <table className="adminDataTable wideAdminTable">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Item</th>
+                  <th>Quantity</th>
+                  <th>Unit</th>
+                  <th>Category</th>
+                  <th>Expiration</th>
+                  <th>Notes</th>
+                  <th>Saved</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity1Rows.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.username || item.participant_id || "Unknown"}</td>
+                    <td>{item.item_name || "N/A"}</td>
+                    <td>{item.quantity || "N/A"}</td>
+                    <td>{item.unit || "N/A"}</td>
+                    <td>{item.category || "N/A"}</td>
+                    <td>{item.expiration_date || "N/A"}</td>
+                    <td>{item.notes || "N/A"}</td>
+                    <td>{formatDate(item.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
