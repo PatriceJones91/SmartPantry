@@ -5,11 +5,8 @@ import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Pantry from "./pages/Pantry.jsx";
 import Profile from "./pages/Profile.jsx";
-import PreSurvey from "./pages/PreSurvey.jsx";
-import PostSurvey from "./pages/PostSurvey.jsx";
 import Recommendations from "./pages/Recommendations.jsx";
 import History from "./pages/History.jsx";
-import Feedback from "./pages/Feedback.jsx";
 import Admin from "./pages/Admin.jsx";
 
 function getUser() {
@@ -95,15 +92,6 @@ export default function App() {
         />
 
         <Route
-          path="/pre-survey"
-          element={
-            <ProtectedRoute>
-              <PreSurvey />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/recommendations"
           element={
             <ProtectedRoute>
@@ -122,24 +110,6 @@ export default function App() {
         />
 
         <Route
-          path="/post-survey"
-          element={
-            <ProtectedRoute>
-              <PostSurvey />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/feedback"
-          element={
-            <ProtectedRoute>
-              <Feedback />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/admin"
           element={
             <AdminRoute>
@@ -147,6 +117,11 @@ export default function App() {
             </AdminRoute>
           }
         />
+
+        <Route path="/pre-survey" element={<Navigate to="/" replace />} />
+        <Route path="/post-survey" element={<Navigate to="/" replace />} />
+        <Route path="/feedback" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppLayout>
   );
