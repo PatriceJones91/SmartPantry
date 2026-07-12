@@ -116,6 +116,7 @@ export default function History() {
           </p>
         </div>
 
+        <div className="m8HistoryHeroArt" aria-hidden="true">📋</div>
         <button onClick={loadHistory}>Refresh History</button>
       </div>
 

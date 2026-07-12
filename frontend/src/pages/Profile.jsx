@@ -253,6 +253,14 @@ export default function Profile() {
           Save food preferences, allergies, household details, and meal choices.
           This helps Smart Pantry recommend meals that make more sense for each participant.
         </p>
+        <div className="m8ProfileHeroArt" aria-hidden="true">👩🏽‍🍳</div>
+      </section>
+
+      <section className="m8ProfileSummary" aria-label="Profile preference summary">
+        <article><span>🍽️</span><div><strong>{selectedMealTypes.length}</strong><small>Meal types</small></div></article>
+        <article><span>🌎</span><div><strong>{selectedCuisines.length}</strong><small>Cuisines</small></div></article>
+        <article><span>⚠️</span><div><strong>{selectedAllergies.length}</strong><small>Allergies</small></div></article>
+        <article><span>🏠</span><div><strong>{profile.household_size || 1}</strong><small>Household size</small></div></article>
       </section>
 
       <section className="card profileCard">

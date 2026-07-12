@@ -406,6 +406,13 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="m8HeroArtwork" aria-hidden="true">
+          <span className="m8HeroBasket">🛒</span>
+          <span className="m8HeroFood m8FoodOne">🥬</span>
+          <span className="m8HeroFood m8FoodTwo">🥛</span>
+          <span className="m8HeroFood m8FoodThree">🍎</span>
+        </div>
+
         <aside className="m8NextActionCard" aria-label="Recommended next action">
           <span>Recommended next step</span>
           <h2>{nextAction.title}</h2>

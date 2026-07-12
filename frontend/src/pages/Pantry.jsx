@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createWorker } from "tesseract.js";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { api } from "../api/client.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api";
@@ -562,6 +563,7 @@ export default function Pantry() {
   const [editedItems, setEditedItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [barcodeSearch, setBarcodeSearch] = useState("");
+  const [entryMode, setEntryMode] = useState("product");
 
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState("");
@@ -574,6 +576,12 @@ export default function Pantry() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMessage, setScannerMessage] = useState("");
+  const [scannerStarting, setScannerStarting] = useState(false);
+  const scannerVideoRef = useRef(null);
+  const scannerControlsRef = useRef(null);
+  const scannerReaderRef = useRef(null);
 
   async function load() {
     try {
@@ -591,6 +599,16 @@ export default function Pantry() {
 
   useEffect(() => {
     load();
+
+    return () => {
+      if (scannerControlsRef.current) {
+        scannerControlsRef.current.stop();
+      }
+
+      if (scannerVideoRef.current?.srcObject) {
+        scannerVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
   function change(field, value) {
@@ -807,14 +825,121 @@ async function scanReceiptWithOcr() {
     }
   }
 
-  async function lookupBarcode(e) {
-    e.preventDefault();
+  function stopBarcodeScanner() {
+    if (scannerControlsRef.current) {
+      scannerControlsRef.current.stop();
+      scannerControlsRef.current = null;
+    }
+
+    if (scannerVideoRef.current?.srcObject) {
+      scannerVideoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      scannerVideoRef.current.srcObject = null;
+    }
+
+    scannerReaderRef.current = null;
+    setScannerStarting(false);
+  }
+
+  function closeBarcodeScanner() {
+    stopBarcodeScanner();
+    setScannerOpen(false);
+    setScannerMessage("");
+  }
+
+  async function startBarcodeScanner() {
+    setMessage("");
+    setError("");
+    setScannerMessage("Point the back camera at the barcode and hold the phone steady.");
+    setScannerOpen(true);
+    setScannerStarting(true);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      const reader = new BrowserMultiFormatReader();
+      scannerReaderRef.current = reader;
+
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+      const rearCamera =
+        devices.find((device) => /back|rear|environment/i.test(device.label)) ||
+        devices[devices.length - 1];
+
+      const controls = await reader.decodeFromVideoDevice(
+        rearCamera?.deviceId,
+        scannerVideoRef.current,
+        (result) => {
+          if (!result) return;
+
+          const scannedValue = result.getText().trim();
+          if (!scannedValue) return;
+
+          setBarcodeSearch(scannedValue);
+          setForm((previous) => ({
+            ...previous,
+            barcode: scannedValue,
+          }));
+          setScannerMessage(`Barcode detected: ${scannedValue}`);
+          stopBarcodeScanner();
+          setScannerOpen(false);
+          void lookupBarcodeValue(scannedValue);
+        }
+      );
+
+      scannerControlsRef.current = controls;
+      setScannerStarting(false);
+    } catch (err) {
+      stopBarcodeScanner();
+      setScannerMessage("");
+      setError(
+        err?.name === "NotAllowedError"
+          ? "Camera permission was blocked. Allow camera access in your browser, then try again."
+          : "The camera could not start. You can upload a barcode photo or enter the UPC manually."
+      );
+      setScannerOpen(false);
+    }
+  }
+
+  async function scanBarcodePhoto(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    setMessage("");
+    setError("");
+    setBarcodeLoading(true);
+
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      const reader = new BrowserMultiFormatReader();
+      const result = await reader.decodeFromImageUrl(objectUrl);
+      const scannedValue = result.getText().trim();
+
+      setBarcodeSearch(scannedValue);
+      setForm((previous) => ({
+        ...previous,
+        barcode: scannedValue,
+      }));
+
+      await lookupBarcodeValue(scannedValue);
+    } catch {
+      setError(
+        "No readable barcode was found in that photo. Try a closer, brighter picture with the full barcode visible."
+      );
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      setBarcodeLoading(false);
+    }
+  }
+
+  async function lookupBarcodeValue(rawBarcode) {
     setMessage("");
     setError("");
 
-    const barcode = barcodeSearch.trim();
+    const barcode = String(rawBarcode || "").trim();
     if (!barcode) {
-      setError("Enter a barcode or UPC first.");
+      setError("Enter, scan, or upload a barcode first.");
       return;
     }
 
@@ -838,17 +963,19 @@ async function scanReceiptWithOcr() {
             break;
           }
         } catch {
-          // try next path
+          // Try the next supported endpoint path.
         }
       }
 
       if (!data) {
-        setError("No barcode match found. You can still enter the item manually.");
+        setForm((previous) => ({ ...previous, barcode }));
+        setError(
+          `Barcode ${barcode} was read, but no product match was found. You can still enter the item details manually.`
+        );
         return;
       }
 
       const product = data.item || data.product || data.data || data;
-
       const itemName =
         product.item_name ||
         product.product_name ||
@@ -856,27 +983,30 @@ async function scanReceiptWithOcr() {
         product.description ||
         product.food_name ||
         "";
-
       const brand = product.brand || product.brands || product.brand_name || "";
-      const category =
-        product.category ||
-        product.food_category ||
-        product.main_category ||
-        "Other";
+      const rawCategory =
+        product.category || product.food_category || product.main_category || "Other";
+      const category = CATEGORY_OPTIONS.includes(rawCategory)
+        ? rawCategory
+        : guessCategory(itemName);
 
-      setForm((prev) => ({
-        ...prev,
-        item_name: itemName || prev.item_name,
-        brand: brand || prev.brand,
+      setBarcodeSearch(barcode);
+      setForm((previous) => ({
+        ...previous,
+        item_name: itemName || previous.item_name,
+        brand: brand || previous.brand,
         barcode,
-        category: CATEGORY_OPTIONS.includes(category) ? category : prev.category,
-        source: "barcode_lookup",
-        notes: prev.notes || "Found by barcode lookup",
+        category,
+        quantity: product.quantity || previous.quantity,
+        unit: UNIT_OPTIONS.includes(product.unit) ? product.unit : previous.unit,
+        container_type: product.container_type || previous.container_type,
+        source: product.source || "barcode_lookup",
+        notes: previous.notes || "Found by barcode lookup",
       }));
 
       setMessage(
         itemName
-          ? `Barcode found: ${itemName}`
+          ? `Barcode found: ${itemName}. Review the details and add the expiration date.`
           : "Barcode found. Review the item details before adding."
       );
     } catch (err) {
@@ -884,6 +1014,11 @@ async function scanReceiptWithOcr() {
     } finally {
       setBarcodeLoading(false);
     }
+  }
+
+  async function lookupBarcode(e) {
+    e.preventDefault();
+    await lookupBarcodeValue(barcodeSearch);
   }
 
   async function addItem(e) {
@@ -965,6 +1100,20 @@ async function scanReceiptWithOcr() {
     editedItems.map((item) => item.category).filter(Boolean)
   ).size;
 
+  function chooseEntryMode(mode) {
+    setEntryMode(mode);
+    setMessage("");
+    setError("");
+
+    window.setTimeout(() => {
+      const targetId = mode === "receipt" ? "receipt-entry-panel" : "product-entry-panel";
+      document.getElementById(targetId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+  }
+
   return (
     <div className="pantryPage m8PantryPage">
       <section className="m8PantryHero">
@@ -975,6 +1124,10 @@ async function scanReceiptWithOcr() {
             Keep this list current so Smart Pantry can give you stronger meal
             recommendations and help you notice foods that should be used soon.
           </p>
+        </div>
+
+        <div className="m8PantryHeroArtwork" aria-hidden="true">
+          <span>🥕</span><span>🥛</span><span>🥬</span><span>🍞</span>
         </div>
 
         <div className="m8PantryHeroStats" aria-label="Pantry summary">
@@ -993,31 +1146,137 @@ async function scanReceiptWithOcr() {
         </div>
       </section>
 
-      <section className="m8PantryMethodGrid" aria-label="Ways to add pantry items">
-        <article className="card m8PantryMethodCard isActive">
-          <span className="m8MethodNumber">1</span>
+      <section className="card unifiedPantryHub" aria-label="Ways to add pantry items">
+        <div className="unifiedPantryHeader">
           <div>
-            <h2>Add an item</h2>
-            <p>Enter one pantry item and its expiration information.</p>
+            <p className="eyebrow">Quick pantry entry</p>
+            <h2>Add item(s) to pantry</h2>
+            <p>
+              Add one product by barcode or add several groceries from a receipt.
+              Choose the method that works best for you.
+            </p>
           </div>
-        </article>
-        <article className="card m8PantryMethodCard">
-          <span className="m8MethodNumber">2</span>
-          <div>
-            <h2>Search a UPC</h2>
-            <p>Use the product barcode to fill in available details.</p>
-          </div>
-        </article>
-        <article className="card m8PantryMethodCard">
-          <span className="m8MethodNumber">3</span>
-          <div>
-            <h2>Scan a receipt</h2>
-            <p>Review OCR results before adding selected groceries.</p>
-          </div>
-        </article>
+
+          <aside className="scanHelpPanel" aria-label="Scanning help">
+            <h3>What can I scan?</h3>
+            <div>
+              <span className="scanHelpIcon" aria-hidden="true">▥</span>
+              <p><strong>Product barcode</strong><small>One product at a time using a UPC or EAN barcode.</small></p>
+            </div>
+            <div>
+              <span className="scanHelpIcon" aria-hidden="true">▤</span>
+              <p><strong>Grocery receipt</strong><small>Multiple grocery items from one receipt image.</small></p>
+            </div>
+          </aside>
+        </div>
+
+        <div className="pantryModeTabs" role="tablist" aria-label="Pantry entry type">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={entryMode === "product"}
+            className={entryMode === "product" ? "active" : ""}
+            onClick={() => chooseEntryMode("product")}
+          >
+            <span aria-hidden="true">▥</span>
+            <span><strong>Product barcode</strong><small>One product at a time</small></span>
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={entryMode === "receipt"}
+            className={entryMode === "receipt" ? "active" : ""}
+            onClick={() => chooseEntryMode("receipt")}
+          >
+            <span aria-hidden="true">▤</span>
+            <span><strong>Grocery receipt</strong><small>Many products at once</small></span>
+          </button>
+        </div>
+
+        <h3 className="entryChoiceTitle">Choose how you would like to add items</h3>
+
+        <div className="pantryEntryChoices">
+          <button
+            type="button"
+            className="pantryEntryChoice recommended"
+            onClick={() => {
+              if (entryMode === "product") {
+                startBarcodeScanner();
+              } else {
+                document.getElementById("receipt-camera-input")?.click();
+              }
+            }}
+          >
+            <span className="entryChoiceIcon" aria-hidden="true">▣</span>
+            <strong>Scan with camera</strong>
+            <small>
+              {entryMode === "product"
+                ? "Use your camera to scan a product barcode."
+                : "Take a clear picture of your grocery receipt."}
+            </small>
+            <em>Recommended</em>
+          </button>
+
+          <label className="pantryEntryChoice">
+            <span className="entryChoiceIcon blue" aria-hidden="true">▧</span>
+            <strong>Upload image</strong>
+            <small>
+              {entryMode === "product"
+                ? "Upload a saved photo of a barcode."
+                : "Upload a saved photo of a receipt."}
+            </small>
+            <input
+              id={entryMode === "product" ? "barcode-image-input" : "receipt-camera-input"}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={entryMode === "product" ? scanBarcodePhoto : handleReceiptFile}
+            />
+          </label>
+
+          <label className={`pantryEntryChoice ${entryMode === "product" ? "mutedChoice" : ""}`}>
+            <span className="entryChoiceIcon" aria-hidden="true">▤</span>
+            <strong>Upload file</strong>
+            <small>
+              {entryMode === "product"
+                ? "Switch to Grocery Receipt to upload a TXT or CSV grocery list."
+                : "Upload a TXT or CSV grocery list."}
+            </small>
+            {entryMode === "receipt" ? (
+              <input type="file" accept=".txt,.csv" onChange={handleGroceryTextFile} />
+            ) : (
+              <button type="button" onClick={() => chooseEntryMode("receipt")}>
+                Use receipt tools
+              </button>
+            )}
+          </label>
+
+          <button
+            type="button"
+            className="pantryEntryChoice"
+            onClick={() => chooseEntryMode(entryMode === "receipt" ? "receipt" : "product")}
+          >
+            <span className="entryChoiceIcon" aria-hidden="true">⌨</span>
+            <strong>Enter manually</strong>
+            <small>
+              {entryMode === "product"
+                ? "Type product details or enter a UPC manually."
+                : "Type or paste one grocery item per line."}
+            </small>
+          </button>
+        </div>
+
+        <div className="pantryEntryTip">
+          <span aria-hidden="true">💡</span>
+          <strong>Barcode = one product at a time</strong>
+          <span>•</span>
+          <strong>Receipt = many products at once</strong>
+        </div>
       </section>
 
-      <section className="card m8PantryEntryCard">
+      {entryMode === "product" && (
+      <section id="product-entry-panel" className="card m8PantryEntryCard unifiedEntryPanel">
         <div className="m8SectionHeading">
           <div>
             <p className="eyebrow">Add to your pantry</p>
@@ -1149,12 +1408,39 @@ async function scanReceiptWithOcr() {
               available, Smart Pantry will fill in the product name and brand for review.
             </p>
 
+            <div className="barcodeEntryChoices">
+              <button
+                type="button"
+                className="barcodeScanButton"
+                onClick={startBarcodeScanner}
+                disabled={barcodeLoading || scannerStarting}
+              >
+                <span aria-hidden="true">▣</span>
+                {scannerStarting ? "Starting camera…" : "Scan product barcode"}
+              </button>
+
+              <label className="barcodePhotoButton">
+                <span aria-hidden="true">▧</span>
+                Upload barcode photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={scanBarcodePhoto}
+                />
+              </label>
+            </div>
+
+            <div className="barcodeManualDivider"><span>or enter it manually</span></div>
+
             <form className="m8UpcForm" onSubmit={lookupBarcode}>
               <label htmlFor="pantry-upc-search">Barcode or UPC</label>
               <input
                 id="pantry-upc-search"
+                inputMode="numeric"
+                autoComplete="off"
                 value={barcodeSearch}
-                onChange={(e) => setBarcodeSearch(e.target.value)}
+                onChange={(e) => setBarcodeSearch(e.target.value.replace(/\s/g, ""))}
                 placeholder="Example: 012345678905"
               />
               <button type="submit" disabled={barcodeLoading}>
@@ -1172,8 +1458,37 @@ async function scanReceiptWithOcr() {
         {message && <p className="success m8PantryNotice" role="status">{message}</p>}
         {error && <p className="error m8PantryNotice" role="alert">{error}</p>}
       </section>
+      )}
 
-      <section className="card pantryFormCard receiptOcrCard m8ReceiptCard">
+      {scannerOpen && (
+        <div className="barcodeScannerOverlay" role="dialog" aria-modal="true" aria-labelledby="barcode-scanner-title">
+          <div className="barcodeScannerModal">
+            <div className="barcodeScannerHeader">
+              <div>
+                <p className="eyebrow">Camera barcode scanner</p>
+                <h2 id="barcode-scanner-title">Scan product barcode</h2>
+              </div>
+              <button type="button" onClick={closeBarcodeScanner} aria-label="Close barcode scanner">×</button>
+            </div>
+
+            <div className="barcodeVideoFrame">
+              <video ref={scannerVideoRef} muted playsInline />
+              <div className="barcodeTargetBox" aria-hidden="true" />
+            </div>
+
+            <p className="barcodeScannerStatus">
+              {scannerMessage || "Starting the camera…"}
+            </p>
+
+            <button type="button" className="barcodeCancelButton" onClick={closeBarcodeScanner}>
+              Cancel scan
+            </button>
+          </div>
+        </div>
+      )}
+
+      {entryMode === "receipt" && (
+      <section id="receipt-entry-panel" className="card pantryFormCard receiptOcrCard m8ReceiptCard unifiedEntryPanel">
         <div className="m8SectionHeading m8ReceiptHeading">
           <div>
             <p className="eyebrow">Receipt-assisted entry</p>
@@ -1399,6 +1714,7 @@ async function scanReceiptWithOcr() {
           </div>
         )}
       </section>
+      )}
 
       <section className="card pantryTableCard m8PantryTableCard">
         <div className="pantrySectionHeader m8PantryTableHeader">

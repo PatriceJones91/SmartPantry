@@ -6,10 +6,10 @@ function getUser() {
 
 const links = [
   { to: "/", label: "Dashboard", icon: "⌂", end: true },
-  { to: "/pantry", label: "My Pantry", icon: "▣" },
-  { to: "/recommendations", label: "Meal Recommendations", icon: "♨" },
+  { to: "/pantry", label: "My Pantry", icon: "🧺" },
+  { to: "/recommendations", label: "Meal Recommendations", icon: "🍽" },
   { to: "/history", label: "Recommendation History", icon: "▤" },
-  { to: "/profile", label: "Profile & Preferences", icon: "●" },
+  { to: "/profile", label: "Profile & Preferences", icon: "♙" },
 ];
 
 export default function Navbar() {
@@ -32,7 +32,7 @@ export default function Navbar() {
           className="sidebarLogo"
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
-        <div><h2>Smart<br />Pantry</h2></div>
+        <div><h2>Smart<br />Pantry <small>2.0</small></h2></div>
       </div>
 
       <div className="userBox">

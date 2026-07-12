@@ -675,6 +675,8 @@ export default function Recommendations() {
           </p>
         </div>
 
+        <div className="m8RecommendationHeroArt" aria-hidden="true">🥗</div>
+
         <button onClick={generate} disabled={loading}>
           {loading ? "Finding meals..." : "Find Meal Recommendations"}
         </button>

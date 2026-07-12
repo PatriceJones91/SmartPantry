@@ -6574,3 +6574,642 @@ body { background: #eef3f6; color: var(--sp-ink); }
     grid-column: auto !important;
   }
 }
+
+/* Milestone 8 — Unified Product Barcode + Grocery Receipt entry */
+.unifiedPantryHub {
+  padding: 24px !important;
+  border-radius: 28px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(226, 232, 240, 0.92) !important;
+}
+
+.unifiedPantryHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 22px;
+  align-items: start;
+}
+
+.unifiedPantryHeader h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  color: #0f172a;
+  font-weight: 950;
+}
+
+.unifiedPantryHeader > div > p:last-child {
+  max-width: 720px;
+  margin: 0;
+  color: #475569;
+  line-height: 1.55;
+  font-weight: 700;
+}
+
+.scanHelpPanel {
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #f8fbff, #eff6ff);
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.scanHelpPanel h3 {
+  margin: 0 0 12px;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.scanHelpPanel > div {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-top: 1px solid #dbeafe;
+}
+
+.scanHelpPanel > div:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.scanHelpPanel p {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+
+.scanHelpPanel strong {
+  color: #0f172a;
+  font-size: 0.88rem;
+}
+
+.scanHelpPanel small {
+  color: #64748b;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.scanHelpIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: white;
+  color: #0f766e;
+  border: 1px solid #bfdbfe;
+  font-size: 1.1rem;
+}
+
+.pantryModeTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 20px;
+  border: 1px solid #cbd5e1;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.pantryModeTabs button {
+  min-height: 72px;
+  border: 0;
+  border-right: 1px solid #cbd5e1;
+  background: transparent;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 18px;
+}
+
+.pantryModeTabs button:last-child {
+  border-right: 0;
+}
+
+.pantryModeTabs button > span:first-child {
+  font-size: 1.6rem;
+}
+
+.pantryModeTabs button > span:last-child {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+}
+
+.pantryModeTabs strong {
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.pantryModeTabs small {
+  color: #64748b;
+  font-weight: 750;
+}
+
+.pantryModeTabs button.active {
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+  color: #0f766e;
+  box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.entryChoiceTitle {
+  margin: 20px 0 12px;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.pantryEntryChoices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pantryEntryChoice {
+  position: relative;
+  min-height: 170px;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 20px !important;
+  padding: 20px 14px !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.pantryEntryChoice:hover,
+.pantryEntryChoice:focus-within {
+  border-color: #2563eb !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12) !important;
+}
+
+.pantryEntryChoice.recommended {
+  border-color: #10b981 !important;
+  background: linear-gradient(180deg, #f0fdf4, #ffffff) !important;
+}
+
+.pantryEntryChoice strong {
+  font-size: 0.98rem;
+  font-weight: 950;
+}
+
+.pantryEntryChoice small {
+  max-width: 190px;
+  color: #64748b;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.pantryEntryChoice em {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #dcfce7;
+  color: #047857;
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.pantryEntryChoice input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pantryEntryChoice > button {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.pantryEntryChoice.mutedChoice {
+  background: #f8fafc !important;
+}
+
+.entryChoiceIcon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 1.7rem;
+}
+
+.entryChoiceIcon.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.pantryEntryTip {
+  margin-top: 14px;
+  border-radius: 15px;
+  padding: 12px 14px;
+  background: linear-gradient(90deg, #ecfdf5, #eff6ff);
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.unifiedEntryPanel {
+  scroll-margin-top: 24px;
+  animation: unifiedEntryFade 180ms ease-out;
+}
+
+@keyframes unifiedEntryFade {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1050px) {
+  .unifiedPantryHeader {
+    grid-template-columns: 1fr;
+  }
+
+  .scanHelpPanel {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+
+  .scanHelpPanel h3 {
+    grid-column: 1 / -1;
+  }
+
+  .scanHelpPanel > div {
+    border-top: 0;
+    padding: 0;
+  }
+
+  .pantryEntryChoices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .unifiedPantryHub {
+    padding: 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .scanHelpPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .pantryModeTabs {
+    grid-template-columns: 1fr;
+  }
+
+  .pantryModeTabs button {
+    border-right: 0;
+    border-bottom: 1px solid #cbd5e1;
+    justify-content: flex-start;
+  }
+
+  .pantryModeTabs button:last-child {
+    border-bottom: 0;
+  }
+
+  .pantryEntryChoices {
+    grid-template-columns: 1fr;
+  }
+
+  .pantryEntryChoice {
+    min-height: 130px;
+  }
+
+  .pantryEntryTip {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* =========================================================
+   MILESTONE 8 — APPROVED COLORFUL FIVE-PAGE EXPERIENCE
+   Keeps the same green-to-blue Smart Pantry background.
+   ========================================================= */
+:root {
+  --m8-green: #079455;
+  --m8-green-dark: #03624c;
+  --m8-teal: #07898b;
+  --m8-blue: #155eef;
+  --m8-navy: #102a56;
+  --m8-orange: #f79009;
+  --m8-red: #e5484d;
+  --m8-purple: #7a5af8;
+  --m8-card: rgba(255, 255, 255, 0.97);
+  --m8-border: rgba(169, 210, 228, 0.78);
+  --m8-shadow: 0 22px 55px rgba(8, 47, 73, 0.18);
+}
+
+body,
+.appShell {
+  background:
+    radial-gradient(circle at 18% 14%, rgba(119, 221, 134, 0.34), transparent 25%),
+    radial-gradient(circle at 82% 8%, rgba(113, 190, 255, 0.30), transparent 24%),
+    linear-gradient(135deg, #0a9a63 0%, #07898b 43%, #155eef 100%) !important;
+  background-attachment: fixed !important;
+}
+
+.mainContent {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(rgba(239, 249, 252, 0.94), rgba(234, 246, 252, 0.94)),
+    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.12), transparent 35%) !important;
+}
+
+.mainContent::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 0 260px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image:
+    radial-gradient(circle at 12% 16%, rgba(22, 163, 74, 0.14) 0 2px, transparent 3px),
+    radial-gradient(circle at 88% 22%, rgba(37, 99, 235, 0.12) 0 2px, transparent 3px);
+  background-size: 86px 86px, 110px 110px;
+}
+
+.sidebar {
+  background:
+    radial-gradient(circle at 28% 8%, rgba(78, 222, 128, 0.30), transparent 25%),
+    linear-gradient(180deg, #047857 0%, #075f55 48%, #075985 100%) !important;
+  box-shadow: 14px 0 42px rgba(5, 61, 74, 0.24);
+}
+
+.navBrandClean h2 small {
+  font-size: .62em;
+  color: #a7f3d0;
+}
+
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: transform .18s ease, background .18s ease, color .18s ease;
+}
+
+.sidebar nav a:hover {
+  transform: translateX(4px);
+}
+
+.navIcon {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(255,255,255,.13);
+  font-size: .92rem;
+}
+
+.card,
+.m8DashboardPanel,
+.m8DashboardStatCard,
+.m8DashboardHero,
+.m8PantryHero,
+.pageHeader,
+.surveyHero,
+.profileCard,
+.unifiedPantryHub {
+  border: 1px solid var(--m8-border) !important;
+  box-shadow: var(--m8-shadow) !important;
+}
+
+/* Shared colorful hero cards */
+.m8DashboardHero,
+.m8PantryHero,
+.redesignedRecommendationsHero,
+.historyHero,
+.profileHero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 74% 35%, rgba(165, 243, 252, .72), transparent 30%),
+    linear-gradient(118deg, #ffffff 0%, #f1fbf5 48%, #e8f4ff 100%) !important;
+}
+
+.m8DashboardHero::after,
+.m8PantryHero::after,
+.redesignedRecommendationsHero::after,
+.historyHero::after,
+.profileHero::after {
+  content: "";
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  right: -80px;
+  bottom: -130px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(16,185,129,.22), rgba(37,99,235,.22));
+}
+
+.m8HeroArtwork,
+.m8PantryHeroArtwork,
+.m8RecommendationHeroArt,
+.m8HistoryHeroArt,
+.m8ProfileHeroArt {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.m8HeroArtwork {
+  min-width: 150px;
+  min-height: 130px;
+}
+.m8HeroBasket { font-size: 4.6rem; filter: drop-shadow(0 14px 12px rgba(15,23,42,.18)); }
+.m8HeroFood { position: absolute; font-size: 1.55rem; animation: m8Float 3.2s ease-in-out infinite; }
+.m8FoodOne { left: 10px; top: 4px; }
+.m8FoodTwo { right: 6px; top: 18px; animation-delay: .5s; }
+.m8FoodThree { right: 20px; bottom: 4px; animation-delay: 1s; }
+@keyframes m8Float { 50% { transform: translateY(-7px) rotate(4deg); } }
+
+.m8PantryHeroArtwork {
+  grid-template-columns: repeat(2, auto);
+  gap: 2px;
+  font-size: 2.2rem;
+  padding: 12px 16px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.58);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7);
+}
+.m8RecommendationHeroArt,
+.m8HistoryHeroArt,
+.m8ProfileHeroArt {
+  width: 112px;
+  height: 112px;
+  border-radius: 30px;
+  font-size: 4rem;
+  background: linear-gradient(145deg, #dcfce7, #dbeafe);
+  box-shadow: 0 18px 34px rgba(37,99,235,.15);
+}
+
+/* Dashboard */
+.m8DashboardStats { gap: 14px !important; }
+.m8DashboardStatCard {
+  position: relative;
+  overflow: hidden;
+  background: var(--m8-card) !important;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.m8DashboardStatCard:hover { transform: translateY(-4px); }
+.m8DashboardStatCard:nth-child(1) { border-top: 5px solid var(--m8-green) !important; }
+.m8DashboardStatCard:nth-child(2) { border-top: 5px solid var(--m8-blue) !important; }
+.m8DashboardStatCard:nth-child(3) { border-top: 5px solid var(--m8-orange) !important; }
+.m8DashboardStatCard:nth-child(4) { border-top: 5px solid var(--m8-purple) !important; }
+.m8DashboardStatIcon {
+  width: 48px !important;
+  height: 48px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, #dcfce7, #dbeafe) !important;
+  color: var(--m8-blue) !important;
+}
+.m8DashboardPanel { background: var(--m8-card) !important; }
+.m8NextActionCard { background: linear-gradient(145deg, #ecfdf5, #eff6ff) !important; }
+
+/* Unified Pantry */
+.unifiedPantryHub {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(187,247,208,.55), transparent 29%),
+    linear-gradient(135deg, #ffffff, #f7fbff) !important;
+}
+.pantryModeTabs button.active {
+  background: linear-gradient(135deg, #079455, #07898b) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 28px rgba(7,148,85,.26) !important;
+}
+.pantryEntryChoice {
+  min-height: 176px;
+  border-radius: 22px !important;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.pantryEntryChoice:hover { transform: translateY(-5px); box-shadow: 0 18px 34px rgba(15,23,42,.12); }
+.pantryEntryChoice:nth-child(1) { background: linear-gradient(145deg,#f0fdf4,#ffffff) !important; }
+.pantryEntryChoice:nth-child(2) { background: linear-gradient(145deg,#eff6ff,#ffffff) !important; }
+.pantryEntryChoice:nth-child(3) { background: linear-gradient(145deg,#faf5ff,#ffffff) !important; }
+.pantryEntryChoice:nth-child(4) { background: linear-gradient(145deg,#fff7ed,#ffffff) !important; }
+.entryChoiceIcon { font-size: 2.1rem !important; }
+.scanHelpPanel { background: linear-gradient(180deg,#f8fbff,#eff6ff) !important; }
+
+/* Recommendations — no recipe photography required */
+.redesignedRecommendationsHero {
+  display: grid !important;
+  grid-template-columns: 1fr auto auto;
+}
+.recipeCard {
+  overflow: hidden;
+  border-top: 6px solid var(--m8-green) !important;
+  background: linear-gradient(150deg,#ffffff 0%,#fbfffd 72%,#eff6ff 100%) !important;
+}
+.m8RecipeIcon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  float: left;
+  margin: 0 12px 8px 0;
+  border-radius: 18px;
+  font-size: 1.8rem;
+  background: linear-gradient(145deg,#dcfce7,#dbeafe);
+  border: 1px solid #bbf7d0;
+}
+.recommendationSummary > div:nth-child(1) { border-top: 4px solid var(--m8-blue) !important; }
+.recommendationSummary > div:nth-child(2) { border-top: 4px solid var(--m8-orange) !important; }
+.recommendationSummary > div:nth-child(3) { border-top: 4px solid var(--m8-green) !important; }
+.recommendationSummary > div:nth-child(4) { border-top: 4px solid var(--m8-purple) !important; }
+.filterBar { background: rgba(255,255,255,.96) !important; }
+
+/* History */
+.historyHero { display: flex !important; align-items: center !important; gap: 18px !important; }
+.historySummary > div { min-height: 105px; align-content: center; }
+.historySummary > div:nth-child(1) { background: linear-gradient(145deg,#eff6ff,#fff) !important; }
+.historySummary > div:nth-child(2) { background: linear-gradient(145deg,#ecfdf5,#fff) !important; }
+.historySummary > div:nth-child(3) { background: linear-gradient(145deg,#fff7ed,#fff) !important; }
+.historySummary > div:nth-child(4) { background: linear-gradient(145deg,#f5f3ff,#fff) !important; }
+.historySummary > div:nth-child(5) { background: linear-gradient(145deg,#fef2f2,#fff) !important; }
+.historyCard { transition: transform .18s ease; }
+.historyCard:hover { transform: translateY(-3px); }
+.historyCard.historyMade { border-left: 7px solid var(--m8-green) !important; }
+.historyCard.historyUsedElsewhere { border-left: 7px solid var(--m8-orange) !important; }
+.historyCard.historySaved { border-left: 7px solid var(--m8-purple) !important; }
+.historyCard.historyNotUsed { border-left: 7px solid var(--m8-red) !important; }
+
+/* Profile */
+.profileHero { position: relative; padding-right: 150px !important; }
+.m8ProfileHeroArt { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); }
+.m8ProfileSummary {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+}
+.m8ProfileSummary article {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--m8-border);
+  box-shadow: 0 14px 32px rgba(15,23,42,.09);
+}
+.m8ProfileSummary article > span { font-size: 1.7rem; }
+.m8ProfileSummary strong { display:block; color:var(--m8-blue); font-size:1.35rem; }
+.m8ProfileSummary small { color:#64748b; font-weight:800; }
+.profileSection { transition: border-color .18s ease, transform .18s ease; }
+.profileSection:hover { border-color:#86efac; transform:translateY(-2px); }
+.profileSection:nth-child(1) { background: linear-gradient(145deg,#eff6ff,#fff); }
+.profileSection:nth-child(2) { background: linear-gradient(145deg,#fef2f2,#fff); }
+.profileSection:nth-child(3) { background: linear-gradient(145deg,#fff7ed,#fff); }
+.profileSection:nth-child(4) { background: linear-gradient(145deg,#ecfdf5,#fff); }
+.profileSection:nth-child(5) { background: linear-gradient(145deg,#f5f3ff,#fff); }
+
+@media (max-width: 1100px) {
+  .m8HeroArtwork,
+  .m8PantryHeroArtwork,
+  .m8RecommendationHeroArt,
+  .m8HistoryHeroArt { display:none; }
+  .redesignedRecommendationsHero { grid-template-columns: 1fr auto !important; }
+  .m8ProfileSummary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 950px) {
+  .mainContent::before { inset: 0; }
+  .profileHero { padding-right: 22px !important; }
+  .m8ProfileHeroArt { display:none; }
+  .redesignedRecommendationsHero { grid-template-columns: 1fr !important; }
+  .m8ProfileSummary { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 620px) {
+  .m8ProfileSummary { grid-template-columns: 1fr; }
+  .pantryEntryChoice { min-height: 145px; }
+}
