@@ -6336,143 +6336,241 @@ body { background: #eef3f6; color: var(--sp-ink); }
 }
 
 
-/* Milestone 8 - compact horizontal recommendation journey */
+/* Milestone 8 - recommendation journey cards */
 .recommendationJourney {
-  margin-bottom: 18px;
-  padding: 14px;
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(25, 87, 130, 0.12);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 14px 32px rgba(20, 64, 91, 0.07);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 16px 38px rgba(20, 64, 91, 0.08);
+}
+
+.journeyHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.journeyHeading h2 {
+  margin: 5px 0 0;
+  color: #10243f;
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
+}
+
+.journeyHeading > p {
+  max-width: 470px;
+  margin: 0;
+  color: #5f6f82;
+  line-height: 1.55;
 }
 
 .journeySteps {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
-  gap: 8px;
+  gap: 14px;
 }
 
 .journeyCard {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  min-height: 112px;
-  padding: 15px;
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+  padding: 20px;
   border: 1px solid #dce8f2;
-  border-radius: 17px;
-  background: #ffffff;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.journeyCard::after {
+  content: "";
+  position: absolute;
+  right: -26px;
+  bottom: -34px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: var(--journeyGlow, rgba(45, 103, 232, 0.08));
+}
+
+.journeyCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(45, 103, 232, 0.28);
+  box-shadow: 0 14px 28px rgba(20, 64, 91, 0.11);
+}
+
+.journeyPantry { --journeyGlow: rgba(29, 171, 102, 0.11); }
+.journeyRank { --journeyGlow: rgba(45, 103, 232, 0.11); }
+.journeyTrack { --journeyGlow: rgba(244, 160, 34, 0.13); }
+
+.journeyTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.journeyNumber {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #2d67e8;
 }
 
 .journeyIcon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
   background: #edf4ff;
   color: #2d67e8;
-  font-size: 1.05rem;
-  font-weight: 950;
+  font-size: 1.15rem;
+  font-weight: 900;
 }
 
-.journeyPantry .journeyIcon {
-  background: #eaf8f0;
-  color: #138652;
-}
+.journeyPantry .journeyIcon { background: #eaf8f0; color: #138652; }
+.journeyTrack .journeyIcon { background: #fff5e6; color: #c87808; }
 
-.journeyTrack .journeyIcon {
-  background: #f4edff;
-  color: #7c3aed;
-}
-
-.journeyCopy {
-  min-width: 0;
-}
-
-.journeyStepTitle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.journeyLabel {
+  display: inline-block;
   margin-bottom: 7px;
-}
-
-.journeyNumber {
-  display: inline-grid;
-  place-items: center;
-  flex: 0 0 auto;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: #eef4ff;
-  color: #2d67e8;
-  font-size: 0.72rem;
-  font-weight: 950;
-}
-
-.journeyPantry .journeyNumber {
-  background: #eaf8f0;
-  color: #138652;
-}
-
-.journeyTrack .journeyNumber {
-  background: #f4edff;
-  color: #7c3aed;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #0d7b66;
 }
 
 .journeyCard h3 {
-  margin: 0;
+  margin: 0 0 9px;
   color: #10243f;
-  font-size: 1rem;
-  line-height: 1.2;
+  font-size: 1.15rem;
 }
 
 .journeyCard p {
-  margin: 0;
+  margin: 0 0 18px;
   color: #5f6f82;
-  font-size: 0.84rem;
-  line-height: 1.45;
+  line-height: 1.55;
+}
+
+.journeyHint {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 29px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef4f8;
+  color: #40566d;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .journeyConnector {
   align-self: center;
   display: grid;
   place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eaf0fb;
   color: #2d67e8;
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 900;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 960px) {
+  .journeyHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
   .journeySteps {
     grid-template-columns: 1fr;
   }
 
   .journeyConnector {
     width: 100%;
-    height: 18px;
+    height: 24px;
+    background: transparent;
     transform: rotate(90deg);
-    font-size: 1.35rem;
   }
 }
 
 @media (max-width: 640px) {
   .recommendationJourney {
-    padding: 10px;
-    border-radius: 18px;
+    padding: 18px;
+    border-radius: 19px;
   }
 
   .journeyCard {
-    grid-template-columns: 40px minmax(0, 1fr);
-    min-height: 96px;
-    padding: 13px;
+    min-height: auto;
+    padding: 18px;
+  }
+}
+
+/* Milestone 8 — Fix custom Smart Swap form overflow */
+.customSwapGrid {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(0, 1fr)
+    minmax(0, 1.1fr) !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.customSwapGrid select,
+.customSwapGrid input {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 42px !important;
+  box-sizing: border-box !important;
+}
+
+.customSwapGrid .customSwapButton {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 2px !important;
+  padding: 11px 16px !important;
+  border-radius: 12px !important;
+  justify-self: stretch !important;
+}
+
+.customSmartSwapBox {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Stack fields on narrower recommendation cards */
+@media (max-width: 1250px) {
+  .customSwapGrid {
+    grid-template-columns: 1fr 1fr !important;
   }
 
-  .journeyIcon {
-    width: 40px;
-    height: 40px;
+  .customSwapGrid input {
+    grid-column: 1 / -1 !important;
+  }
+
+  .customSwapGrid .customSwapButton {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .customSwapGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .customSwapGrid input,
+  .customSwapGrid .customSwapButton {
+    grid-column: auto !important;
   }
 }
