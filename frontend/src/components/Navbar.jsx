@@ -4,6 +4,14 @@ function getUser() {
   return JSON.parse(localStorage.getItem("sp2_user"));
 }
 
+const links = [
+  { to: "/", label: "Dashboard", icon: "⌂", end: true },
+  { to: "/pantry", label: "My Pantry", icon: "▣" },
+  { to: "/recommendations", label: "Meal Recommendations", icon: "♨" },
+  { to: "/history", label: "Recommendation History", icon: "▤" },
+  { to: "/profile", label: "Profile & Preferences", icon: "●" },
+];
+
 export default function Navbar() {
   const navigate = useNavigate();
   const user = getUser();
@@ -13,9 +21,7 @@ export default function Navbar() {
     navigate("/login");
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <aside className="sidebar">
@@ -24,13 +30,9 @@ export default function Navbar() {
           src="/SmartPantry_logo.png"
           alt="Smart Pantry logo"
           className="sidebarLogo"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
+          onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
-        <div>
-          <h2>Smart Pantry</h2>
-        </div>
+        <div><h2>Smart<br />Pantry</h2></div>
       </div>
 
       <div className="userBox">
@@ -38,18 +40,23 @@ export default function Navbar() {
         <span>{user.role}</span>
       </div>
 
-      <nav>
-        <NavLink to="/">Dashboard</NavLink>
-        <NavLink to="/profile">Profile</NavLink>
-        <NavLink to="/pantry">My Pantry</NavLink>
-        <NavLink to="/recommendations">Meal Recommendation</NavLink>
-        <NavLink to="/history">Recommendation History</NavLink>
-
-        {user.role === "admin" && <NavLink to="/admin">Admin Dashboard</NavLink>}
+      <nav aria-label="Main navigation">
+        {links.map((link) => (
+          <NavLink key={link.to} to={link.to} end={link.end}>
+            <span className="navIcon" aria-hidden="true">{link.icon}</span>
+            <span>{link.label}</span>
+          </NavLink>
+        ))}
+        {user.role === "admin" && (
+          <NavLink to="/admin">
+            <span className="navIcon" aria-hidden="true">◆</span>
+            <span>Admin Dashboard</span>
+          </NavLink>
+        )}
       </nav>
 
       <button className="navLogoutButton" onClick={logout}>
-        Log Out
+        <span aria-hidden="true">↪</span> Log Out
       </button>
     </aside>
   );
