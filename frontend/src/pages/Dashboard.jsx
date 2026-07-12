@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../api/client.js";
-import StatCard from "../components/StatCard.jsx";
 
 const COLORS = [
   "#2563eb",
@@ -215,6 +215,7 @@ function renderInsidePercentLabel({ cx, cy, midAngle, innerRadius, outerRadius, 
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const user = getUser();
   const customKey = `sp2_custom_grocery_${user.id}`;
 
@@ -222,20 +223,17 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [customItem, setCustomItem] = useState("");
   const [customGroceries, setCustomGroceries] = useState([]);
-  const [surveyStatus, setSurveyStatus] = useState({ pre: false, post: false });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [pantryData, statusData, profileData] = await Promise.all([
+        const [pantryData, profileData] = await Promise.all([
           api.getPantry(user.id),
-          api.getSurveyStatus(user.id),
           api.getProfile ? api.getProfile(user.id) : Promise.resolve(null),
         ]);
 
         setPantry(pantryData || []);
-        setSurveyStatus(statusData || { pre: false, post: false });
         setProfile(profileData || null);
 
         const savedCustomItems = JSON.parse(localStorage.getItem(customKey) || "[]");
@@ -345,200 +343,307 @@ export default function Dashboard() {
     0
   );
 
-  const completedSteps = [
-    surveyStatus.pre,
-    pantry.length > 0,
-    surveyStatus.post,
-  ].filter(Boolean).length;
+  const categoryCount = categoryData.length;
+  const urgentCount = alerts.filter((item) => item.days <= 4).length;
+
+  const nextAction = pantry.length === 0
+    ? {
+        title: "Add your first pantry items",
+        text: "Start with the foods you use most often. Include the quantity, unit, category, and expiration date when available.",
+        button: "Go to My Pantry",
+        path: "/pantry",
+      }
+    : urgentCount > 0
+      ? {
+          title: "Use expiring items first",
+          text: `You have ${urgentCount} item${urgentCount === 1 ? "" : "s"} that should be used soon. Review the alerts below before planning your next meal.`,
+          button: "Find Meal Ideas",
+          path: "/recommendations",
+        }
+      : {
+          title: "Build a meal from your pantry",
+          text: "Your pantry is ready. Generate meal ideas based on the ingredients and preferences you have saved.",
+          button: "View Recommendations",
+          path: "/recommendations",
+        };
 
   if (loading) {
     return (
-      <div>
-        <section className="dashboardHero">
-          <h1>Dashboard</h1>
-          <p>Loading your Smart Pantry dashboard...</p>
+      <div className="m8DashboardPage">
+        <section className="m8DashboardHero m8DashboardLoading">
+          <div>
+            <p className="m8DashboardEyebrow">Smart Pantry</p>
+            <h1>Loading your dashboard...</h1>
+            <p>Gathering your pantry totals, expiration alerts, and grocery suggestions.</p>
+          </div>
         </section>
       </div>
     );
   }
 
   return (
-    <div className="dashboardPage">
-      <section className="dashboardHero">
-        <div>
-          <p className="eyebrow">Welcome back, {user.username}</p>
-          <h1>Smart Pantry Dashboard</h1>
+    <div className="m8DashboardPage">
+      <section className="m8DashboardHero">
+        <div className="m8DashboardHeroCopy">
+          <p className="m8DashboardEyebrow">Welcome back, {user.username}</p>
+          <h1>Your Smart Pantry overview</h1>
           <p>
-            Use this dashboard to complete study steps, track pantry items via
-            expiration alerts, and find meal ideas based on the food you already
-            have. Let&apos;s get started.
+            See what is in your pantry, check which items need attention, and decide
+            what to do next without searching through every page.
           </p>
+
+          <div className="m8DashboardHeroActions">
+            <button type="button" onClick={() => navigate("/pantry")}>
+              Manage Pantry
+            </button>
+            <button
+              type="button"
+              className="m8DashboardSecondaryButton"
+              onClick={() => navigate("/recommendations")}
+            >
+              Find Meal Ideas
+            </button>
+          </div>
         </div>
 
-        <div className="heroProgressBubble">
-          <strong>{completedSteps}/3</strong>
-          <span>Study steps started</span>
-        </div>
+        <aside className="m8NextActionCard" aria-label="Recommended next action">
+          <span>Recommended next step</span>
+          <h2>{nextAction.title}</h2>
+          <p>{nextAction.text}</p>
+          <button type="button" onClick={() => navigate(nextAction.path)}>
+            {nextAction.button}
+          </button>
+        </aside>
       </section>
 
-      <section className="expirationBanner">
-        <div className="expirationBannerHeader">
+      <section className="m8DashboardStats" aria-label="Pantry summary">
+        <article className="m8DashboardStatCard">
+          <span className="m8DashboardStatIcon" aria-hidden="true">▦</span>
           <div>
-            <h2>Expiration Alerts</h2>
-            <p>Items that may need attention within the next 10 days.</p>
+            <p>Pantry items</p>
+            <strong>{pantry.length}</strong>
+            <small>Different items saved</small>
           </div>
-          <span>{alerts.length} alert(s)</span>
-        </div>
+        </article>
+
+        <article className="m8DashboardStatCard">
+          <span className="m8DashboardStatIcon" aria-hidden="true">#</span>
+          <div>
+            <p>Total quantity</p>
+            <strong>{Number.isInteger(totalAmount) ? totalAmount : totalAmount.toFixed(1)}</strong>
+            <small>Combined usable amount</small>
+          </div>
+        </article>
+
+        <article className="m8DashboardStatCard">
+          <span className="m8DashboardStatIcon" aria-hidden="true">!</span>
+          <div>
+            <p>Expiring within 10 days</p>
+            <strong>{alerts.length}</strong>
+            <small>{urgentCount} need attention soon</small>
+          </div>
+        </article>
+
+        <article className="m8DashboardStatCard">
+          <span className="m8DashboardStatIcon" aria-hidden="true">◫</span>
+          <div>
+            <p>Food categories</p>
+            <strong>{categoryCount}</strong>
+            <small>Categories represented</small>
+          </div>
+        </article>
+      </section>
+
+      <section className="m8DashboardPanel m8ExpirationPanel">
+        <header className="m8DashboardSectionHeader">
+          <div>
+            <p className="m8DashboardSectionLabel">Expiration check</p>
+            <h2>Items that need attention</h2>
+            <p>
+              These items expire within the next 10 days. Start with the earliest
+              date when deciding what to use.
+            </p>
+          </div>
+          <span className="m8DashboardCountBadge">{alerts.length} alert{alerts.length === 1 ? "" : "s"}</span>
+        </header>
 
         {alerts.length === 0 ? (
-          <div className="expirationEmpty">
-            No pantry items are expiring within 10 days.
+          <div className="m8DashboardEmptyState">
+            <strong>No upcoming expiration alerts</strong>
+            <p>Nothing in your pantry is currently marked to expire within 10 days.</p>
           </div>
         ) : (
-          <div className="expirationBannerList">
+          <div className="m8ExpirationGrid">
             {alerts.map((item) => (
-              <div
-                className={`expirationPill ${getAlertClass(item.days)}`}
+              <article
+                className={`m8ExpirationItem ${getAlertClass(item.days)}`}
                 key={item.id}
               >
-                <strong>{item.item_name}</strong>
-                <span>{getAlertLabel(item.days)}</span>
+                <div>
+                  <strong>{item.item_name}</strong>
+                  <span>{getAlertLabel(item.days)}</span>
+                </div>
                 <small>
                   {item.days < 0
-                    ? `${Math.abs(item.days)} day(s) expired`
-                    : `${item.days} day(s) left`}
+                    ? `Expired ${Math.abs(item.days)} day${Math.abs(item.days) === 1 ? "" : "s"} ago`
+                    : item.days === 0
+                      ? "Expires today"
+                      : `${item.days} day${item.days === 1 ? "" : "s"} left`}
                 </small>
-              </div>
+              </article>
             ))}
           </div>
         )}
       </section>
 
-      <div className="compactStatsGrid">
-        <StatCard
-          label="Pre-study survey"
-          value={surveyStatus.pre ? "Complete" : "Not Done"}
-        />
-        <StatCard label="Pantry items" value={pantry.length} />
-        <StatCard label="Total usable amount" value={totalAmount} />
-        <StatCard
-          label="Post-study survey"
-          value={surveyStatus.post ? "Complete" : "Not Done"}
-        />
-      </div>
-
-      <div className="dashboardGrid compactDashboardGrid">
-        <section className="card dashboardCard pantryChartCard">
-          <h2>Pantry Category Breakdown</h2>
+      <div className="m8DashboardMainGrid">
+        <section className="m8DashboardPanel m8CategoryPanel">
+          <header className="m8DashboardSectionHeader compact">
+            <div>
+              <p className="m8DashboardSectionLabel">Pantry balance</p>
+              <h2>Category breakdown</h2>
+              <p>See how your saved pantry items are distributed by food category.</p>
+            </div>
+          </header>
 
           {categoryData.length === 0 ? (
-            <p>No pantry items have been added yet.</p>
+            <div className="m8DashboardEmptyState">
+              <strong>No category information yet</strong>
+              <p>Add pantry items to create your category chart.</p>
+              <button type="button" onClick={() => navigate("/pantry")}>Add Pantry Items</button>
+            </div>
           ) : (
-            <>
-              <div className="pieAndLegendLayout">
-                <div className="largePieWrap">
-                  <ResponsiveContainer width="100%" height={320}>
-                    <PieChart margin={{ top: 18, right: 18, bottom: 18, left: 18 }}>
-                      <Pie
-                        data={categoryData}
-                        dataKey="value"
-                        nameKey="name"
-                        outerRadius={120}
-                        labelLine={false}
-                        label={renderInsidePercentLabel}
-                      >
-                        {categoryData.map((_entry, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="legendSideBox">
-                  <h3>Breakdown Table</h3>
-
-                  <div className="categoryLegend sideLegend">
-                    {categoryData.map((entry, index) => (
-                      <div className="legendItem" key={entry.name}>
-                        <span
-                          className="legendDot"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <strong>{entry.name}</strong>
-                        <small>{entry.value} item(s)</small>
-                      </div>
-                    ))}
-                  </div>
+            <div className="m8CategoryContent">
+              <div className="m8PieWrap">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart margin={{ top: 12, right: 12, bottom: 12, left: 12 }}>
+                    <Pie
+                      data={categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={58}
+                      outerRadius={112}
+                      paddingAngle={2}
+                      labelLine={false}
+                      label={renderInsidePercentLabel}
+                    >
+                      {categoryData.map((_entry, index) => (
+                        <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="m8PieCenter" aria-hidden="true">
+                  <strong>{pantry.length}</strong>
+                  <span>items</span>
                 </div>
               </div>
-            </>
+
+              <div className="m8CategoryLegend">
+                {categoryData.map((entry, index) => (
+                  <div className="m8CategoryLegendItem" key={entry.name}>
+                    <span
+                      className="m8CategoryDot"
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                    />
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <small>{entry.value} item{entry.value === 1 ? "" : "s"}</small>
+                    </div>
+                    <b>{entry.percent}%</b>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </section>
 
-        <section className="card dashboardCard suggestedGroceryCard compactGroceryCard">
-          <h2>Suggested Grocery List</h2>
-          <p className="groceryListNote">
-            Suggested items can help create more meals from what is already in the pantry.
-          </p>
+        <section className="m8DashboardPanel m8GroceryPanel">
+          <header className="m8DashboardSectionHeader compact">
+            <div>
+              <p className="m8DashboardSectionLabel">Optional additions</p>
+              <h2>Suggested grocery list</h2>
+              <p>
+                These suggestions may pair with foods already in your pantry. They
+                are ideas, not required purchases.
+              </p>
+            </div>
+          </header>
 
-          <form className="customGroceryForm" onSubmit={addCustomGrocery}>
-            <input
-              value={customItem}
-              onChange={(e) => setCustomItem(e.target.value)}
-              placeholder="Add your own grocery item..."
-            />
-            <button type="submit">Add</button>
+          <form className="m8GroceryForm" onSubmit={addCustomGrocery}>
+            <label htmlFor="dashboard-grocery-item">Add your own item</label>
+            <div>
+              <input
+                id="dashboard-grocery-item"
+                value={customItem}
+                onChange={(e) => setCustomItem(e.target.value)}
+                placeholder="Example: whole-grain bread"
+              />
+              <button type="submit">Add</button>
+            </div>
           </form>
 
           {suggestedGroceries.length === 0 && customGroceries.length === 0 ? (
-            <div className="groceryEmpty">
-              Add more pantry items or profile preferences to receive grocery suggestions.
+            <div className="m8DashboardEmptyState compact">
+              <strong>No suggestions yet</strong>
+              <p>Add more pantry items or save your meal preferences to receive ideas.</p>
+              <button type="button" onClick={() => navigate("/profile")}>Review Preferences</button>
             </div>
           ) : (
-            <div className="compactGroceryList">
+            <div className="m8GroceryList">
               {suggestedGroceries.map((suggestion, index) => (
-                <div
-                  className={`compactGroceryItem priority-${suggestion.className}`}
+                <article
+                  className={`m8GroceryItem priority-${suggestion.className}`}
                   key={`${suggestion.item}-${index}`}
                 >
-                  <span className="groceryColorDot"></span>
-
-                  <div className="groceryIngredientText">
+                  <span className="m8GroceryPriorityDot" aria-hidden="true" />
+                  <div>
                     <strong>{suggestion.item}</strong>
-                    <span>{suggestion.note}</span>
+                    <small>{suggestion.note}</small>
                   </div>
-
-                  <small>{suggestion.label}</small>
-                </div>
+                  <b>{suggestion.label}</b>
+                </article>
               ))}
 
               {customGroceries.map((item, index) => (
-                <div
-                  className="compactGroceryItem priority-custom"
-                  key={`custom-${item.item}-${index}`}
-                >
-                  <span className="groceryColorDot"></span>
-
-                  <div className="groceryIngredientText">
+                <article className="m8GroceryItem priority-custom" key={`custom-${item.item}-${index}`}>
+                  <span className="m8GroceryPriorityDot" aria-hidden="true" />
+                  <div>
                     <strong>{item.item}</strong>
-                    <span>{item.note}</span>
+                    <small>{item.note}</small>
                   </div>
-
-                  <button
-                    type="button"
-                    className="removeGroceryButton"
-                    onClick={() => removeCustomGrocery(index)}
-                  >
-                    Remove
-                  </button>
-                </div>
+                  <button type="button" onClick={() => removeCustomGrocery(index)}>Remove</button>
+                </article>
               ))}
             </div>
           )}
         </section>
       </div>
+
+      <section className="m8DashboardHowTo" aria-label="How to use Smart Pantry">
+        <header>
+          <p className="m8DashboardSectionLabel">How to use this app</p>
+          <h2>Three simple steps</h2>
+        </header>
+        <div>
+          <article>
+            <span>1</span>
+            <h3>Keep your pantry current</h3>
+            <p>Add new foods and update quantities or expiration dates when something changes.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Review items that expire soon</h3>
+            <p>Use the expiration section to decide which ingredients should be prioritized first.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Choose a meal idea</h3>
+            <p>Open Meal Recommendations to find options based on your pantry and saved preferences.</p>
+          </article>
+        </div>
+      </section>
     </div>
   );
 }

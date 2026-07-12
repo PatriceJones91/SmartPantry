@@ -104,9 +104,10 @@ export default function History() {
   }, [logs]);
 
   return (
-    <div>
+    <div className="historyPage">
       <div className="pageHeader historyHero">
         <div>
+          <span className="eyebrow">YOUR ACTIVITY</span>
           <h1>Recommendation History</h1>
           <p>
             This page tracks what happened after a recommendation was shown.
@@ -178,12 +179,11 @@ export default function History() {
       </section>
 
       {filteredLogs.length === 0 ? (
-        <section className="card">
+        <section className="card historyEmptyState">
+          <div className="historyEmptyIcon" aria-hidden="true">▤</div>
           <h2>No history yet</h2>
-          <p>
-            Go to Meal Recommendations, click Find Meals, and save an action such as
-            Made Meal or Used Elsewhere. The action will show here.
-          </p>
+          <p>Once you act on a meal recommendation, your saved activity will appear here.</p>
+          <a href="/recommendations" className="historyEmptyButton">Go to Meal Recommendations</a>
         </section>
       ) : (
         <div className="historyGrid">

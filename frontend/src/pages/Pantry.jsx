@@ -951,152 +951,258 @@ async function scanReceiptWithOcr() {
     );
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const expiringSoonCount = editedItems.filter((item) => {
+    if (!item.expiration_date) return false;
+    const date = new Date(`${item.expiration_date}T00:00:00`);
+    const days = Math.ceil((date - today) / 86400000);
+    return days >= 0 && days <= 4;
+  }).length;
+
+  const categoryCount = new Set(
+    editedItems.map((item) => item.category).filter(Boolean)
+  ).size;
+
   return (
-    <div className="pantryPage">
-      <section className="surveyHero">
-        <p className="eyebrow">Smart Pantry Inventory</p>
-        <h1>My Pantry</h1>
-        <p>
-          Add pantry items manually, search by barcode, or scan a receipt photo
-          with OCR. Review detected items before they are saved to the pantry.
-        </p>
-      </section>
+    <div className="pantryPage m8PantryPage">
+      <section className="m8PantryHero">
+        <div>
+          <p className="eyebrow">Pantry inventory</p>
+          <h1>My Pantry</h1>
+          <p>
+            Keep this list current so Smart Pantry can give you stronger meal
+            recommendations and help you notice foods that should be used soon.
+          </p>
+        </div>
 
-      <section className="card pantryFormCard">
-        <h2>Add Pantry Item</h2>
-
-        <form className="barcodeLookupBar" onSubmit={lookupBarcode}>
-          <input
-            value={barcodeSearch}
-            onChange={(e) => setBarcodeSearch(e.target.value)}
-            placeholder="Search by item name, barcode, or UPC"
-          />
-          <button type="submit" disabled={barcodeLoading}>
-            {barcodeLoading ? "Searching..." : "Search UPC"}
-          </button>
-
-              {(receiptFile || receiptPreview || ocrText || detectedItems.length > 0) && (
-                <button
-                  type="button"
-                  className="secondaryButton"
-                  onClick={clearReceiptScan}
-                >
-                  Clear Receipt / Start Over
-                </button>
-              )}
-
-        </form>
-
-        <form className="formGrid pantryAddGrid" onSubmit={addItem}>
-          <div className="formField" data-field-label="item-name">
-            <label className="fieldLabel">Item name</label>
-            <input
-            placeholder="Item name"
-            value={form.item_name}
-            onChange={(e) => change("item_name", e.target.value)}
-            required
-          />
-          </div>
-
-          <select
-            value={form.category}
-            onChange={(e) => change("category", e.target.value)}
-          >
-            {CATEGORY_OPTIONS.map((category) => (
-              <option key={category}>{category}</option>
-            ))}
-          </select>
-
-          <div className="formField" data-field-label="quantity">
-            <label className="fieldLabel">Quantity</label>
-            <input
-            type="number"
-            step="0.1"
-            min="0"
-            placeholder="Quantity"
-            value={form.quantity}
-            onChange={(e) => change("quantity", e.target.value)}
-          />
-          </div>
-          <div className="formField" data-field-label="unit">
-            <label className="fieldLabel">Unit</label>
-            <select value={form.unit} onChange={(e) => change("unit", e.target.value)}>
-            {UNIT_OPTIONS.map((unit) => (
-              <option key={unit}>{unit}</option>
-            ))}
-          </select>
-          </div>
-          <div className="formField" data-field-label="container-type">
-            <label className="fieldLabel">Container type</label>
-            <select
-            value={form.container_type}
-            onChange={(e) => change("container_type", e.target.value)}
-          >
-            <option value="">Container type</option>
-            {CONTAINER_OPTIONS.filter(Boolean).map((container) => (
-              <option key={container}>{container}</option>
-            ))}
-          </select>
-          </div>
-          <div className="formField" data-field-label="expiration-date">
-            <label className="fieldLabel">Expiration date</label>
-            <input
-            type="date"
-            value={form.expiration_date}
-            onChange={(e) => change("expiration_date", e.target.value)}
-          />
-          </div>
-
-          <div className="formField" data-field-label="barcode-upc">
-            <label className="fieldLabel">Barcode / UPC</label>
-            <input
-            placeholder="Barcode / UPC"
-            value={form.barcode}
-            onChange={(e) => change("barcode", e.target.value)}
-          />
-          </div>
-
-          <div className="formField" data-field-label="brand">
-            <label className="fieldLabel">Brand</label>
-            <input
-            placeholder="Brand"
-            value={form.brand}
-            onChange={(e) => change("brand", e.target.value)}
-          />
-          </div>
-
-          <div className="formField" data-field-label="notes">
-            <label className="fieldLabel">Notes</label>
-            <input
-            className="wideInput"
-            placeholder="Notes"
-            value={form.notes}
-            onChange={(e) => change("notes", e.target.value)}
-          />
-          </div>
-
-          <button>Add Item</button>
-        </form>
-
-        {message && <p className="success">{message}</p>}
-        {error && <p className="error">{error}</p>}
-      </section>
-
-      <section className="card pantryFormCard receiptOcrCard">
-        <div className="receiptOcrHeader">
+        <div className="m8PantryHeroStats" aria-label="Pantry summary">
           <div>
-            <p className="eyebrow">Milestone 6 Future Work</p>
-            <h2>Receipt OCR / Grocery Input</h2>
+            <strong>{editedItems.length}</strong>
+            <span>Total items</span>
+          </div>
+          <div>
+            <strong>{expiringSoonCount}</strong>
+            <span>Use soon</span>
+          </div>
+          <div>
+            <strong>{categoryCount}</strong>
+            <span>Categories</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="m8PantryMethodGrid" aria-label="Ways to add pantry items">
+        <article className="card m8PantryMethodCard isActive">
+          <span className="m8MethodNumber">1</span>
+          <div>
+            <h2>Add an item</h2>
+            <p>Enter one pantry item and its expiration information.</p>
+          </div>
+        </article>
+        <article className="card m8PantryMethodCard">
+          <span className="m8MethodNumber">2</span>
+          <div>
+            <h2>Search a UPC</h2>
+            <p>Use the product barcode to fill in available details.</p>
+          </div>
+        </article>
+        <article className="card m8PantryMethodCard">
+          <span className="m8MethodNumber">3</span>
+          <div>
+            <h2>Scan a receipt</h2>
+            <p>Review OCR results before adding selected groceries.</p>
+          </div>
+        </article>
+      </section>
+
+      <section className="card m8PantryEntryCard">
+        <div className="m8SectionHeading">
+          <div>
+            <p className="eyebrow">Add to your pantry</p>
+            <h2>Item details</h2>
             <p>
-              Take or upload a receipt photo. Smart Pantry reads the text,
-              detects possible grocery items, and lets you review before saving.
+              Item name and quantity are required. Adding a category and
+              expiration date makes your dashboard and recommendations more useful.
             </p>
           </div>
         </div>
 
-        <div className="receiptUploadBox">
+        <div className="m8PantryEntryLayout">
+          <form className="m8PantryForm" onSubmit={addItem}>
+            <div className="m8PantryField m8FieldWide">
+              <label htmlFor="pantry-item-name">Item name</label>
+              <input
+                id="pantry-item-name"
+                placeholder="Example: chicken breast"
+                value={form.item_name}
+                onChange={(e) => change("item_name", e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-category">Category</label>
+              <select
+                id="pantry-category"
+                value={form.category}
+                onChange={(e) => change("category", e.target.value)}
+              >
+                {CATEGORY_OPTIONS.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-quantity">Quantity</label>
+              <input
+                id="pantry-quantity"
+                type="number"
+                step="0.1"
+                min="0"
+                value={form.quantity}
+                onChange={(e) => change("quantity", e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-unit">Unit</label>
+              <select
+                id="pantry-unit"
+                value={form.unit}
+                onChange={(e) => change("unit", e.target.value)}
+              >
+                {UNIT_OPTIONS.map((unit) => (
+                  <option key={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-container">Container type</label>
+              <select
+                id="pantry-container"
+                value={form.container_type}
+                onChange={(e) => change("container_type", e.target.value)}
+              >
+                <option value="">Select a container</option>
+                {CONTAINER_OPTIONS.filter(Boolean).map((container) => (
+                  <option key={container}>{container}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-expiration">Expiration date</label>
+              <input
+                id="pantry-expiration"
+                type="date"
+                value={form.expiration_date}
+                onChange={(e) => change("expiration_date", e.target.value)}
+              />
+              <small>Use the package date or your best estimate.</small>
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-brand">Brand <span>(optional)</span></label>
+              <input
+                id="pantry-brand"
+                placeholder="Example: Tyson"
+                value={form.brand}
+                onChange={(e) => change("brand", e.target.value)}
+              />
+            </div>
+
+            <div className="m8PantryField">
+              <label htmlFor="pantry-barcode">Barcode / UPC <span>(optional)</span></label>
+              <input
+                id="pantry-barcode"
+                placeholder="Enter the number below the barcode"
+                value={form.barcode}
+                onChange={(e) => change("barcode", e.target.value)}
+              />
+            </div>
+
+            <div className="m8PantryField m8FieldWide">
+              <label htmlFor="pantry-notes">Notes <span>(optional)</span></label>
+              <input
+                id="pantry-notes"
+                placeholder="Example: opened, frozen, or half-full"
+                value={form.notes}
+                onChange={(e) => change("notes", e.target.value)}
+              />
+            </div>
+
+            <button className="m8PrimaryAction m8FieldWide" type="submit">
+              Add item to pantry
+            </button>
+          </form>
+
+          <aside className="m8UpcPanel">
+            <p className="eyebrow">Faster entry</p>
+            <h3>Look up a product</h3>
+            <p>
+              Enter the UPC printed below a product barcode. When a match is
+              available, Smart Pantry will fill in the product name and brand for review.
+            </p>
+
+            <form className="m8UpcForm" onSubmit={lookupBarcode}>
+              <label htmlFor="pantry-upc-search">Barcode or UPC</label>
+              <input
+                id="pantry-upc-search"
+                value={barcodeSearch}
+                onChange={(e) => setBarcodeSearch(e.target.value)}
+                placeholder="Example: 012345678905"
+              />
+              <button type="submit" disabled={barcodeLoading}>
+                {barcodeLoading ? "Searching…" : "Search product"}
+              </button>
+            </form>
+
+            <div className="m8UpcTip">
+              <strong>Before adding:</strong>
+              <span>Review the product name, quantity, unit, and expiration date.</span>
+            </div>
+          </aside>
+        </div>
+
+        {message && <p className="success m8PantryNotice" role="status">{message}</p>}
+        {error && <p className="error m8PantryNotice" role="alert">{error}</p>}
+      </section>
+
+      <section className="card pantryFormCard receiptOcrCard m8ReceiptCard">
+        <div className="m8SectionHeading m8ReceiptHeading">
+          <div>
+            <p className="eyebrow">Receipt-assisted entry</p>
+            <h2>Scan or upload a grocery receipt</h2>
+            <p>
+              OCR can suggest grocery items from a receipt image or text list.
+              Because receipt text is not always exact, review every item before saving it.
+            </p>
+          </div>
+          {(receiptFile || receiptPreview || ocrText || detectedItems.length > 0) && (
+            <button
+              type="button"
+              className="secondaryButton"
+              onClick={clearReceiptScan}
+            >
+              Clear receipt
+            </button>
+          )}
+        </div>
+
+        <div className="m8ReceiptSteps">
+          <div><strong>1</strong><span>Upload a clear image or text list</span></div>
+          <div><strong>2</strong><span>Scan or detect possible items</span></div>
+          <div><strong>3</strong><span>Edit, select, and save</span></div>
+        </div>
+
+        <div className="receiptUploadBox m8ReceiptUploadBox">
           <label className="receiptUploadButton">
-            Take Receipt Photo / Upload Image
+            Take photo or upload image
             <input
               type="file"
               accept="image/*"
@@ -1106,7 +1212,7 @@ async function scanReceiptWithOcr() {
           </label>
 
           <label className="receiptUploadButton secondaryUpload">
-            Upload TXT / CSV List
+            Upload TXT or CSV list
             <input
               type="file"
               accept=".txt,.csv"
@@ -1120,54 +1226,63 @@ async function scanReceiptWithOcr() {
             onClick={scanReceiptWithOcr}
             disabled={ocrLoading}
           >
-            {ocrLoading ? `Scanning... ${ocrProgress}%` : "Scan Receipt with OCR"}
+            {ocrLoading ? `Scanning… ${ocrProgress}%` : "Scan receipt with OCR"}
           </button>
         </div>
 
         {receiptPreview && (
           <div className="receiptPreviewGrid">
             <div>
-              <strong>Receipt Preview</strong>
-              <img src={receiptPreview} alt="Receipt preview" />
+              <strong>Receipt preview</strong>
+              <img src={receiptPreview} alt="Uploaded receipt preview" />
             </div>
 
             <div>
-              <strong>OCR Progress</strong>
-              <div className="ocrProgressBar">
+              <strong>Scan progress</strong>
+              <div className="ocrProgressBar" aria-label={`OCR progress ${ocrProgress}%`}>
                 <span style={{ width: `${ocrProgress}%` }} />
               </div>
               <p>
-                Good lighting and a flat receipt will give cleaner text. OCR is
-                used as assisted input, so review is required before saving.
+                For better results, place the receipt flat, avoid shadows, and
+                make sure the item names are readable.
               </p>
             </div>
           </div>
         )}
 
+        <label className="m8OcrTextLabel" htmlFor="ocr-receipt-text">
+          Receipt text or grocery list
+        </label>
         <textarea
+          id="ocr-receipt-text"
           className="ocrTextArea"
           value={ocrText}
           onChange={(e) => setOcrText(e.target.value)}
-          placeholder={"OCR text will appear here. You can also paste grocery list text manually:\neggs\nmilk\nchicken breast\nrice\nlettuce"}
+          placeholder={"Scanned text will appear here. You may also type or paste one grocery item per line:\neggs\nmilk\nchicken breast\nrice\nlettuce"}
         />
 
-        <div className="groceryInputActions">
+        <div className="groceryInputActions m8GroceryInputActions">
           <button type="button" onClick={detectItemsFromText}>
-            Detect Items from Text
+            Detect items from text
           </button>
 
-          <button type="button" onClick={useOcrLinesAsItems}>
-            Use OCR Lines as Review Items
+          <button type="button" className="secondaryButton" onClick={useOcrLinesAsItems}>
+            Move lines to review
           </button>
         </div>
 
         {detectedItems.length > 0 && (
-          <div className="detectedReviewBox">
-            <h3>Review Detected Items</h3>
-            <p>
-              Check the items you want to add. Edit the name, quantity, unit,
-              container, category, and expiration date before saving.
-            </p>
+          <div className="detectedReviewBox m8DetectedReviewBox">
+            <div className="m8ReviewHeading">
+              <div>
+                <h3>Review detected items</h3>
+                <p>
+                  Select only the groceries you want to add. Correct the item
+                  details and expiration dates before saving.
+                </p>
+              </div>
+              <span>{detectedItems.filter((item) => item.selected).length} selected</span>
+            </div>
 
             <div className="detectedTableWrap">
               <table className="detectedTable">
@@ -1190,13 +1305,13 @@ async function scanReceiptWithOcr() {
                       <td>
                         <input
                           type="checkbox"
+                          aria-label={`Add ${item.item_name || `item ${index + 1}`}`}
                           checked={item.selected}
                           onChange={(e) =>
                             changeDetected(index, "selected", e.target.checked)
                           }
                         />
                       </td>
-
                       <td>
                         <input
                           value={item.item_name}
@@ -1205,7 +1320,6 @@ async function scanReceiptWithOcr() {
                           }
                         />
                       </td>
-
                       <td>
                         <input
                           value={item.barcode}
@@ -1215,7 +1329,6 @@ async function scanReceiptWithOcr() {
                           placeholder="UPC / PLU"
                         />
                       </td>
-
                       <td>
                         <select
                           value={item.category}
@@ -1228,7 +1341,6 @@ async function scanReceiptWithOcr() {
                           ))}
                         </select>
                       </td>
-
                       <td>
                         <input
                           type="number"
@@ -1240,7 +1352,6 @@ async function scanReceiptWithOcr() {
                           }
                         />
                       </td>
-
                       <td>
                         <select
                           value={item.unit}
@@ -1253,7 +1364,6 @@ async function scanReceiptWithOcr() {
                           ))}
                         </select>
                       </td>
-
                       <td>
                         <select
                           value={item.container_type}
@@ -1268,7 +1378,6 @@ async function scanReceiptWithOcr() {
                           ))}
                         </select>
                       </td>
-
                       <td>
                         <input
                           type="date"
@@ -1285,28 +1394,35 @@ async function scanReceiptWithOcr() {
             </div>
 
             <button className="addDetectedButton" onClick={addDetectedItems}>
-              Add Selected to Pantry
+              Add selected items to pantry
             </button>
           </div>
         )}
       </section>
 
-      <section className="card pantryTableCard">
-        <div className="pantrySectionHeader">
+      <section className="card pantryTableCard m8PantryTableCard">
+        <div className="pantrySectionHeader m8PantryTableHeader">
           <div>
-            <h2>Current Pantry</h2>
-            <p>Edit directly in the table, then click Save on that row.</p>
+            <p className="eyebrow">Your saved inventory</p>
+            <h2>Current pantry</h2>
+            <p>
+              Update a row, then select Save. Reset restores the last saved
+              version, while Delete permanently removes that item.
+            </p>
           </div>
 
-          <span>{editedItems.length} item(s)</span>
+          <span>{editedItems.length} item{editedItems.length === 1 ? "" : "s"}</span>
         </div>
 
         {loading ? (
-          <p>Loading pantry items...</p>
+          <div className="m8PantryEmptyState">Loading pantry items…</div>
         ) : editedItems.length === 0 ? (
-          <div className="groceryEmpty">No pantry items have been added yet.</div>
+          <div className="m8PantryEmptyState">
+            <strong>Your pantry is empty.</strong>
+            <span>Add your first item above to begin receiving meal recommendations.</span>
+          </div>
         ) : (
-          <div className="realTableWrap">
+          <div className="realTableWrap m8PantryTableWrap">
             <table className="realPantryTable">
               <thead>
                 <tr>
@@ -1328,15 +1444,16 @@ async function scanReceiptWithOcr() {
                   <tr key={item.id}>
                     <td>
                       <input
+                        aria-label={`Item name for row ${rowIndex + 1}`}
                         value={item.item_name}
                         onChange={(e) =>
                           changeTable(rowIndex, "item_name", e.target.value)
                         }
                       />
                     </td>
-
                     <td>
                       <select
+                        aria-label={`Category for ${item.item_name}`}
                         value={item.category}
                         onChange={(e) =>
                           changeTable(rowIndex, "category", e.target.value)
@@ -1347,9 +1464,9 @@ async function scanReceiptWithOcr() {
                         ))}
                       </select>
                     </td>
-
                     <td>
                       <input
+                        aria-label={`Quantity for ${item.item_name}`}
                         type="number"
                         step="0.1"
                         min="0"
@@ -1359,9 +1476,9 @@ async function scanReceiptWithOcr() {
                         }
                       />
                     </td>
-
                     <td>
                       <select
+                        aria-label={`Unit for ${item.item_name}`}
                         value={item.unit}
                         onChange={(e) =>
                           changeTable(rowIndex, "unit", e.target.value)
@@ -1372,9 +1489,9 @@ async function scanReceiptWithOcr() {
                         ))}
                       </select>
                     </td>
-
                     <td>
                       <select
+                        aria-label={`Container for ${item.item_name}`}
                         value={item.container_type}
                         onChange={(e) =>
                           changeTable(rowIndex, "container_type", e.target.value)
@@ -1387,9 +1504,9 @@ async function scanReceiptWithOcr() {
                         ))}
                       </select>
                     </td>
-
                     <td>
                       <input
+                        aria-label={`Expiration date for ${item.item_name}`}
                         type="date"
                         value={item.expiration_date}
                         onChange={(e) =>
@@ -1397,34 +1514,33 @@ async function scanReceiptWithOcr() {
                         }
                       />
                     </td>
-
                     <td>
                       <input
+                        aria-label={`Brand for ${item.item_name}`}
                         value={item.brand}
                         onChange={(e) =>
                           changeTable(rowIndex, "brand", e.target.value)
                         }
                       />
                     </td>
-
                     <td>
                       <input
+                        aria-label={`UPC for ${item.item_name}`}
                         value={item.barcode}
                         onChange={(e) =>
                           changeTable(rowIndex, "barcode", e.target.value)
                         }
                       />
                     </td>
-
                     <td>
                       <input
+                        aria-label={`Notes for ${item.item_name}`}
                         value={item.notes}
                         onChange={(e) =>
                           changeTable(rowIndex, "notes", e.target.value)
                         }
                       />
                     </td>
-
                     <td>
                       <div className="realTableActions">
                         <button
@@ -1434,7 +1550,6 @@ async function scanReceiptWithOcr() {
                         >
                           Save
                         </button>
-
                         <button
                           type="button"
                           className="miniReset"
@@ -1442,7 +1557,6 @@ async function scanReceiptWithOcr() {
                         >
                           Reset
                         </button>
-
                         <button
                           type="button"
                           className="miniDelete"

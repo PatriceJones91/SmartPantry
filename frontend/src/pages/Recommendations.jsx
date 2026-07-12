@@ -665,19 +665,69 @@ export default function Recommendations() {
         </div>
       )}
 
-      <div className="pageHeader recommendationsHero">
+      <div className="pageHeader recommendationsHero redesignedRecommendationsHero">
         <div>
+          <span className="eyebrow">SMART MEAL PLANNING</span>
           <h1>Meal Recommendations</h1>
           <p>
-            Smart Pantry ranks meals by what needs to be used first, what is already in the pantry,
-            what can be made quickly, and how the meal fits the nutrition scoring model.
+            Find ranked meal ideas using your pantry items, expiration dates, saved preferences,
+            ingredient coverage, and Nutrition Fit score.
           </p>
         </div>
 
         <button onClick={generate} disabled={loading}>
-          {loading ? "Building meals..." : "Build Meal Recommendations"}
+          {loading ? "Finding meals..." : "Find Meal Recommendations"}
         </button>
       </div>
+
+      <section className="recommendationJourney" aria-label="How Smart Pantry recommendations work">
+        <div className="journeyHeading">
+          <div>
+            <span className="eyebrow">YOUR RECOMMENDATION JOURNEY</span>
+            <h2>Three simple steps to get better meal ideas</h2>
+          </div>
+          <p>Keep your pantry current, let Smart Pantry rank the best options, then record what you used.</p>
+        </div>
+
+        <div className="journeySteps">
+          <article className="journeyCard journeyPantry">
+            <div className="journeyTopRow">
+              <span className="journeyNumber">01</span>
+              <span className="journeyIcon" aria-hidden="true">▣</span>
+            </div>
+            <span className="journeyLabel">PREPARE</span>
+            <h3>Review your pantry</h3>
+            <p>Update quantities and expiration dates so every recommendation starts with accurate pantry information.</p>
+            <span className="journeyHint">Accurate pantry data</span>
+          </article>
+
+          <div className="journeyConnector" aria-hidden="true">→</div>
+
+          <article className="journeyCard journeyRank">
+            <div className="journeyTopRow">
+              <span className="journeyNumber">02</span>
+              <span className="journeyIcon" aria-hidden="true">★</span>
+            </div>
+            <span className="journeyLabel">DISCOVER</span>
+            <h3>Find ranked meals</h3>
+            <p>Smart Pantry compares ingredient coverage, expiration priority, preferences, and Nutrition Fit.</p>
+            <span className="journeyHint">Best matches shown first</span>
+          </article>
+
+          <div className="journeyConnector" aria-hidden="true">→</div>
+
+          <article className="journeyCard journeyTrack">
+            <div className="journeyTopRow">
+              <span className="journeyNumber">03</span>
+              <span className="journeyIcon" aria-hidden="true">✓</span>
+            </div>
+            <span className="journeyLabel">TRACK</span>
+            <h3>Record what happened</h3>
+            <p>Save whether you made the meal, used ingredients elsewhere, saved it for later, or did not use it.</p>
+            <span className="journeyHint">Keep history accurate</span>
+          </article>
+        </div>
+      </section>
 
       {message && <section className="card success">{message}</section>}
       {error && <section className="card error">{error}</section>}
@@ -744,28 +794,39 @@ export default function Recommendations() {
         </section>
       )}
 
-      <section className="card customMealSection">
-        <div className="customMealHeader">
+      <section className="card customMealSection redesignedCustomMeal">
+        <div className="customMealIntro">
+          <span className="customMealIcon" aria-hidden="true">+</span>
           <div>
+            <span className="eyebrow">CUSTOM MEAL</span>
             <h2>Add My Own Meal</h2>
             <p>
-              If you made something that was not recommended, save it here and record how much pantry food was used.
+              Made something Smart Pantry did not recommend? Record the meal and the pantry
+              ingredients you used so your inventory and recommendation history stay accurate.
             </p>
           </div>
         </div>
 
-        <form className="customMealForm" onSubmit={saveCustomMeal}>
-          <input
-            value={customMealName}
-            onChange={(e) => setCustomMealName(e.target.value)}
-            placeholder="Meal name, example: Chicken rice bowl"
-          />
+        <form className="customMealForm redesignedCustomMealForm" onSubmit={saveCustomMeal}>
+          <div className="customMealTopFields">
+            <label>
+              Meal name
+              <input
+                value={customMealName}
+                onChange={(e) => setCustomMealName(e.target.value)}
+                placeholder="Example: Chicken rice bowl"
+              />
+            </label>
 
-          <textarea
-            value={customMealNotes}
-            onChange={(e) => setCustomMealNotes(e.target.value)}
-            placeholder="Optional notes about the meal..."
-          />
+            <label>
+              Notes <span>(optional)</span>
+              <textarea
+                value={customMealNotes}
+                onChange={(e) => setCustomMealNotes(e.target.value)}
+                placeholder="Add any useful details about the meal..."
+              />
+            </label>
+          </div>
 
           <div className="usageRows">
             {customUsageRows.map((row, index) => {
@@ -820,12 +881,22 @@ export default function Recommendations() {
       </section>
 
       {recommendations.length === 0 && (
-        <section className="card">
-          <h2>No meals generated yet</h2>
+        <section className="card recommendationsEmptyState">
+          <div className="emptyMealIllustration" aria-hidden="true">🍲</div>
+          <span className="eyebrow">READY WHEN YOU ARE</span>
+          <h2>No meal recommendations yet</h2>
           <p>
-            Click <strong>Build Meal Recommendations</strong> to generate ranked meals from your pantry.
-            The system will prioritize expiring ingredients first, then full pantry matches, then almost-there meals.
+            Select <strong>Find Meal Recommendations</strong> to create ranked meal ideas from your current pantry.
+            For stronger results, make sure pantry quantities, expiration dates, and profile preferences are up to date.
           </p>
+          <div className="emptyMealActions">
+            <button type="button" onClick={generate} disabled={loading}>
+              {loading ? "Finding meals..." : "Find Meals"}
+            </button>
+            <button type="button" className="ghostButton" onClick={() => { window.location.href = "/pantry"; }}>
+              Go to My Pantry
+            </button>
+          </div>
         </section>
       )}
 
