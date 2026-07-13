@@ -6,10 +6,10 @@ function getUser() {
 
 const links = [
   { to: "/", label: "Dashboard", icon: "⌂", end: true },
+  { to: "/profile", label: "Profile & Preferences", icon: "♙" },
   { to: "/pantry", label: "My Pantry", icon: "🧺" },
   { to: "/recommendations", label: "Meal Recommendations", icon: "🍽" },
   { to: "/history", label: "Recommendation History", icon: "▤" },
-  { to: "/profile", label: "Profile & Preferences", icon: "♙" },
 ];
 
 export default function Navbar() {
@@ -53,11 +53,12 @@ export default function Navbar() {
             <span>Admin Dashboard</span>
           </NavLink>
         )}
-      </nav>
 
-      <button className="navLogoutButton" onClick={logout}>
-        <span aria-hidden="true">↪</span> Log Out
-      </button>
+        <button type="button" className="navLogoutButton navLogoutInline" onClick={logout}>
+          <span className="navIcon" aria-hidden="true">↪</span>
+          <span>Log Out</span>
+        </button>
+      </nav>
     </aside>
   );
 }

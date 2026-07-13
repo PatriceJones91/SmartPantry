@@ -386,41 +386,35 @@ export default function Dashboard() {
       <section className="m8DashboardHero">
         <div className="m8DashboardHeroCopy">
           <p className="m8DashboardEyebrow">Welcome back, {user.username}</p>
-          <h1>Your Smart Pantry overview</h1>
+          <h1>Your Smart Pantry Overview</h1>
           <p>
-            See what is in your pantry, check which items need attention, and decide
-            what to do next without searching through every page.
+            Seamlessly manage your pantry to reduce waste, save money, and eat healthier.
           </p>
-
-          <div className="m8DashboardHeroActions">
-            <button type="button" onClick={() => navigate("/pantry")}>
-              Manage Pantry
-            </button>
-            <button
-              type="button"
-              className="m8DashboardSecondaryButton"
-              onClick={() => navigate("/recommendations")}
-            >
-              Find Meal Ideas
-            </button>
-          </div>
         </div>
 
-        <div className="m8HeroArtwork" aria-hidden="true">
-          <span className="m8HeroBasket">🛒</span>
-          <span className="m8HeroFood m8FoodOne">🥬</span>
-          <span className="m8HeroFood m8FoodTwo">🥛</span>
-          <span className="m8HeroFood m8FoodThree">🍎</span>
-        </div>
+      </section>
 
-        <aside className="m8NextActionCard" aria-label="Recommended next action">
-          <span>Recommended next step</span>
-          <h2>{nextAction.title}</h2>
-          <p>{nextAction.text}</p>
-          <button type="button" onClick={() => navigate(nextAction.path)}>
-            {nextAction.button}
-          </button>
-        </aside>
+      <section className="m8DashboardHowTo" aria-label="How to use Smart Pantry">
+        <header>
+          <p className="m8DashboardSectionLabel">How to use this app in 3 simple steps</p>
+        </header>
+        <div>
+          <article>
+            <span>1</span>
+            <h3>Keep your pantry updated</h3>
+            <p>Add items by scanning, uploading, or entering them manually.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Review alerts and suggestions</h3>
+            <p>See what needs attention and get meal and grocery ideas.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Choose a meal idea</h3>
+            <p>Pick a recipe, cook, and enjoy using what you have.</p>
+          </article>
+        </div>
       </section>
 
       <section className="m8DashboardStats" aria-label="Pantry summary">
@@ -508,8 +502,8 @@ export default function Dashboard() {
           <header className="m8DashboardSectionHeader compact">
             <div>
               <p className="m8DashboardSectionLabel">Pantry balance</p>
-              <h2>Category breakdown</h2>
-              <p>See how your saved pantry items are distributed by food category.</p>
+              <h2>What's in your pantry</h2>
+              <p>Here's a quick look at how your pantry is balanced.</p>
             </div>
           </header>
 
@@ -564,16 +558,21 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          <div className="m8PantryBalanceNote">
+            <span aria-hidden="true">◉</span>
+            <p>Keep an eye on expiring items to reduce waste and make the most of what you have.</p>
+          </div>
         </section>
 
         <section className="m8DashboardPanel m8GroceryPanel">
           <header className="m8DashboardSectionHeader compact">
             <div>
               <p className="m8DashboardSectionLabel">Optional additions</p>
-              <h2>Suggested grocery list</h2>
+              <h2>Suggested Grocery List</h2>
               <p>
-                These suggestions may pair with foods already in your pantry. They
-                are ideas, not required purchases.
+                These ideas can help you create more meals with what is already in
+                your pantry. They are suggestions, not required purchases.
               </p>
             </div>
           </header>
@@ -628,29 +627,6 @@ export default function Dashboard() {
         </section>
       </div>
 
-      <section className="m8DashboardHowTo" aria-label="How to use Smart Pantry">
-        <header>
-          <p className="m8DashboardSectionLabel">How to use this app</p>
-          <h2>Three simple steps</h2>
-        </header>
-        <div>
-          <article>
-            <span>1</span>
-            <h3>Keep your pantry current</h3>
-            <p>Add new foods and update quantities or expiration dates when something changes.</p>
-          </article>
-          <article>
-            <span>2</span>
-            <h3>Review items that expire soon</h3>
-            <p>Use the expiration section to decide which ingredients should be prioritized first.</p>
-          </article>
-          <article>
-            <span>3</span>
-            <h3>Choose a meal idea</h3>
-            <p>Open Meal Recommendations to find options based on your pantry and saved preferences.</p>
-          </article>
-        </div>
-      </section>
     </div>
   );
 }

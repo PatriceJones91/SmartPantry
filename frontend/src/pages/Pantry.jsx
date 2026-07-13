@@ -556,6 +556,25 @@ function parseGroceryText(text) {
 
 
 
+
+function categoryIcon(category) {
+  const icons = {
+    Protein: "🍗",
+    Dairy: "🥛",
+    Grain: "🍚",
+    Fruit: "🍎",
+    Vegetable: "🥬",
+    "Canned Goods": "🥫",
+    Frozen: "❄️",
+    Snack: "🍿",
+    Condiment: "🫙",
+    Beverage: "🧃",
+    Other: "🛒",
+  };
+
+  return icons[category] || icons.Other;
+}
+
 export default function Pantry() {
   const user = getUser();
 
@@ -564,6 +583,10 @@ export default function Pantry() {
   const [form, setForm] = useState(emptyForm);
   const [barcodeSearch, setBarcodeSearch] = useState("");
   const [entryMode, setEntryMode] = useState("product");
+  const [productTool, setProductTool] = useState("");
+  const [pantrySearch, setPantrySearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [useSoonOnly, setUseSoonOnly] = useState(false);
 
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState("");
@@ -847,6 +870,7 @@ async function scanReceiptWithOcr() {
   }
 
   async function startBarcodeScanner() {
+    setProductTool("scan");
     setMessage("");
     setError("");
     setScannerMessage("Point the back camera at the barcode and hold the phone steady.");
@@ -900,6 +924,7 @@ async function scanReceiptWithOcr() {
   }
 
   async function scanBarcodePhoto(event) {
+    setProductTool("photo");
     const file = event.target.files?.[0];
     event.target.value = "";
 
@@ -934,6 +959,7 @@ async function scanReceiptWithOcr() {
   }
 
   async function lookupBarcodeValue(rawBarcode) {
+    setProductTool("manual");
     setMessage("");
     setError("");
 
@@ -1100,77 +1126,98 @@ async function scanReceiptWithOcr() {
     editedItems.map((item) => item.category).filter(Boolean)
   ).size;
 
+
   function chooseEntryMode(mode) {
     setEntryMode(mode);
     setMessage("");
     setError("");
-
-    window.setTimeout(() => {
-      const targetId = mode === "receipt" ? "receipt-entry-panel" : "product-entry-panel";
-      document.getElementById(targetId)?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
+    if (mode === "product") {
+      setDetectedItems([]);
+    }
   }
 
+  function daysUntilExpiration(value) {
+    if (!value) return null;
+    const date = new Date(`${value}T00:00:00`);
+    return Math.ceil((date - today) / 86400000);
+  }
+
+  function pantryStatus(item) {
+    const days = daysUntilExpiration(item.expiration_date);
+    if (days === null) return { label: "No date", className: "neutral" };
+    if (days <= 0) return { label: "Use now", className: "urgent" };
+    if (days <= 4) return { label: `${days} day${days === 1 ? "" : "s"}`, className: "soon" };
+    return { label: `${days} days`, className: "fresh" };
+  }
+
+  const categoryOptionsForFilter = Array.from(
+    new Set(editedItems.map((item) => item.category).filter(Boolean))
+  ).sort();
+
+  const filteredPantryItems = editedItems.filter((item) => {
+    const query = pantrySearch.trim().toLowerCase();
+    const matchesSearch =
+      !query ||
+      String(item.item_name || "").toLowerCase().includes(query) ||
+      String(item.brand || "").toLowerCase().includes(query);
+
+    const matchesCategory =
+      categoryFilter === "all" || item.category === categoryFilter;
+
+    const days = daysUntilExpiration(item.expiration_date);
+    const matchesUseSoon = !useSoonOnly || (days !== null && days >= 0 && days <= 4);
+
+    return matchesSearch && matchesCategory && matchesUseSoon;
+  });
+
   return (
-    <div className="pantryPage m8PantryPage">
-      <section className="m8PantryHero">
-        <div>
+    <div className="pantryPage compactPantryPage">
+      <section className="compactPantryHero">
+        <div className="compactPantryHeroCopy">
           <p className="eyebrow">Pantry inventory</p>
           <h1>My Pantry</h1>
           <p>
-            Keep this list current so Smart Pantry can give you stronger meal
-            recommendations and help you notice foods that should be used soon.
+            Add items quickly by scanning a barcode, uploading a photo, or entering them manually.
           </p>
         </div>
 
-        <div className="m8PantryHeroArtwork" aria-hidden="true">
-          <span>🥕</span><span>🥛</span><span>🥬</span><span>🍞</span>
+        <div className="compactPantryIllustration" aria-hidden="true">
+          <span>🥬</span>
+          <span>🥛</span>
+          <span>🍅</span>
+          <span>🥕</span>
+          <span>🍞</span>
         </div>
 
-        <div className="m8PantryHeroStats" aria-label="Pantry summary">
-          <div>
+        <div className="compactPantryStats" aria-label="Pantry summary">
+          <article>
+            <span className="statIcon green">▣</span>
             <strong>{editedItems.length}</strong>
-            <span>Total items</span>
-          </div>
-          <div>
+            <small>Items in pantry</small>
+          </article>
+          <article>
+            <span className="statIcon orange">◷</span>
             <strong>{expiringSoonCount}</strong>
-            <span>Use soon</span>
-          </div>
-          <div>
+            <small>Use soon</small>
+          </article>
+          <article>
+            <span className="statIcon blue">◆</span>
             <strong>{categoryCount}</strong>
-            <span>Categories</span>
-          </div>
+            <small>Categories</small>
+          </article>
         </div>
       </section>
 
-      <section className="card unifiedPantryHub" aria-label="Ways to add pantry items">
-        <div className="unifiedPantryHeader">
+      <div className="compactPantryUtilityRow">
+        <section className="card compactQuickAddCard">
+        <div className="compactQuickAddHeader">
           <div>
-            <p className="eyebrow">Quick pantry entry</p>
-            <h2>Add item(s) to pantry</h2>
-            <p>
-              Add one product by barcode or add several groceries from a receipt.
-              Choose the method that works best for you.
-            </p>
+            <p className="eyebrow">Add items to your pantry</p>
+            <h2>Quick add</h2>
           </div>
-
-          <aside className="scanHelpPanel" aria-label="Scanning help">
-            <h3>What can I scan?</h3>
-            <div>
-              <span className="scanHelpIcon" aria-hidden="true">▥</span>
-              <p><strong>Product barcode</strong><small>One product at a time using a UPC or EAN barcode.</small></p>
-            </div>
-            <div>
-              <span className="scanHelpIcon" aria-hidden="true">▤</span>
-              <p><strong>Grocery receipt</strong><small>Multiple grocery items from one receipt image.</small></p>
-            </div>
-          </aside>
         </div>
 
-        <div className="pantryModeTabs" role="tablist" aria-label="Pantry entry type">
+        <div className="compactEntryTabs" role="tablist" aria-label="Pantry entry type">
           <button
             type="button"
             role="tab"
@@ -1179,9 +1226,8 @@ async function scanReceiptWithOcr() {
             onClick={() => chooseEntryMode("product")}
           >
             <span aria-hidden="true">▥</span>
-            <span><strong>Product barcode</strong><small>One product at a time</small></span>
+            Product Barcode
           </button>
-
           <button
             type="button"
             role="tab"
@@ -1190,238 +1236,28 @@ async function scanReceiptWithOcr() {
             onClick={() => chooseEntryMode("receipt")}
           >
             <span aria-hidden="true">▤</span>
-            <span><strong>Grocery receipt</strong><small>Many products at once</small></span>
+            Grocery Receipt
           </button>
         </div>
 
-        <h3 className="entryChoiceTitle">Choose how you would like to add items</h3>
-
-        <div className="pantryEntryChoices">
-          <button
-            type="button"
-            className="pantryEntryChoice recommended"
-            onClick={() => {
-              if (entryMode === "product") {
-                startBarcodeScanner();
-              } else {
-                document.getElementById("receipt-camera-input")?.click();
-              }
-            }}
-          >
-            <span className="entryChoiceIcon" aria-hidden="true">▣</span>
-            <strong>Scan with camera</strong>
-            <small>
-              {entryMode === "product"
-                ? "Use your camera to scan a product barcode."
-                : "Take a clear picture of your grocery receipt."}
-            </small>
-            <em>Recommended</em>
-          </button>
-
-          <label className="pantryEntryChoice">
-            <span className="entryChoiceIcon blue" aria-hidden="true">▧</span>
-            <strong>Upload image</strong>
-            <small>
-              {entryMode === "product"
-                ? "Upload a saved photo of a barcode."
-                : "Upload a saved photo of a receipt."}
-            </small>
-            <input
-              id={entryMode === "product" ? "barcode-image-input" : "receipt-camera-input"}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={entryMode === "product" ? scanBarcodePhoto : handleReceiptFile}
-            />
-          </label>
-
-          <label className={`pantryEntryChoice ${entryMode === "product" ? "mutedChoice" : ""}`}>
-            <span className="entryChoiceIcon" aria-hidden="true">▤</span>
-            <strong>Upload file</strong>
-            <small>
-              {entryMode === "product"
-                ? "Switch to Grocery Receipt to upload a TXT or CSV grocery list."
-                : "Upload a TXT or CSV grocery list."}
-            </small>
-            {entryMode === "receipt" ? (
-              <input type="file" accept=".txt,.csv" onChange={handleGroceryTextFile} />
-            ) : (
-              <button type="button" onClick={() => chooseEntryMode("receipt")}>
-                Use receipt tools
-              </button>
-            )}
-          </label>
-
-          <button
-            type="button"
-            className="pantryEntryChoice"
-            onClick={() => chooseEntryMode(entryMode === "receipt" ? "receipt" : "product")}
-          >
-            <span className="entryChoiceIcon" aria-hidden="true">⌨</span>
-            <strong>Enter manually</strong>
-            <small>
-              {entryMode === "product"
-                ? "Type product details or enter a UPC manually."
-                : "Type or paste one grocery item per line."}
-            </small>
-          </button>
-        </div>
-
-        <div className="pantryEntryTip">
-          <span aria-hidden="true">💡</span>
-          <strong>Barcode = one product at a time</strong>
-          <span>•</span>
-          <strong>Receipt = many products at once</strong>
-        </div>
-      </section>
-
-      {entryMode === "product" && (
-      <section id="product-entry-panel" className="card m8PantryEntryCard unifiedEntryPanel">
-        <div className="m8SectionHeading">
-          <div>
-            <p className="eyebrow">Add to your pantry</p>
-            <h2>Item details</h2>
-            <p>
-              Item name and quantity are required. Adding a category and
-              expiration date makes your dashboard and recommendations more useful.
-            </p>
-          </div>
-        </div>
-
-        <div className="m8PantryEntryLayout">
-          <form className="m8PantryForm" onSubmit={addItem}>
-            <div className="m8PantryField m8FieldWide">
-              <label htmlFor="pantry-item-name">Item name</label>
-              <input
-                id="pantry-item-name"
-                placeholder="Example: chicken breast"
-                value={form.item_name}
-                onChange={(e) => change("item_name", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-category">Category</label>
-              <select
-                id="pantry-category"
-                value={form.category}
-                onChange={(e) => change("category", e.target.value)}
-              >
-                {CATEGORY_OPTIONS.map((category) => (
-                  <option key={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-quantity">Quantity</label>
-              <input
-                id="pantry-quantity"
-                type="number"
-                step="0.1"
-                min="0"
-                value={form.quantity}
-                onChange={(e) => change("quantity", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-unit">Unit</label>
-              <select
-                id="pantry-unit"
-                value={form.unit}
-                onChange={(e) => change("unit", e.target.value)}
-              >
-                {UNIT_OPTIONS.map((unit) => (
-                  <option key={unit}>{unit}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-container">Container type</label>
-              <select
-                id="pantry-container"
-                value={form.container_type}
-                onChange={(e) => change("container_type", e.target.value)}
-              >
-                <option value="">Select a container</option>
-                {CONTAINER_OPTIONS.filter(Boolean).map((container) => (
-                  <option key={container}>{container}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-expiration">Expiration date</label>
-              <input
-                id="pantry-expiration"
-                type="date"
-                value={form.expiration_date}
-                onChange={(e) => change("expiration_date", e.target.value)}
-              />
-              <small>Use the package date or your best estimate.</small>
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-brand">Brand <span>(optional)</span></label>
-              <input
-                id="pantry-brand"
-                placeholder="Example: Tyson"
-                value={form.brand}
-                onChange={(e) => change("brand", e.target.value)}
-              />
-            </div>
-
-            <div className="m8PantryField">
-              <label htmlFor="pantry-barcode">Barcode / UPC <span>(optional)</span></label>
-              <input
-                id="pantry-barcode"
-                placeholder="Enter the number below the barcode"
-                value={form.barcode}
-                onChange={(e) => change("barcode", e.target.value)}
-              />
-            </div>
-
-            <div className="m8PantryField m8FieldWide">
-              <label htmlFor="pantry-notes">Notes <span>(optional)</span></label>
-              <input
-                id="pantry-notes"
-                placeholder="Example: opened, frozen, or half-full"
-                value={form.notes}
-                onChange={(e) => change("notes", e.target.value)}
-              />
-            </div>
-
-            <button className="m8PrimaryAction m8FieldWide" type="submit">
-              Add item to pantry
-            </button>
-          </form>
-
-          <aside className="m8UpcPanel">
-            <p className="eyebrow">Faster entry</p>
-            <h3>Look up a product</h3>
-            <p>
-              Enter the UPC printed below a product barcode. When a match is
-              available, Smart Pantry will fill in the product name and brand for review.
-            </p>
-
-            <div className="barcodeEntryChoices">
+        {entryMode === "product" ? (
+          <>
+            <div className="compactActionGrid">
               <button
                 type="button"
-                className="barcodeScanButton"
+                className="compactActionButton scan"
                 onClick={startBarcodeScanner}
                 disabled={barcodeLoading || scannerStarting}
               >
-                <span aria-hidden="true">▣</span>
-                {scannerStarting ? "Starting camera…" : "Scan product barcode"}
+                <span aria-hidden="true">📷</span>
+                <strong>{scannerStarting ? "Starting…" : "Scan Camera"}</strong>
+                <small>Point your phone at one barcode</small>
               </button>
 
-              <label className="barcodePhotoButton">
-                <span aria-hidden="true">▧</span>
-                Upload barcode photo
+              <label className="compactActionButton upload">
+                <span aria-hidden="true">🖼️</span>
+                <strong>Upload Photo</strong>
+                <small>Choose a saved barcode picture</small>
                 <input
                   type="file"
                   accept="image/*"
@@ -1429,36 +1265,294 @@ async function scanReceiptWithOcr() {
                   onChange={scanBarcodePhoto}
                 />
               </label>
-            </div>
 
-            <div className="barcodeManualDivider"><span>or enter it manually</span></div>
-
-            <form className="m8UpcForm" onSubmit={lookupBarcode}>
-              <label htmlFor="pantry-upc-search">Barcode or UPC</label>
-              <input
-                id="pantry-upc-search"
-                inputMode="numeric"
-                autoComplete="off"
-                value={barcodeSearch}
-                onChange={(e) => setBarcodeSearch(e.target.value.replace(/\s/g, ""))}
-                placeholder="Example: 012345678905"
-              />
-              <button type="submit" disabled={barcodeLoading}>
-                {barcodeLoading ? "Searching…" : "Search product"}
+              <button
+                type="button"
+                className="compactActionButton manual"
+                onClick={() => setProductTool(productTool === "manual" ? "" : "manual")}
+              >
+                <span aria-hidden="true">⌨️</span>
+                <strong>Enter UPC</strong>
+                <small>Search or type item details</small>
               </button>
-            </form>
-
-            <div className="m8UpcTip">
-              <strong>Before adding:</strong>
-              <span>Review the product name, quantity, unit, and expiration date.</span>
             </div>
-          </aside>
+
+            {(productTool || form.item_name || form.barcode) && (
+              <div className="compactProductWorkspace">
+                <div className="compactLookupRow">
+                  <div>
+                    <strong>Product lookup</strong>
+                    <span>Scan or enter the UPC below.</span>
+                  </div>
+                  <form onSubmit={lookupBarcode}>
+                    <input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={barcodeSearch}
+                      onChange={(e) => setBarcodeSearch(e.target.value.replace(/\s/g, ""))}
+                      placeholder="UPC or EAN number"
+                    />
+                    <button type="submit" disabled={barcodeLoading}>
+                      {barcodeLoading ? "Searching…" : "Search"}
+                    </button>
+                  </form>
+                </div>
+
+                <form className="compactItemForm" onSubmit={addItem}>
+                  <label className="compactField wide">
+                    <span>Item name</span>
+                    <input
+                      placeholder="Example: chicken breast"
+                      value={form.item_name}
+                      onChange={(e) => change("item_name", e.target.value)}
+                      required
+                    />
+                  </label>
+
+                  <label className="compactField">
+                    <span>Quantity</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.quantity}
+                      onChange={(e) => change("quantity", e.target.value)}
+                      required
+                    />
+                  </label>
+
+                  <label className="compactField">
+                    <span>Category</span>
+                    <select value={form.category} onChange={(e) => change("category", e.target.value)}>
+                      {CATEGORY_OPTIONS.map((category) => <option key={category}>{category}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="compactField">
+                    <span>Unit</span>
+                    <select value={form.unit} onChange={(e) => change("unit", e.target.value)}>
+                      {UNIT_OPTIONS.map((unit) => <option key={unit}>{unit}</option>)}
+                    </select>
+                  </label>
+
+                  <label className="compactField">
+                    <span>Expiration date</span>
+                    <input
+                      type="date"
+                      value={form.expiration_date}
+                      onChange={(e) => change("expiration_date", e.target.value)}
+                    />
+                  </label>
+
+                  <label className="compactField">
+                    <span>Container</span>
+                    <select
+                      value={form.container_type}
+                      onChange={(e) => change("container_type", e.target.value)}
+                    >
+                      <option value="">Select container</option>
+                      {CONTAINER_OPTIONS.filter(Boolean).map((container) => (
+                        <option key={container}>{container}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="compactField">
+                    <span>Brand</span>
+                    <input
+                      placeholder="Optional"
+                      value={form.brand}
+                      onChange={(e) => change("brand", e.target.value)}
+                    />
+                  </label>
+
+                  <label className="compactField">
+                    <span>Barcode / UPC</span>
+                    <input
+                      placeholder="Optional"
+                      value={form.barcode}
+                      onChange={(e) => change("barcode", e.target.value)}
+                    />
+                  </label>
+
+                  <label className="compactField wide">
+                    <span>Notes</span>
+                    <input
+                      placeholder="Optional: opened, frozen, or half-full"
+                      value={form.notes}
+                      onChange={(e) => change("notes", e.target.value)}
+                    />
+                  </label>
+
+                  <div className="compactFormActions wide">
+                    <button type="button" className="compactCancelButton" onClick={() => setProductTool("")}>
+                      Collapse
+                    </button>
+                    <button type="submit" className="compactSaveButton">
+                      Add item to pantry
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="compactReceiptWorkspace">
+            <div className="compactActionGrid receiptActions">
+              <label className="compactActionButton scan">
+                <span aria-hidden="true">📷</span>
+                <strong>Take Photo</strong>
+                <small>Use your phone camera</small>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleReceiptFile}
+                />
+              </label>
+
+              <label className="compactActionButton upload">
+                <span aria-hidden="true">🖼️</span>
+                <strong>Upload Image</strong>
+                <small>Choose a saved receipt photo</small>
+                <input type="file" accept="image/*" onChange={handleReceiptFile} />
+              </label>
+
+              <label className="compactActionButton file">
+                <span aria-hidden="true">📄</span>
+                <strong>Upload File</strong>
+                <small>TXT or CSV grocery list</small>
+                <input type="file" accept=".txt,.csv" onChange={handleGroceryTextFile} />
+              </label>
+            </div>
+
+            {(receiptFile || receiptPreview || ocrText || detectedItems.length > 0) && (
+              <div className="compactReceiptDetails">
+                <div className="compactReceiptToolbar">
+                  <div>
+                    <strong>Receipt review</strong>
+                    <span>Scan, correct, and choose the items you want to save.</span>
+                  </div>
+                  <div>
+                    <button type="button" onClick={clearReceiptScan}>Clear</button>
+                    <button type="button" onClick={scanReceiptWithOcr} disabled={ocrLoading}>
+                      {ocrLoading ? `Scanning ${ocrProgress}%` : "Scan with OCR"}
+                    </button>
+                  </div>
+                </div>
+
+                {receiptPreview && (
+                  <div className="compactReceiptPreview">
+                    <img src={receiptPreview} alt="Uploaded receipt preview" />
+                    <div>
+                      <strong>Make the receipt easy to read</strong>
+                      <span>Lay it flat, avoid shadows, and keep the full receipt in frame.</span>
+                      <div className="ocrProgressBar"><span style={{ width: `${ocrProgress}%` }} /></div>
+                    </div>
+                  </div>
+                )}
+
+                <textarea
+                  className="compactReceiptText"
+                  value={ocrText}
+                  onChange={(e) => setOcrText(e.target.value)}
+                  placeholder={"Scanned text appears here. You can also paste grocery lines."}
+                />
+
+                <div className="compactReceiptTextActions">
+                  <button type="button" onClick={detectItemsFromText}>Detect items</button>
+                  <button type="button" onClick={useOcrLinesAsItems}>Move lines to review</button>
+                </div>
+
+                {detectedItems.length > 0 && (
+                  <div className="compactDetectedItems">
+                    <div className="compactDetectedHeader">
+                      <strong>{detectedItems.length} possible item(s)</strong>
+                      <span>{detectedItems.filter((item) => item.selected).length} selected</span>
+                    </div>
+
+                    <div className="compactDetectedList">
+                      {detectedItems.map((item, index) => (
+                        <article key={`${item.item_name}-${index}`}>
+                          <input
+                            type="checkbox"
+                            checked={item.selected}
+                            onChange={(e) => changeDetected(index, "selected", e.target.checked)}
+                            aria-label={`Add ${item.item_name || `item ${index + 1}`}`}
+                          />
+                          <input
+                            value={item.item_name}
+                            onChange={(e) => changeDetected(index, "item_name", e.target.value)}
+                            placeholder="Item name"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={item.quantity}
+                            onChange={(e) => changeDetected(index, "quantity", e.target.value)}
+                            aria-label="Quantity"
+                          />
+                          <select
+                            value={item.unit}
+                            onChange={(e) => changeDetected(index, "unit", e.target.value)}
+                          >
+                            {UNIT_OPTIONS.map((unit) => <option key={unit}>{unit}</option>)}
+                          </select>
+                          <input
+                            type="date"
+                            value={item.expiration_date}
+                            onChange={(e) => changeDetected(index, "expiration_date", e.target.value)}
+                          />
+                        </article>
+                      ))}
+                    </div>
+
+                    <button className="compactSaveButton fullWidth" onClick={addDetectedItems}>
+                      Add selected items to pantry
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="compactQuickTip">
+          <span aria-hidden="true">💡</span>
+          <strong>Barcode = one item</strong>
+          <strong>Receipt = many items</strong>
         </div>
 
-        {message && <p className="success m8PantryNotice" role="status">{message}</p>}
-        {error && <p className="error m8PantryNotice" role="alert">{error}</p>}
-      </section>
-      )}
+        {message && <p className="success compactNotice" role="status">{message}</p>}
+        {error && <p className="error compactNotice" role="alert">{error}</p>}
+        </section>
+
+        <aside className="compactPantrySidePanel">
+          <div className="sidePanelIcon" aria-hidden="true">💡</div>
+          <div>
+            <p className="eyebrow">Quick tip</p>
+            <h3>Make pantry updates easy</h3>
+            <p>
+              Add items while unpacking groceries so your pantry stays ready for better meal ideas.
+            </p>
+          </div>
+
+          <div className="sidePanelDivider" />
+
+          <div>
+            <p className="eyebrow">Need ideas?</p>
+            <h3>Cook with what you have</h3>
+            <p>
+              Find meals that use your pantry items and prioritize foods that expire soon.
+            </p>
+          </div>
+
+          <a href="/recommendations" className="sidePanelFindMeals">
+            Find Meals
+          </a>
+        </aside>
+      </div>
 
       {scannerOpen && (
         <div className="barcodeScannerOverlay" role="dialog" aria-modal="true" aria-labelledby="barcode-scanner-title">
@@ -1470,16 +1564,11 @@ async function scanReceiptWithOcr() {
               </div>
               <button type="button" onClick={closeBarcodeScanner} aria-label="Close barcode scanner">×</button>
             </div>
-
             <div className="barcodeVideoFrame">
               <video ref={scannerVideoRef} muted playsInline />
               <div className="barcodeTargetBox" aria-hidden="true" />
             </div>
-
-            <p className="barcodeScannerStatus">
-              {scannerMessage || "Starting the camera…"}
-            </p>
-
+            <p className="barcodeScannerStatus">{scannerMessage || "Starting the camera…"}</p>
             <button type="button" className="barcodeCancelButton" onClick={closeBarcodeScanner}>
               Cancel scan
             </button>
@@ -1487,408 +1576,170 @@ async function scanReceiptWithOcr() {
         </div>
       )}
 
-      {entryMode === "receipt" && (
-      <section id="receipt-entry-panel" className="card pantryFormCard receiptOcrCard m8ReceiptCard unifiedEntryPanel">
-        <div className="m8SectionHeading m8ReceiptHeading">
+      <section className="card compactPantryListCard">
+        <div className="compactPantryListHeader">
           <div>
-            <p className="eyebrow">Receipt-assisted entry</p>
-            <h2>Scan or upload a grocery receipt</h2>
-            <p>
-              OCR can suggest grocery items from a receipt image or text list.
-              Because receipt text is not always exact, review every item before saving it.
-            </p>
+            <p className="eyebrow">Current pantry</p>
+            <h2>Your saved items</h2>
           </div>
-          {(receiptFile || receiptPreview || ocrText || detectedItems.length > 0) && (
-            <button
-              type="button"
-              className="secondaryButton"
-              onClick={clearReceiptScan}
-            >
-              Clear receipt
-            </button>
-          )}
+          <span>{filteredPantryItems.length} shown</span>
         </div>
 
-        <div className="m8ReceiptSteps">
-          <div><strong>1</strong><span>Upload a clear image or text list</span></div>
-          <div><strong>2</strong><span>Scan or detect possible items</span></div>
-          <div><strong>3</strong><span>Edit, select, and save</span></div>
-        </div>
-
-        <div className="receiptUploadBox m8ReceiptUploadBox">
-          <label className="receiptUploadButton">
-            Take photo or upload image
+        <div className="compactPantryFilters">
+          <label className="pantrySearchField">
+            <span aria-hidden="true">⌕</span>
             <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleReceiptFile}
+              value={pantrySearch}
+              onChange={(e) => setPantrySearch(e.target.value)}
+              placeholder="Search items or brands"
             />
           </label>
 
-          <label className="receiptUploadButton secondaryUpload">
-            Upload TXT or CSV list
-            <input
-              type="file"
-              accept=".txt,.csv"
-              onChange={handleGroceryTextFile}
-            />
-          </label>
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="all">All categories</option>
+            {categoryOptionsForFilter.map((category) => (
+              <option key={category}>{category}</option>
+            ))}
+          </select>
 
           <button
             type="button"
-            className="scanReceiptButton"
-            onClick={scanReceiptWithOcr}
-            disabled={ocrLoading}
+            className={useSoonOnly ? "active" : ""}
+            onClick={() => setUseSoonOnly((current) => !current)}
           >
-            {ocrLoading ? `Scanning… ${ocrProgress}%` : "Scan receipt with OCR"}
+            ◷ Use soon
           </button>
         </div>
 
-        {receiptPreview && (
-          <div className="receiptPreviewGrid">
-            <div>
-              <strong>Receipt preview</strong>
-              <img src={receiptPreview} alt="Uploaded receipt preview" />
-            </div>
-
-            <div>
-              <strong>Scan progress</strong>
-              <div className="ocrProgressBar" aria-label={`OCR progress ${ocrProgress}%`}>
-                <span style={{ width: `${ocrProgress}%` }} />
-              </div>
-              <p>
-                For better results, place the receipt flat, avoid shadows, and
-                make sure the item names are readable.
-              </p>
-            </div>
+        {loading ? (
+          <div className="compactEmptyState">Loading pantry items…</div>
+        ) : filteredPantryItems.length === 0 ? (
+          <div className="compactEmptyState">
+            <strong>No matching pantry items.</strong>
+            <span>Try another search or add an item above.</span>
           </div>
-        )}
-
-        <label className="m8OcrTextLabel" htmlFor="ocr-receipt-text">
-          Receipt text or grocery list
-        </label>
-        <textarea
-          id="ocr-receipt-text"
-          className="ocrTextArea"
-          value={ocrText}
-          onChange={(e) => setOcrText(e.target.value)}
-          placeholder={"Scanned text will appear here. You may also type or paste one grocery item per line:\neggs\nmilk\nchicken breast\nrice\nlettuce"}
-        />
-
-        <div className="groceryInputActions m8GroceryInputActions">
-          <button type="button" onClick={detectItemsFromText}>
-            Detect items from text
-          </button>
-
-          <button type="button" className="secondaryButton" onClick={useOcrLinesAsItems}>
-            Move lines to review
-          </button>
-        </div>
-
-        {detectedItems.length > 0 && (
-          <div className="detectedReviewBox m8DetectedReviewBox">
-            <div className="m8ReviewHeading">
-              <div>
-                <h3>Review detected items</h3>
-                <p>
-                  Select only the groceries you want to add. Correct the item
-                  details and expiration dates before saving.
-                </p>
-              </div>
-              <span>{detectedItems.filter((item) => item.selected).length} selected</span>
-            </div>
-
-            <div className="detectedTableWrap">
-              <table className="detectedTable">
+        ) : (
+          <>
+            <div className="compactDesktopTableWrap">
+              <table className="compactPantryTable">
                 <thead>
                   <tr>
-                    <th>Add</th>
                     <th>Item</th>
-                    <th>UPC / PLU</th>
                     <th>Category</th>
-                    <th>Qty</th>
-                    <th>Unit</th>
-                    <th>Container</th>
-                    <th>Expiration</th>
+                    <th>Quantity</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {detectedItems.map((item, index) => (
-                    <tr key={`${item.item_name}-${index}`}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          aria-label={`Add ${item.item_name || `item ${index + 1}`}`}
-                          checked={item.selected}
-                          onChange={(e) =>
-                            changeDetected(index, "selected", e.target.checked)
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={item.item_name}
-                          onChange={(e) =>
-                            changeDetected(index, "item_name", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={item.barcode}
-                          onChange={(e) =>
-                            changeDetected(index, "barcode", e.target.value)
-                          }
-                          placeholder="UPC / PLU"
-                        />
-                      </td>
-                      <td>
-                        <select
-                          value={item.category}
-                          onChange={(e) =>
-                            changeDetected(index, "category", e.target.value)
-                          }
-                        >
-                          {CATEGORY_OPTIONS.map((category) => (
-                            <option key={category}>{category}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            changeDetected(index, "quantity", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td>
-                        <select
-                          value={item.unit}
-                          onChange={(e) =>
-                            changeDetected(index, "unit", e.target.value)
-                          }
-                        >
-                          {UNIT_OPTIONS.map((unit) => (
-                            <option key={unit}>{unit}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          value={item.container_type}
-                          onChange={(e) =>
-                            changeDetected(index, "container_type", e.target.value)
-                          }
-                        >
-                          {CONTAINER_OPTIONS.map((container) => (
-                            <option key={container} value={container}>
-                              {container || "none"}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="date"
-                          value={item.expiration_date}
-                          onChange={(e) =>
-                            changeDetected(index, "expiration_date", e.target.value)
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredPantryItems.map((item) => {
+                    const rowIndex = editedItems.findIndex((row) => row.id === item.id);
+                    const status = pantryStatus(item);
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <div className="desktopPantryItemName">
+                            <span className="desktopFoodIcon" aria-hidden="true">
+                              {categoryIcon(item.category)}
+                            </span>
+                            <div>
+                              <input
+                                value={item.item_name}
+                                onChange={(e) => changeTable(rowIndex, "item_name", e.target.value)}
+                              />
+                              <small>{item.brand || item.container_type || "Pantry item"}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <select
+                            value={item.category}
+                            onChange={(e) => changeTable(rowIndex, "category", e.target.value)}
+                          >
+                            {CATEGORY_OPTIONS.map((category) => <option key={category}>{category}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <div className="quantityCell">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={item.quantity}
+                              onChange={(e) => changeTable(rowIndex, "quantity", e.target.value)}
+                            />
+                            <select
+                              value={item.unit}
+                              onChange={(e) => changeTable(rowIndex, "unit", e.target.value)}
+                            >
+                              {UNIT_OPTIONS.map((unit) => <option key={unit}>{unit}</option>)}
+                            </select>
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            type="date"
+                            value={item.expiration_date}
+                            onChange={(e) => changeTable(rowIndex, "expiration_date", e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <span className={`pantryStatus ${status.className}`}>{status.label}</span>
+                        </td>
+                        <td>
+                          <div className="compactRowActions">
+                            <button type="button" onClick={() => saveRow(item)}>Save</button>
+                            <button type="button" onClick={() => resetRow(rowIndex)}>Reset</button>
+                            <button type="button" className="delete" onClick={() => remove(item.id)}>Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            <button className="addDetectedButton" onClick={addDetectedItems}>
-              Add selected items to pantry
-            </button>
-          </div>
-        )}
-      </section>
-      )}
-
-      <section className="card pantryTableCard m8PantryTableCard">
-        <div className="pantrySectionHeader m8PantryTableHeader">
-          <div>
-            <p className="eyebrow">Your saved inventory</p>
-            <h2>Current pantry</h2>
-            <p>
-              Update a row, then select Save. Reset restores the last saved
-              version, while Delete permanently removes that item.
-            </p>
-          </div>
-
-          <span>{editedItems.length} item{editedItems.length === 1 ? "" : "s"}</span>
-        </div>
-
-        {loading ? (
-          <div className="m8PantryEmptyState">Loading pantry items…</div>
-        ) : editedItems.length === 0 ? (
-          <div className="m8PantryEmptyState">
-            <strong>Your pantry is empty.</strong>
-            <span>Add your first item above to begin receiving meal recommendations.</span>
-          </div>
-        ) : (
-          <div className="realTableWrap m8PantryTableWrap">
-            <table className="realPantryTable">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Category</th>
-                  <th>Qty</th>
-                  <th>Unit</th>
-                  <th>Container</th>
-                  <th>Expiration</th>
-                  <th>Brand</th>
-                  <th>UPC</th>
-                  <th>Notes</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {editedItems.map((item, rowIndex) => (
-                  <tr key={item.id}>
-                    <td>
-                      <input
-                        aria-label={`Item name for row ${rowIndex + 1}`}
-                        value={item.item_name}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "item_name", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <select
-                        aria-label={`Category for ${item.item_name}`}
-                        value={item.category}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "category", e.target.value)
-                        }
-                      >
-                        {CATEGORY_OPTIONS.map((category) => (
-                          <option key={category}>{category}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`Quantity for ${item.item_name}`}
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "quantity", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <select
-                        aria-label={`Unit for ${item.item_name}`}
-                        value={item.unit}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "unit", e.target.value)
-                        }
-                      >
-                        {UNIT_OPTIONS.map((unit) => (
-                          <option key={unit}>{unit}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        aria-label={`Container for ${item.item_name}`}
-                        value={item.container_type}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "container_type", e.target.value)
-                        }
-                      >
-                        {CONTAINER_OPTIONS.map((container) => (
-                          <option key={container} value={container}>
-                            {container || "none"}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`Expiration date for ${item.item_name}`}
-                        type="date"
-                        value={item.expiration_date}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "expiration_date", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`Brand for ${item.item_name}`}
-                        value={item.brand}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "brand", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`UPC for ${item.item_name}`}
-                        value={item.barcode}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "barcode", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`Notes for ${item.item_name}`}
-                        value={item.notes}
-                        onChange={(e) =>
-                          changeTable(rowIndex, "notes", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <div className="realTableActions">
-                        <button
-                          type="button"
-                          className="miniSave"
-                          onClick={() => saveRow(item)}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="miniReset"
-                          onClick={() => resetRow(rowIndex)}
-                        >
-                          Reset
-                        </button>
-                        <button
-                          type="button"
-                          className="miniDelete"
-                          onClick={() => remove(item.id)}
-                        >
-                          Delete
-                        </button>
+            <div className="compactMobilePantryList">
+              {filteredPantryItems.map((item) => {
+                const rowIndex = editedItems.findIndex((row) => row.id === item.id);
+                const status = pantryStatus(item);
+                return (
+                  <article key={item.id}>
+                    <div className="mobilePantryItemMain">
+                      <span className="mobileFoodIcon" aria-hidden="true">{categoryIcon(item.category)}</span>
+                      <div>
+                        <strong>{item.item_name}</strong>
+                        <small>{item.quantity} {item.unit} · {item.category}</small>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    <span className={`pantryStatus ${status.className}`}>{status.label}</span>
+                    <div className="mobilePantryActions">
+                      <button type="button" onClick={() => saveRow(item)}>Save</button>
+                      <button type="button" onClick={() => resetRow(rowIndex)}>Reset</button>
+                      <button type="button" className="delete" onClick={() => remove(item.id)}>Delete</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
         )}
+
+        <button
+          type="button"
+          className="addAnotherItemButton"
+          onClick={() => {
+            setEntryMode("product");
+            setProductTool("manual");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          + Add another item
+        </button>
       </section>
+
     </div>
   );
 }

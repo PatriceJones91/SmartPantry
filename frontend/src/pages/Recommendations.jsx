@@ -196,6 +196,9 @@ export default function Recommendations() {
   const [customUsageRows, setCustomUsageRows] = useState([
     { item_id: "", amount_used: "" },
   ]);
+  const [expandedRecipes, setExpandedRecipes] = useState({});
+  const [customMealOpen, setCustomMealOpen] = useState(false);
+  const [extraFiltersOpen, setExtraFiltersOpen] = useState(false);
 
   async function loadPantryItems() {
     const pantry = await api.getPantry(user.id);
@@ -650,8 +653,27 @@ export default function Recommendations() {
     (recipe) => recipe.recommendation_phase === "Almost There"
   ).length;
 
+  function toggleRecipe(recipeName) {
+    setExpandedRecipes((previous) => ({
+      ...previous,
+      [recipeName]: !previous[recipeName],
+    }));
+  }
+
+  function mealIcon(recipe) {
+    const name = normalizeText(recipe.recipe_name);
+    if (name.includes("soup") || name.includes("stew")) return "🍲";
+    if (name.includes("salad")) return "🥗";
+    if (name.includes("pasta") || name.includes("macaroni")) return "🍝";
+    if (name.includes("rice")) return "🍚";
+    if (name.includes("chicken") || name.includes("turkey")) return "🍗";
+    if (name.includes("fish") || name.includes("salmon") || name.includes("tuna")) return "🐟";
+    if (name.includes("breakfast") || name.includes("egg")) return "🍳";
+    return "🍽️";
+  }
+
   return (
-    <div className="recommendationsPage">
+    <div className="recommendationsPage optionCRecommendations">
       {loading && (
         <div className="mealLoadingOverlay" role="status" aria-live="polite">
           <div className="mealLoadingCard">
@@ -659,535 +681,235 @@ export default function Recommendations() {
             <h2>Smart Pantry is building your meal recommendations...</h2>
             <p>
               Checking pantry items, expiration dates, missing ingredients, profile preferences,
-              Nutrition Fit, and Smart Score. This may take a moment, so please hold tight while your recommendations are prepared.
+              Nutrition Fit, and Smart Score.
             </p>
           </div>
         </div>
       )}
 
-      <div className="pageHeader recommendationsHero redesignedRecommendationsHero">
+      <header className="optionCHeader">
         <div>
-          <span className="eyebrow">SMART MEAL PLANNING</span>
+          <span className="optionCBreadcrumb">⌂ &nbsp;/&nbsp; Meal Recommendations</span>
           <h1>Meal Recommendations</h1>
-          <p>
-            Find ranked meal ideas using your pantry items, expiration dates, saved preferences,
-            ingredient coverage, and Nutrition Fit score.
-          </p>
+          <p>Delicious meal ideas based on your pantry and saved preferences.</p>
         </div>
-
-        <div className="m8RecommendationHeroArt" aria-hidden="true">🥗</div>
-
-        <button onClick={generate} disabled={loading}>
-          {loading ? "Finding meals..." : "Find Meal Recommendations"}
+        <button className="optionCFindButton" onClick={generate} disabled={loading}>
+          {loading ? "Finding meals..." : "✨ Find Meal Recommendations ✨"}
         </button>
-      </div>
+      </header>
 
-      <section className="recommendationJourney" aria-label="How Smart Pantry recommendations work">
-        <div className="journeyHeading">
-          <div>
-            <span className="eyebrow">YOUR RECOMMENDATION JOURNEY</span>
-            <h2>Three simple steps to get better meal ideas</h2>
+      {message && <section className="card success optionCNotice">{message}</section>}
+      {error && <section className="card error optionCNotice">{error}</section>}
+
+      <section className="optionCStats" aria-label="Recommendation summary">
+          <article><span className="blue">🍴</span><div><strong>{recommendations.length}</strong><small>Meals found</small></div></article>
+          <article><span className="orange">◷</span><div><strong>{expiringCount}</strong><small>Use expiring items</small></div></article>
+          <article><span className="green">✓</span><div><strong>{pantryReadyCount}</strong><small>Pantry match</small></div></article>
+          <article><span className="purple">☆</span><div><strong>{almostThereCount}</strong><small>Almost-there meals</small></div></article>
+        </section>
+
+      <section className="optionCFilterRow">
+          <div className="optionCPrimaryFilters">
+            <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Best Matches</button>
+            <button className={filter === "expiring" ? "active" : ""} onClick={() => setFilter("expiring")}>Use Soon First</button>
+            <button className={filter === "pantry" ? "active" : ""} onClick={() => setFilter("pantry")}>Pantry Matches</button>
+            <button className={filter === "almost" ? "active" : ""} onClick={() => setFilter("almost")}>Almost There</button>
           </div>
-          <p>Keep your pantry current, let Smart Pantry rank the best options, then record what you used.</p>
-        </div>
-
-        <div className="journeySteps">
-          <article className="journeyCard journeyPantry">
-            <div className="journeyTopRow">
-              <span className="journeyNumber">01</span>
-              <span className="journeyIcon" aria-hidden="true">▣</span>
+          <button className="optionCMoreFilters" onClick={() => setExtraFiltersOpen((open) => !open)}>
+            ☰ Filters
+          </button>
+          {extraFiltersOpen && (
+            <div className="optionCExtraFilters">
+              <button className={filter === "core" ? "active" : ""} onClick={() => setFilter("core")}>Quick Everyday</button>
+              <button className={filter === "expanded" ? "active" : ""} onClick={() => setFilter("expanded")}>Expanded Library</button>
             </div>
-            <span className="journeyLabel">PREPARE</span>
-            <h3>Review your pantry</h3>
-            <p>Update quantities and expiration dates so every recommendation starts with accurate pantry information.</p>
-            <span className="journeyHint">Accurate pantry data</span>
-          </article>
-
-          <div className="journeyConnector" aria-hidden="true">→</div>
-
-          <article className="journeyCard journeyRank">
-            <div className="journeyTopRow">
-              <span className="journeyNumber">02</span>
-              <span className="journeyIcon" aria-hidden="true">★</span>
-            </div>
-            <span className="journeyLabel">DISCOVER</span>
-            <h3>Find ranked meals</h3>
-            <p>Smart Pantry compares ingredient coverage, expiration priority, preferences, and Nutrition Fit.</p>
-            <span className="journeyHint">Best matches shown first</span>
-          </article>
-
-          <div className="journeyConnector" aria-hidden="true">→</div>
-
-          <article className="journeyCard journeyTrack">
-            <div className="journeyTopRow">
-              <span className="journeyNumber">03</span>
-              <span className="journeyIcon" aria-hidden="true">✓</span>
-            </div>
-            <span className="journeyLabel">TRACK</span>
-            <h3>Record what happened</h3>
-            <p>Save whether you made the meal, used ingredients elsewhere, saved it for later, or did not use it.</p>
-            <span className="journeyHint">Keep history accurate</span>
-          </article>
-        </div>
+          )}
       </section>
 
-      {message && <section className="card success">{message}</section>}
-      {error && <section className="card error">{error}</section>}
-
-      {recommendations.length > 0 && (
-        <section className="card recommendationSummary">
-          <div>
-            <strong>{recommendations.length}</strong>
-            <span>Total ranked meals</span>
-          </div>
-          <div>
-            <strong>{expiringCount}</strong>
-            <span>Use expiring first</span>
-          </div>
-          <div>
-            <strong>{pantryReadyCount}</strong>
-            <span>Pantry match meals</span>
-          </div>
-          <div>
-            <strong>{almostThereCount}</strong>
-            <span>Almost-there meals</span>
-          </div>
-        </section>
-      )}
-
-      {recommendations.length > 0 && (
-        <section className="card filterBar">
-          <button
-            className={filter === "all" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("all")}
-          >
-            All
-          </button>
-          <button
-            className={filter === "expiring" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("expiring")}
-          >
-            Expiring First
-          </button>
-          <button
-            className={filter === "pantry" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("pantry")}
-          >
-            Pantry Match
-          </button>
-          <button
-            className={filter === "almost" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("almost")}
-          >
-            Almost There
-          </button>
-          <button
-            className={filter === "core" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("core")}
-          >
-            Quick Everyday
-          </button>
-          <button
-            className={filter === "expanded" ? "activeFilter" : "secondary"}
-            onClick={() => setFilter("expanded")}
-          >
-            Expanded Library
-          </button>
-        </section>
-      )}
-
-      <section className="card customMealSection redesignedCustomMeal">
-        <div className="customMealIntro">
-          <span className="customMealIcon" aria-hidden="true">+</span>
-          <div>
-            <span className="eyebrow">CUSTOM MEAL</span>
-            <h2>Add My Own Meal</h2>
-            <p>
-              Made something Smart Pantry did not recommend? Record the meal and the pantry
-              ingredients you used so your inventory and recommendation history stay accurate.
-            </p>
-          </div>
-        </div>
-
-        <form className="customMealForm redesignedCustomMealForm" onSubmit={saveCustomMeal}>
-          <div className="customMealTopFields">
-            <label>
-              Meal name
-              <input
-                value={customMealName}
-                onChange={(e) => setCustomMealName(e.target.value)}
-                placeholder="Example: Chicken rice bowl"
-              />
-            </label>
-
-            <label>
-              Notes <span>(optional)</span>
-              <textarea
-                value={customMealNotes}
-                onChange={(e) => setCustomMealNotes(e.target.value)}
-                placeholder="Add any useful details about the meal..."
-              />
-            </label>
-          </div>
-
-          <div className="usageRows">
-            {customUsageRows.map((row, index) => {
-              const selectedItem = pantryItems.find((item) => item.id === row.item_id);
-
-              return (
-                <div className="usageRow" key={index}>
-                  <select
-                    value={row.item_id}
-                    onChange={(e) => changeCustomUsage(index, "item_id", e.target.value)}
-                  >
-                    <option value="">Select pantry item</option>
-                    {pantryItems.map((item) => (
-                      <option value={item.id} key={item.id}>
-                        {item.item_name} ({item.quantity} {item.unit || "item"} left)
-                      </option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={row.amount_used}
-                    onChange={(e) => changeCustomUsage(index, "amount_used", e.target.value)}
-                    placeholder="Amount used"
-                  />
-
-                  <span>{selectedItem?.unit || "unit"}</span>
-
-                  {customUsageRows.length > 1 && (
-                    <button
-                      type="button"
-                      className="miniDelete"
-                      onClick={() => removeCustomUsageRow(index)}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="customMealActions">
-            <button type="button" className="secondary" onClick={addCustomUsageRow}>
-              Add Ingredient
-            </button>
-            <button type="submit">Save My Meal</button>
-          </div>
-        </form>
+      <section className="optionCCustomMealPrompt">
+        <span>Add your own meal to keep pantry usage and recommendation history accurate.</span>
+        <button onClick={() => setCustomMealOpen((open) => !open)}>
+          {customMealOpen ? "Close" : "Add My Own Meal"}
+        </button>
       </section>
+
+      {customMealOpen && (
+        <section className="card customMealSection optionCCustomMealPanel">
+          <div className="customMealIntro">
+            <span className="customMealIcon" aria-hidden="true">+</span>
+            <div>
+              <span className="eyebrow">CUSTOM MEAL</span>
+              <h2>Add My Own Meal</h2>
+              <p>Record a meal Smart Pantry did not recommend and update the pantry ingredients you used.</p>
+            </div>
+          </div>
+
+          <form className="customMealForm redesignedCustomMealForm" onSubmit={saveCustomMeal}>
+            <div className="customMealTopFields">
+              <label>Meal name
+                <input value={customMealName} onChange={(e) => setCustomMealName(e.target.value)} placeholder="Example: Chicken rice bowl" />
+              </label>
+              <label>Notes <span>(optional)</span>
+                <textarea value={customMealNotes} onChange={(e) => setCustomMealNotes(e.target.value)} placeholder="Add any useful details..." />
+              </label>
+            </div>
+            <div className="usageRows">
+              {customUsageRows.map((row, index) => {
+                const selectedItem = pantryItems.find((item) => item.id === row.item_id);
+                return (
+                  <div className="usageRow" key={index}>
+                    <select value={row.item_id} onChange={(e) => changeCustomUsage(index, "item_id", e.target.value)}>
+                      <option value="">Select pantry item</option>
+                      {pantryItems.map((item) => <option value={item.id} key={item.id}>{item.item_name} ({item.quantity} {item.unit || "item"} left)</option>)}
+                    </select>
+                    <input type="number" min="0" step="0.01" value={row.amount_used} onChange={(e) => changeCustomUsage(index, "amount_used", e.target.value)} placeholder="Amount used" />
+                    <span>{selectedItem?.unit || "unit"}</span>
+                    {customUsageRows.length > 1 && <button type="button" className="miniDelete" onClick={() => removeCustomUsageRow(index)}>Remove</button>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="customMealActions">
+              <button type="button" className="secondary" onClick={addCustomUsageRow}>Add Ingredient</button>
+              <button type="submit">Save My Meal</button>
+            </div>
+          </form>
+        </section>
+      )}
 
       {recommendations.length === 0 && (
-        <section className="card recommendationsEmptyState">
-          <div className="emptyMealIllustration" aria-hidden="true">🍲</div>
-          <span className="eyebrow">READY WHEN YOU ARE</span>
-          <h2>No meal recommendations yet</h2>
-          <p>
-            Select <strong>Find Meal Recommendations</strong> to create ranked meal ideas from your current pantry.
-            For stronger results, make sure pantry quantities, expiration dates, and profile preferences are up to date.
-          </p>
-          <div className="emptyMealActions">
-            <button type="button" onClick={generate} disabled={loading}>
+        <section className="optionCEmptyState" aria-label="No recommendations yet">
+          <div className="optionCEmptyIcon" aria-hidden="true">🍲</div>
+          <div className="optionCEmptyCopy">
+            <span className="eyebrow">READY WHEN YOU ARE</span>
+            <h2>No meal recommendations yet</h2>
+            <p>
+              Select <strong>Find Meal Recommendations</strong> to create ranked meal ideas
+              from your current pantry.
+            </p>
+          </div>
+          <div className="optionCEmptyActions">
+            <button type="button" className="optionCEmptyPrimary" onClick={generate} disabled={loading}>
               {loading ? "Finding meals..." : "Find Meals"}
             </button>
-            <button type="button" className="ghostButton" onClick={() => { window.location.href = "/pantry"; }}>
+            <button
+              type="button"
+              className="optionCEmptySecondary"
+              onClick={() => { window.location.href = "/pantry"; }}
+            >
               Go to My Pantry
             </button>
           </div>
         </section>
       )}
 
-      <div className="recommendationGrid">
-        {filteredRecommendations.map((recipe, index) => (
-          <section className="card recipeCard upgradedRecipeCard" key={`${recipe.recipe_name}-${index}`}>
-            <div className="recipeTopRow">
-              <span className={`sourceBadge ${sourceClass(recipe)}`}>
-                {sourceLabel(recipe)}
-              </span>
-              <span className={`scoreBadgeInline ${scoreClass(recipe.score)}`}>
-                Smart Score: {recipe.score}
-              </span>
-            </div>
-
-            <div className="recommendationPhaseRow">
-              <span className={`phaseBadge ${phaseClass(recipe.recommendation_phase)}`}>
-                {recipe.recommendation_phase || "Ranked Meal"}
-              </span>
-              {recipe.phase_reason && <small>{recipe.phase_reason}</small>}
-            </div>
-
-            <h2>{recipe.recipe_name}</h2>
-
-
-            <div className="nutritionFactsBox">
-              <div className="nutritionFactsHeader">
-                <h3>Nutrition Facts</h3>
-                <span>
-                  Nutrition Fit: {displayNumber(recipe.ml_nutrition_fit, "/15")}
+      <div className="optionCRecipeList">
+        {filteredRecommendations.map((recipe, index) => {
+          const expanded = Boolean(expandedRecipes[recipe.recipe_name]);
+          return (
+            <section className={`optionCRecipeCard ${expanded ? "expanded" : ""}`} key={`${recipe.recipe_name}-${index}`}>
+              <button className="optionCRecipeSummary" onClick={() => toggleRecipe(recipe.recipe_name)} aria-expanded={expanded}>
+                <span className="optionCMealIcon" aria-hidden="true">{mealIcon(recipe)}</span>
+                <span className="optionCRecipeIdentity">
+                  <span className={`phaseBadge ${phaseClass(recipe.recommendation_phase)}`}>{recipe.recommendation_phase || sourceLabel(recipe)}</span>
+                  <strong>{recipe.recipe_name}</strong>
+                  {recipe.expiring_items && recipe.expiring_items.length > 0 && <small>Uses expiring items within 10 days</small>}
                 </span>
-              </div>
+                <span className="optionCMetric"><small>Pantry match</small><strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong></span>
+                <span className="optionCMetric"><small>Coverage with swaps</small><strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong></span>
+                <span className="optionCMetric"><small>Nutrition Fit</small><strong>{displayNumber(recipe.ml_nutrition_fit_percent, "%")}</strong></span>
+                <span className="optionCIngredients"><small><b>Matched:</b> {listText((recipe.matched_ingredients || []).slice(0, 4))}</small><small><b>Missing:</b> {listText((recipe.missing_ingredients || []).slice(0, 3))}</small></span>
+                <span className={`optionCScore ${scoreClass(recipe.score)}`}><small>Smart Score</small><strong>{recipe.score}</strong></span>
+                <span className="optionCChevron" aria-hidden="true">{expanded ? "⌃" : "⌄"}</span>
+              </button>
 
-              <div className="nutritionGrid">
-                <div>
-                  <strong>{displayNumber(nutritionValue(recipe, "calories"))}</strong>
-                  <span>Calories</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(nutritionValue(recipe, "protein"), "g")}</strong>
-                  <span>Protein</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(nutritionValue(recipe, "carbs"), "g")}</strong>
-                  <span>Carbs</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(nutritionValue(recipe, "fat"), "g")}</strong>
-                  <span>Fat</span>
-                </div>
-              </div>
+              {expanded && (
+                <div className="optionCRecipeDetails">
+                  <div className="optionCDetailActions">
+                    <button type="button" className="ghostButton" onClick={() => toggleRecipe(recipe.recipe_name)}>Hide Details</button>
+                    <button onClick={() => saveAction(recipe, "made")}>Made Meal</button>
+                    <button className="secondary" onClick={() => saveAction(recipe, "saved")}>Save for Later</button>
+                  </div>
 
-              <div className="mlEvidenceLine">
-                <strong>Nutrition Fit:</strong>{" "}
-                {displayNumber(recipe.ml_nutrition_fit_percent, "%")} based on calories, protein, carbs, fat, and ingredient count.
-              </div>
-            </div>
+                  <div className="nutritionFactsBox">
+                    <div className="nutritionFactsHeader"><h3>Nutrition Facts</h3><span>Nutrition Fit: {displayNumber(recipe.ml_nutrition_fit, "/15")}</span></div>
+                    <div className="nutritionGrid">
+                      <div><strong>{displayNumber(nutritionValue(recipe, "calories"))}</strong><span>Calories</span></div>
+                      <div><strong>{displayNumber(nutritionValue(recipe, "protein"), "g")}</strong><span>Protein</span></div>
+                      <div><strong>{displayNumber(nutritionValue(recipe, "carbs"), "g")}</strong><span>Carbs</span></div>
+                      <div><strong>{displayNumber(nutritionValue(recipe, "fat"), "g")}</strong><span>Fat</span></div>
+                    </div>
+                    <div className="mlEvidenceLine"><strong>Nutrition Fit:</strong> {displayNumber(recipe.ml_nutrition_fit_percent, "%")} based on calories, protein, carbs, fat, and ingredient count.</div>
+                  </div>
 
-            {recipe.expiring_details && recipe.expiring_details.length > 0 && (
-              <div className="expiringBox">
-                <strong>Use First:</strong>
-                <div className="expiringDetailGrid">
-                  {recipe.expiring_details.map((item) => (
-                    <span key={`${recipe.recipe_name}-${item.item_name}`}>
-                      {item.item_name} — {item.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+                  {recipe.expiring_details && recipe.expiring_details.length > 0 && (
+                    <div className="expiringBox"><strong>Use First:</strong><div className="expiringDetailGrid">{recipe.expiring_details.map((item) => <span key={`${recipe.recipe_name}-${item.item_name}`}>{item.item_name} — {item.label}</span>)}</div></div>
+                  )}
 
-            <div className="recommendationEvidenceBox">
-              <h3>Recommendation Evidence</h3>
+                  <div className="recommendationEvidenceBox">
+                    <h3>Recommendation Evidence</h3>
+                    <div className="evidenceGrid">
+                      <div><strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong><span>Exact pantry match</span></div>
+                      <div><strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong><span>Coverage with swaps</span></div>
+                      <div><strong>{displayNumber(recipe.everyday_recipe_fit, "/100")}</strong><span>Everyday recipe fit</span></div>
+                      <div><strong>{displayNumber(recipe.score, "/100")}</strong><span>Smart score</span></div>
+                    </div>
+                    {recipe.score_breakdown && <div className="scoreBreakdownBox"><h4>Smart Score Breakdown</h4><div className="scoreBreakdownGrid">{scoreBreakdownRows(recipe).map(([label, value]) => <span key={`${recipe.recipe_name}-${label}`}><strong>{label}</strong>{displayNumber(value)}</span>)}</div></div>}
+                  </div>
 
-              <div className="evidenceGrid">
-                <div>
-                  <strong>{displayNumber(recipe.exact_pantry_match_percent, "%")}</strong>
-                  <span>Exact pantry match</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(recipe.coverage_with_smart_swaps_percent, "%")}</strong>
-                  <span>Coverage with swaps</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(recipe.everyday_recipe_fit, "/100")}</strong>
-                  <span>Everyday recipe fit</span>
-                </div>
-                <div>
-                  <strong>{displayNumber(recipe.score, "/100")}</strong>
-                  <span>Smart score</span>
-                </div>
-              </div>
+                  <div className="ingredientColumns">
+                    <div><h3>Matched Pantry Items</h3><div className="pillList goodPills">{(recipe.matched_ingredients || []).length === 0 ? <span>None</span> : recipe.matched_ingredients.map((item) => <span key={item}>{item}</span>)}</div></div>
+                    <div><h3>Missing Ingredients</h3><div className="pillList missingPills">{(recipe.missing_ingredients || []).length === 0 ? <span>None</span> : recipe.missing_ingredients.map((item) => <span key={item}>{item}</span>)}</div></div>
+                  </div>
 
-              {recipe.score_breakdown && (
-                <div className="scoreBreakdownBox">
-                  <h4>Smart Score Breakdown</h4>
-                  <div className="scoreBreakdownGrid">
-                    {scoreBreakdownRows(recipe).map(([label, value]) => (
-                      <span key={`${recipe.recipe_name}-${label}`}>
-                        <strong>{label}</strong>
-                        {displayNumber(value)}
-                      </span>
-                    ))}
+                  {((recipe.smart_swaps && recipe.smart_swaps.length > 0) || (recipe.missing_ingredients || []).length > 0) && (
+                    <div className="smartSwapOptionsBox">
+                      <h3>Suggested Smart Swaps</h3>
+                      <p>Choose a suggested replacement or add your own pantry swap.</p>
+                      {recipe.smart_swaps && recipe.smart_swaps.length > 0 ? <div className="smartSwapList">{recipe.smart_swaps.map((swap, swapIndex) => <div className="smartSwapCard" key={`${swap.needed}-${swap.use_instead}-${swapIndex}`}><strong>Use {swap.use_instead} for {swap.needed}</strong><span>{swap.reason}</span><button type="button" className="smartSwapSelectButton" onClick={() => selectSmartSwap(recipe, swap)}>Use This Suggested Swap</button></div>)}</div> : <div className="smartSwapEmptyNote">No close suggested swap was found. You can still add your own below.</div>}
+                      <div className="customSmartSwapBox">
+                        <h4>Add Your Own Swap</h4>
+                        <div className="customSwapGrid">
+                          <select value={(customSwapForms[recipe.recipe_name] || {}).needed || ""} onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "needed", e.target.value)}><option value="">Missing ingredient to replace</option>{(recipe.missing_ingredients || []).map((ingredient) => <option key={ingredient} value={ingredient}>{ingredient}</option>)}</select>
+                          <select value={(customSwapForms[recipe.recipe_name] || {}).pantryItemId || ""} onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "pantryItemId", e.target.value)}><option value="">Pantry item to use instead</option>{pantryItems.map((item) => <option key={item.id} value={item.id}>{item.item_name} ({item.quantity} {item.unit || "item"} left)</option>)}</select>
+                          <input value={(customSwapForms[recipe.recipe_name] || {}).note || ""} onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "note", e.target.value)} placeholder="Optional reason" />
+                          <button type="button" className="smartSwapSelectButton customSwapButton" onClick={() => addCustomSmartSwap(recipe)}>Add My Swap</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <details className="recipeDetails"><summary>View instructions</summary><p>{recipe.instructions || "No instructions available for this recipe yet."}</p></details>
+
+                  {(usageByRecipe[recipe.recipe_name] || []).length > 0 && (
+                    <div className="ingredientUsageMiniBox">
+                      {getSelectedSwapsForRecipe(recipe).length > 0 && <div className="selectedSwapsBox"><h3>Selected Swaps</h3>{getSelectedSwapsForRecipe(recipe).map((swap, swapIndex) => <div key={`${recipe.recipe_name}-selected-swap-${swapIndex}`} className="selectedSwapItem"><strong>{swap.custom ? "Custom swap" : "Suggested swap"}: {swap.use_instead || swap.substitute} used instead of {swap.needed || swap.missing}</strong></div>)}</div>}
+                      <h3>Amount Used</h3><p>Enter amounts before selecting Made Meal or Used Elsewhere to update pantry quantities.</p>
+                      <div className="usageRows compactUsageRows">{(usageByRecipe[recipe.recipe_name] || []).map((row) => <div className="usageRow compactUsageRow" key={row.item_id}><span className="usageIngredientName">{row.item_name}</span><input type="number" min="0" step="0.01" value={row.amount_used} onChange={(e) => changeUsage(recipe.recipe_name, row.item_id, e.target.value)} placeholder="Used" /><span>{row.unit} / {row.current_quantity} {row.unit} left</span></div>)}</div>
+                    </div>
+                  )}
+
+                  <label className="feedbackLabel">Meal feedback or notes<textarea maxLength="250" placeholder="Share what happened with this recommendation." value={feedback[recipe.recipe_name] || ""} onChange={(e) => changeFeedback(recipe.recipe_name, e.target.value)} /></label>
+                  <div className="buttonRow recommendationActions">
+                    <button onClick={() => saveAction(recipe, "made")}>Made Meal</button>
+                    <button className="secondary" onClick={() => saveAction(recipe, "used_elsewhere")}>Used Elsewhere</button>
+                    <button className="secondary" onClick={() => saveAction(recipe, "saved")}>Save for Later</button>
+                    <button className="ghostButton" onClick={() => saveAction(recipe, "not_used")}>Did Not Use</button>
                   </div>
                 </div>
               )}
-            </div>
-
-            <div className="ingredientColumns">
-              <div>
-                <h3>Matched Pantry Items</h3>
-                <div className="pillList goodPills">
-                  {(recipe.matched_ingredients || []).length === 0 ? (
-                    <span>None</span>
-                  ) : (
-                    recipe.matched_ingredients.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h3>Missing Ingredients</h3>
-                <div className="pillList missingPills">
-                  {(recipe.missing_ingredients || []).length === 0 ? (
-                    <span>None</span>
-                  ) : (
-                    recipe.missing_ingredients.map((item) => (
-                      <span key={item}>{item}</span>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {((recipe.smart_swaps && recipe.smart_swaps.length > 0) || (recipe.missing_ingredients || []).length > 0) && (
-              <div className="smartSwapOptionsBox">
-                <h3>Suggested Smart Swaps</h3>
-                <p>
-                  These are suggested replacement ideas only. Choose one if it makes sense for the recipe, or add your own swap using an item from your pantry.
-                </p>
-
-                {recipe.smart_swaps && recipe.smart_swaps.length > 0 ? (
-                  <div className="smartSwapList">
-                    {recipe.smart_swaps.map((swap, swapIndex) => (
-                      <div className="smartSwapCard" key={`${swap.needed}-${swap.use_instead}-${swapIndex}`}>
-                        <strong>
-                          Suggested swap: use {swap.use_instead} for {swap.needed}
-                        </strong>
-                        <span>{swap.reason}</span>
-                        <button
-                          type="button"
-                          className="smartSwapSelectButton"
-                          onClick={() => selectSmartSwap(recipe, swap)}
-                        >
-                          Use This Suggested Swap
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="smartSwapEmptyNote">
-                    No close suggested swap was found for this recipe. You can still add your own swap below if you know what you want to use.
-                  </div>
-                )}
-
-                <div className="customSmartSwapBox">
-                  <h4>Add Your Own Swap</h4>
-                  <p>
-                    Use this when you want to replace a missing ingredient with something else from your pantry. This helps Smart Pantry save better study data than only writing it in the feedback box.
-                  </p>
-
-                  <div className="customSwapGrid">
-                    <select
-                      value={(customSwapForms[recipe.recipe_name] || {}).needed || ""}
-                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "needed", e.target.value)}
-                    >
-                      <option value="">Missing ingredient to replace</option>
-                      {(recipe.missing_ingredients || []).map((ingredient) => (
-                        <option key={ingredient} value={ingredient}>{ingredient}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      value={(customSwapForms[recipe.recipe_name] || {}).pantryItemId || ""}
-                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "pantryItemId", e.target.value)}
-                    >
-                      <option value="">Pantry item to use instead</option>
-                      {pantryItems.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.item_name} ({item.quantity} {item.unit || "item"} left)
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      value={(customSwapForms[recipe.recipe_name] || {}).note || ""}
-                      onChange={(e) => updateCustomSwapForm(recipe.recipe_name, "note", e.target.value)}
-                      placeholder="Optional reason, example: I use chicken instead of turkey"
-                    />
-
-                    <button
-                      type="button"
-                      className="smartSwapSelectButton customSwapButton"
-                      onClick={() => addCustomSmartSwap(recipe)}
-                    >
-                      Add My Swap
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <details className="recipeDetails">
-              <summary>View instructions</summary>
-              <p>{recipe.instructions || "No instructions available for this recipe yet."}</p>
-            </details>
-
-            {(usageByRecipe[recipe.recipe_name] || []).length > 0 && (
-              <div className="ingredientUsageMiniBox">
-                {getSelectedSwapsForRecipe(recipe).length > 0 && (
-                  <div className="selectedSwapsBox">
-                    <h3>Selected Swaps</h3>
-                    {getSelectedSwapsForRecipe(recipe).map((swap, swapIndex) => (
-                      <div key={`${recipe.recipe_name}-selected-swap-${swapIndex}`} className="selectedSwapItem">
-                        <strong>
-                          {swap.custom ? "Custom swap" : "Suggested swap"}: {swap.use_instead || swap.substitute} used instead of {swap.needed || swap.missing}
-                        </strong>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <h3>Amount Used</h3>
-                <p>
-                  Optional: enter the amount used before clicking Made Meal or Used Elsewhere. This updates the pantry amount left.
-                </p>
-
-                <div className="usageRows compactUsageRows">
-                  {(usageByRecipe[recipe.recipe_name] || []).map((row) => (
-                    <div className="usageRow compactUsageRow" key={row.item_id}>
-                      <span className="usageIngredientName">{row.item_name}</span>
-
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={row.amount_used}
-                        onChange={(e) => changeUsage(recipe.recipe_name, row.item_id, e.target.value)}
-                        placeholder="Used"
-                      />
-
-                      <span>
-                        {row.unit} / {row.current_quantity} {row.unit} left
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <label className="feedbackLabel">
-              Meal feedback or notes
-              <textarea
-                maxLength="250"
-                placeholder="Example: I made this meal, saved it for later, used the ingredients somewhere else, or this recommendation was not realistic."
-                value={feedback[recipe.recipe_name] || ""}
-                onChange={(e) => changeFeedback(recipe.recipe_name, e.target.value)}
-              />
-            </label>
-
-            <div className="buttonRow recommendationActions">
-              <button onClick={() => saveAction(recipe, "made")}>
-                Made Meal
-              </button>
-              <button className="secondary" onClick={() => saveAction(recipe, "used_elsewhere")}>
-                Used Elsewhere
-              </button>
-              <button className="secondary" onClick={() => saveAction(recipe, "saved")}>
-                Save for Later
-              </button>
-              <button className="ghostButton" onClick={() => saveAction(recipe, "not_used")}>
-                Did Not Use
-              </button>
-            </div>
+            </section>
+          );
+        })}
+        {recommendations.length > 0 && filteredRecommendations.length === 0 && (
+          <section className="optionCNoFilterResults">
+            <strong>No meals match this filter.</strong>
+            <span>Try Best Matches or choose another filter.</span>
           </section>
-        ))}
+        )}
       </div>
+
+      <button className="optionCHelpBar" type="button" onClick={() => setMessage("Smart Pantry ranks meals using pantry coverage, expiration priority, profile fit, simplicity, and Nutrition Fit.")}>💡 New here? See how recommendations work <span>›</span></button>
     </div>
   );
 }

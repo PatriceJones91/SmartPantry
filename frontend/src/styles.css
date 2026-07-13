@@ -7213,3 +7213,2036 @@ body,
   .m8ProfileSummary { grid-template-columns: 1fr; }
   .pantryEntryChoice { min-height: 145px; }
 }
+
+
+/* =========================================================
+   MILESTONE 8 — COMPACT MY PANTRY EXPERIENCE
+   ========================================================= */
+.compactPantryPage {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+}
+
+.compactPantryHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.75fr) minmax(330px, 0.85fr);
+  align-items: center;
+  gap: 20px;
+  padding: 24px 26px;
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 52% 15%, rgba(255,255,255,.9), transparent 28%),
+    linear-gradient(120deg, #ffffff 0%, #eefcf5 42%, #eaf3ff 100%);
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .14);
+  overflow: hidden;
+}
+
+.compactPantryHeroCopy h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  line-height: 1;
+  color: #1d4ed8;
+  font-weight: 950;
+}
+
+.compactPantryHeroCopy p:last-child {
+  margin: 0;
+  max-width: 620px;
+  color: #334155;
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+.compactPantryIllustration {
+  min-height: 120px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 0;
+  padding: 16px 20px 8px;
+  border-radius: 28px 28px 18px 18px;
+  background: linear-gradient(180deg, rgba(187,247,208,.3), rgba(34,197,94,.14));
+  position: relative;
+}
+
+.compactPantryIllustration::after {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 5px;
+  height: 42px;
+  border-radius: 8px 8px 18px 18px;
+  background: linear-gradient(135deg, #16a34a, #0f766e);
+  box-shadow: inset 0 8px 0 rgba(255,255,255,.15);
+}
+
+.compactPantryIllustration span {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(2rem, 3vw, 3.15rem);
+  margin: 0 -4px 23px;
+  filter: drop-shadow(0 8px 8px rgba(15,23,42,.12));
+}
+
+.compactPantryStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 10px;
+}
+
+.compactPantryStats article {
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 12px 8px;
+  border-radius: 20px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 24px rgba(15,23,42,.08);
+  text-align: center;
+}
+
+.compactPantryStats strong {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.compactPantryStats small {
+  color: #475569;
+  font-weight: 850;
+  line-height: 1.15;
+}
+
+.statIcon {
+  font-size: 1rem;
+  font-weight: 950;
+}
+.statIcon.green { color: #16a34a; }
+.statIcon.orange { color: #f97316; }
+.statIcon.blue { color: #2563eb; }
+
+.compactQuickAddCard,
+.compactPantryListCard {
+  padding: 20px !important;
+  border-radius: 28px !important;
+  background: rgba(255,255,255,.97) !important;
+}
+
+.compactQuickAddHeader,
+.compactPantryListHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.compactQuickAddHeader h2,
+.compactPantryListHeader h2 {
+  margin: 2px 0 0;
+  font-size: 1.45rem;
+}
+
+.compactQuickAddHeader > p {
+  max-width: 480px;
+  margin: 0;
+  color: #64748b;
+  font-weight: 700;
+  text-align: right;
+}
+
+.compactEntryTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 620px;
+  border: 1px solid #cbd5e1;
+  border-radius: 15px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  background: #f8fafc;
+}
+
+.compactEntryTabs button {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  padding: 12px 16px;
+  font-weight: 900;
+  color: #475569;
+}
+
+.compactEntryTabs button.active {
+  color: #047857;
+  background: #ecfdf5;
+  border-bottom-color: #16a34a;
+}
+
+.compactActionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  max-width: 760px;
+}
+
+.compactActionButton {
+  min-height: 92px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 12px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 17px;
+  background: #f8fbff;
+  color: #0f172a;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.compactActionButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(15,23,42,.1);
+}
+
+.compactActionButton.scan {
+  background: linear-gradient(180deg, #f0fdf4, #ffffff);
+  border-color: #86efac;
+}
+.compactActionButton.upload {
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+  border-color: #bfdbfe;
+}
+.compactActionButton.manual {
+  background: linear-gradient(180deg, #fff7ed, #ffffff);
+  border-color: #fed7aa;
+}
+.compactActionButton.file {
+  background: linear-gradient(180deg, #faf5ff, #ffffff);
+  border-color: #e9d5ff;
+}
+
+.compactActionButton > span {
+  font-size: 1.45rem;
+}
+.compactActionButton strong {
+  font-size: .93rem;
+}
+.compactActionButton small {
+  color: #64748b;
+  font-size: .76rem;
+  line-height: 1.25;
+}
+.compactActionButton input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.compactProductWorkspace,
+.compactReceiptDetails {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f8fafc, #eff6ff);
+  border: 1px solid #dbeafe;
+}
+
+.compactLookupRow {
+  display: grid;
+  grid-template-columns: minmax(180px, .6fr) minmax(360px, 1.4fr);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.compactLookupRow > div {
+  display: grid;
+  gap: 3px;
+}
+.compactLookupRow > div span {
+  color: #64748b;
+  font-size: .82rem;
+}
+.compactLookupRow form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.compactLookupRow input,
+.compactLookupRow button {
+  min-height: 42px;
+  border-radius: 12px;
+}
+.compactLookupRow input {
+  border: 1px solid #cbd5e1;
+  padding: 10px 12px;
+}
+.compactLookupRow button {
+  border: 0;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+}
+
+.compactItemForm {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.compactField {
+  display: grid;
+  gap: 5px;
+}
+.compactField.wide {
+  grid-column: span 2;
+}
+.compactField > span {
+  font-size: .76rem;
+  font-weight: 900;
+  color: #334155;
+}
+.compactField input,
+.compactField select {
+  min-width: 0;
+  width: 100%;
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  padding: 8px 10px;
+  background: white;
+}
+
+.compactFormActions {
+  display: flex;
+  justify-content: end;
+  gap: 9px;
+  margin-top: 3px;
+}
+.compactCancelButton,
+.compactSaveButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-weight: 900;
+}
+.compactCancelButton {
+  background: white;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.compactSaveButton {
+  background: linear-gradient(90deg, #16a34a, #2563eb);
+  color: white;
+}
+.compactSaveButton.fullWidth {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.compactQuickTip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 760px;
+  margin-top: 13px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #ecfdf5, #eff6ff);
+  color: #334155;
+  font-size: .82rem;
+}
+.compactNotice {
+  margin: 12px 0 0;
+}
+
+.compactReceiptToolbar,
+.compactDetectedHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.compactReceiptToolbar > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+.compactReceiptToolbar span {
+  color: #64748b;
+  font-size: .82rem;
+}
+.compactReceiptToolbar > div:last-child {
+  display: flex;
+  gap: 8px;
+}
+.compactReceiptToolbar button,
+.compactReceiptTextActions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+}
+.compactReceiptToolbar button:first-child {
+  background: white;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.compactReceiptPreview {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
+  align-items: center;
+  margin: 13px 0;
+}
+.compactReceiptPreview img {
+  width: 110px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+}
+.compactReceiptPreview > div {
+  display: grid;
+  gap: 6px;
+}
+.compactReceiptPreview span {
+  color: #64748b;
+  font-size: .82rem;
+}
+
+.compactReceiptText {
+  width: 100%;
+  min-height: 82px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 13px;
+  padding: 11px;
+}
+.compactReceiptTextActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.compactReceiptTextActions button:last-child {
+  background: #0f766e;
+}
+
+.compactDetectedItems {
+  margin-top: 14px;
+}
+.compactDetectedHeader span {
+  color: #2563eb;
+  font-weight: 900;
+}
+.compactDetectedList {
+  display: grid;
+  gap: 7px;
+  margin-top: 9px;
+}
+.compactDetectedList article {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 1.5fr) 90px 120px 145px;
+  gap: 7px;
+  align-items: center;
+}
+.compactDetectedList input,
+.compactDetectedList select {
+  min-width: 0;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 7px 8px;
+  background: white;
+}
+.compactDetectedList input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.compactPantryListHeader > span {
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 900;
+}
+
+.compactPantryFilters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 220px auto;
+  gap: 9px;
+  margin-bottom: 13px;
+}
+.pantrySearchField {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 11px;
+  background: white;
+}
+.pantrySearchField input {
+  height: 42px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+}
+.compactPantryFilters > select,
+.compactPantryFilters > button {
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  padding: 0 11px;
+  font-weight: 800;
+}
+.compactPantryFilters > button.active {
+  color: #c2410c;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.compactDesktopTableWrap {
+  overflow-x: auto;
+}
+.compactPantryTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+.compactPantryTable th {
+  padding: 9px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: .76rem;
+  text-align: left;
+}
+.compactPantryTable td {
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+.compactPantryTable td:first-child {
+  min-width: 180px;
+}
+.compactPantryTable td:first-child input {
+  font-weight: 900;
+}
+.compactPantryTable td:first-child small {
+  display: block;
+  color: #64748b;
+  margin-top: 3px;
+}
+.compactPantryTable input,
+.compactPantryTable select {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #dbe3ef;
+  border-radius: 9px;
+  padding: 6px 8px;
+  background: white;
+}
+.quantityCell {
+  display: grid;
+  grid-template-columns: 80px 110px;
+  gap: 6px;
+}
+.pantryStatus {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 72px;
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: .72rem;
+  font-weight: 900;
+}
+.pantryStatus.urgent { background: #fee2e2; color: #b91c1c; }
+.pantryStatus.soon { background: #ffedd5; color: #c2410c; }
+.pantryStatus.fresh { background: #dcfce7; color: #166534; }
+.pantryStatus.neutral { background: #f1f5f9; color: #64748b; }
+
+.compactRowActions {
+  display: flex;
+  gap: 5px;
+}
+.compactRowActions button,
+.mobilePantryActions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 9px;
+  background: #16a34a;
+  color: white;
+  font-weight: 850;
+  font-size: .72rem;
+}
+.compactRowActions button:nth-child(2),
+.mobilePantryActions button:nth-child(2) {
+  background: #2563eb;
+}
+.compactRowActions button.delete,
+.mobilePantryActions button.delete {
+  background: #dc2626;
+}
+
+.compactMobilePantryList {
+  display: none;
+}
+.compactEmptyState {
+  display: grid;
+  gap: 4px;
+  place-items: center;
+  min-height: 110px;
+  color: #64748b;
+  text-align: center;
+}
+
+.addAnotherItemButton {
+  display: block;
+  margin: 16px auto 0;
+  border: 1px solid #16a34a;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: white;
+  color: #15803d;
+  font-weight: 900;
+}
+
+.compactPantryFooterCallout {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: linear-gradient(100deg, rgba(255,255,255,.94), rgba(219,234,254,.94));
+  box-shadow: 0 14px 34px rgba(15,23,42,.1);
+}
+.compactPantryFooterCallout > div:first-child {
+  font-size: 2.5rem;
+}
+.compactPantryFooterCallout > div:not(:first-child) {
+  display: grid;
+  gap: 4px;
+}
+.compactPantryFooterCallout span {
+  color: #475569;
+  font-size: .84rem;
+}
+.compactPantryFooterCallout a {
+  border-radius: 999px;
+  padding: 11px 18px;
+  background: #2563eb;
+  color: white;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+/* Tablet */
+@media (max-width: 1150px) {
+  .compactPantryHero {
+    grid-template-columns: 1fr minmax(300px, .8fr);
+  }
+  .compactPantryIllustration {
+    display: none;
+  }
+  .compactItemForm {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+@media (max-width: 700px) {
+  .compactPantryPage {
+    gap: 12px;
+  }
+  .compactPantryHero {
+    grid-template-columns: 1fr;
+    padding: 18px 14px;
+    border-radius: 22px;
+  }
+  .compactPantryHeroCopy h1 {
+    font-size: 2rem;
+  }
+  .compactPantryHeroCopy p:last-child {
+    font-size: .88rem;
+  }
+  .compactPantryStats {
+    gap: 7px;
+  }
+  .compactPantryStats article {
+    min-height: 82px;
+    border-radius: 15px;
+    padding: 8px 4px;
+  }
+  .compactPantryStats strong {
+    font-size: 1.35rem;
+  }
+  .compactPantryStats small {
+    font-size: .68rem;
+  }
+  .compactQuickAddCard,
+  .compactPantryListCard {
+    padding: 14px !important;
+    border-radius: 21px !important;
+  }
+  .compactQuickAddHeader {
+    display: block;
+  }
+  .compactQuickAddHeader > p {
+    text-align: left;
+    font-size: .8rem;
+    margin-top: 4px;
+  }
+  .compactEntryTabs {
+    max-width: none;
+  }
+  .compactEntryTabs button {
+    padding: 10px 6px;
+    font-size: .78rem;
+  }
+  .compactActionGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    max-width: none;
+  }
+  .compactActionButton {
+    min-height: 54px;
+    grid-template-columns: 34px 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 8px;
+    justify-items: start;
+    text-align: left;
+    padding: 8px 11px;
+  }
+  .compactActionButton > span {
+    grid-row: 1 / 3;
+    font-size: 1.2rem;
+  }
+  .compactActionButton small {
+    font-size: .7rem;
+  }
+  .compactProductWorkspace,
+  .compactReceiptDetails {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .compactLookupRow {
+    grid-template-columns: 1fr;
+  }
+  .compactLookupRow form {
+    grid-template-columns: 1fr;
+  }
+  .compactItemForm {
+    grid-template-columns: 1fr;
+  }
+  .compactField.wide,
+  .compactFormActions.wide {
+    grid-column: auto;
+  }
+  .compactFormActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .compactReceiptToolbar {
+    align-items: start;
+  }
+  .compactReceiptToolbar,
+  .compactDetectedHeader {
+    flex-direction: column;
+  }
+  .compactReceiptToolbar > div:last-child {
+    width: 100%;
+  }
+  .compactReceiptToolbar button {
+    flex: 1;
+  }
+  .compactReceiptPreview {
+    grid-template-columns: 80px 1fr;
+  }
+  .compactReceiptPreview img {
+    width: 80px;
+    height: 100px;
+  }
+  .compactReceiptTextActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .compactDetectedList article {
+    grid-template-columns: auto 1fr 76px;
+  }
+  .compactDetectedList article select,
+  .compactDetectedList article input[type="date"] {
+    grid-column: 2 / -1;
+  }
+  .compactPantryFilters {
+    grid-template-columns: 1fr;
+  }
+  .compactDesktopTableWrap {
+    display: none;
+  }
+  .compactMobilePantryList {
+    display: grid;
+    gap: 8px;
+  }
+  .compactMobilePantryList article {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: white;
+  }
+  .mobilePantryItemMain {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+  }
+  .mobilePantryItemMain > div {
+    display: grid;
+    gap: 2px;
+  }
+  .mobilePantryItemMain small {
+    color: #64748b;
+    font-size: .72rem;
+  }
+  .mobileFoodIcon {
+    font-size: 1.25rem;
+  }
+  .mobilePantryActions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 6px;
+  }
+  .mobilePantryActions button {
+    flex: 1;
+  }
+  .compactPantryFooterCallout {
+    grid-template-columns: auto 1fr;
+    padding: 14px;
+  }
+  .compactPantryFooterCallout > div:nth-child(3) {
+    display: none;
+  }
+  .compactPantryFooterCallout a {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+}
+
+
+/* Milestone 8 — pantry quick-tip emphasis */
+.compactQuickTip strong {
+  font-weight: 950 !important;
+  color: #0f172a !important;
+}
+
+/* Milestone 8 — Keep the Quick Add card compact on larger screens */
+.compactQuickAddCard {
+  width: min(100%, 980px) !important;
+  justify-self: start !important;
+  padding: 18px !important;
+}
+
+.compactQuickAddCard .compactQuickAddHeader,
+.compactQuickAddCard .compactEntryTabs,
+.compactQuickAddCard .compactActionGrid,
+.compactQuickAddCard .compactQuickTip,
+.compactQuickAddCard .compactProductWorkspace,
+.compactQuickAddCard .compactReceiptWorkspace,
+.compactQuickAddCard .compactReceiptDetails {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+@media (max-width: 1100px) {
+  .compactQuickAddCard {
+    width: 100% !important;
+  }
+}
+
+
+/* MILESTONE 8 — DASHBOARD APPROVED MOCKUP */
+.m8DashboardHero{grid-template-columns:minmax(0,1fr) minmax(260px,.75fr)!important;align-items:center!important;min-height:210px;background:radial-gradient(circle at 80% 20%,rgba(191,219,254,.72),transparent 28%),radial-gradient(circle at 68% 70%,rgba(187,247,208,.72),transparent 30%),linear-gradient(135deg,#fff 0%,#eefcf6 45%,#eaf3ff 100%)!important;overflow:hidden;position:relative}
+.m8DashboardHero::after{content:"🥬  🥛  🍅  🥕  🍞";display:flex;align-items:end;justify-content:center;min-height:120px;padding:20px 22px 14px;border-radius:30px 30px 18px 18px;background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(34,197,94,.18));font-size:clamp(2rem,4vw,3.4rem);letter-spacing:-8px;filter:drop-shadow(0 12px 18px rgba(15,23,42,.12))}
+.m8DashboardHeroCopy>p:last-child{max-width:650px;font-size:1rem;line-height:1.55}
+.m8DashboardHeroActions,.m8NextActionCard{display:none!important}
+.m8DashboardHowTo{padding:18px 20px!important;border-radius:24px!important;background:rgba(255,255,255,.96)!important;border:1px solid #dbeafe!important;box-shadow:0 16px 38px rgba(15,23,42,.08)!important}
+.m8DashboardHowTo header{margin-bottom:12px}.m8DashboardHowTo header h2{display:none}.m8DashboardHowTo header .m8DashboardSectionLabel{color:#2563eb!important;font-size:.82rem!important;letter-spacing:.04em!important;font-weight:950!important}
+.m8DashboardHowTo>div{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important}
+.m8DashboardHowTo article{position:relative;padding:10px 20px 10px 58px!important;min-height:92px;border-radius:0!important;background:transparent!important;border:0!important}
+.m8DashboardHowTo article:not(:last-child){border-right:1px solid #dbeafe!important}
+.m8DashboardHowTo article>span{position:absolute;left:14px;top:20px;width:30px!important;height:30px!important;border-radius:999px!important;display:grid!important;place-items:center!important;background:#2563eb!important;color:#fff!important;font-size:.82rem!important;font-weight:950!important}
+.m8DashboardHowTo article::before{position:absolute;left:17px;top:56px;font-size:1.45rem}.m8DashboardHowTo article:nth-child(1)::before{content:"📋"}.m8DashboardHowTo article:nth-child(2)::before{content:"🔎"}.m8DashboardHowTo article:nth-child(3)::before{content:"🍲"}
+.m8DashboardHowTo article h3{margin:0 0 6px!important;font-size:.95rem!important;color:#0f172a!important}.m8DashboardHowTo article p{margin:0!important;color:#475569!important;font-size:.82rem!important;line-height:1.4!important}
+.m8DashboardStats{margin-top:0!important}.m8DashboardStatCard{min-height:116px;border-radius:22px!important;box-shadow:0 12px 28px rgba(15,23,42,.08)!important}
+.m8DashboardStatCard:nth-child(1){background:linear-gradient(180deg,#f0fdf4,#fff)!important;border-color:#bbf7d0!important}.m8DashboardStatCard:nth-child(2){background:linear-gradient(180deg,#eff6ff,#fff)!important;border-color:#bfdbfe!important}.m8DashboardStatCard:nth-child(3){background:linear-gradient(180deg,#fff7ed,#fff)!important;border-color:#fed7aa!important}.m8DashboardStatCard:nth-child(4){background:linear-gradient(180deg,#faf5ff,#fff)!important;border-color:#e9d5ff!important}
+.m8PantryBalanceNote{display:flex;align-items:center;gap:10px;margin-top:14px;padding:12px 14px;border-radius:14px;background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;font-weight:800}.m8PantryBalanceNote p{margin:0;font-size:.84rem;line-height:1.4}.m8PantryBalanceNote span{color:#16a34a;font-weight:950}
+.m8GroceryItem{grid-template-columns:12px 1fr auto!important;min-height:58px;padding:10px 12px!important;border-radius:13px!important;background:#eaf8ee!important;border:1px solid #b7e4c7!important;box-shadow:none!important}.m8GroceryItem:hover{transform:none!important;box-shadow:0 8px 18px rgba(22,101,52,.08)!important}.m8GroceryItem .m8GroceryPriorityDot{background:#2563eb!important}.m8GroceryItem strong{color:#111827!important;font-weight:950!important}.m8GroceryItem small{color:#111827!important;font-weight:500!important;background:transparent!important;padding:0!important}.m8GroceryItem>b{color:#334155!important;background:transparent!important;font-weight:800!important}
+@media(max-width:950px){.m8DashboardHero{grid-template-columns:1fr!important}.m8DashboardHero::after{min-height:92px;font-size:2rem;letter-spacing:-4px}.m8DashboardHowTo>div{grid-template-columns:1fr!important}.m8DashboardHowTo article{border-right:0!important;border-bottom:1px solid #dbeafe!important}.m8DashboardHowTo article:last-child{border-bottom:0!important}}
+
+
+/* =========================================================
+   MILESTONE 8 — MY PANTRY SIDE PANEL + CATEGORY ICONS
+   ========================================================= */
+
+.compactPantryUtilityRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: stretch;
+}
+
+.compactPantryUtilityRow .compactQuickAddCard {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.compactPantrySidePanel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.55), transparent 36%),
+    linear-gradient(145deg, rgba(255,255,255,.98), rgba(236,253,245,.96));
+  border: 1px solid rgba(167, 243, 208, .9);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, .10);
+}
+
+.sidePanelIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: #fef3c7;
+  font-size: 1.5rem;
+}
+
+.compactPantrySidePanel h3 {
+  margin: 2px 0 6px;
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.compactPantrySidePanel p:not(.eyebrow) {
+  margin: 0;
+  color: #475569;
+  font-size: .84rem;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.sidePanelDivider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #bfdbfe, transparent);
+  margin: 2px 0;
+}
+
+.sidePanelFindMeals {
+  display: block;
+  margin-top: 4px;
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: linear-gradient(90deg, #16a34a, #2563eb);
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 950;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, .18);
+}
+
+.desktopPantryItemName {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.desktopFoodIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+  border: 1px solid #dbeafe;
+  font-size: 1.08rem;
+}
+
+.desktopPantryItemName > div {
+  min-width: 0;
+}
+
+/* The old bottom callout is no longer used */
+.compactPantryFooterCallout {
+  display: none !important;
+}
+
+@media (max-width: 1100px) {
+  .compactPantryUtilityRow {
+    grid-template-columns: 1fr;
+  }
+
+  .compactPantrySidePanel {
+    grid-template-columns: auto 1fr 1px 1fr auto;
+    align-items: center;
+  }
+
+  .sidePanelDivider {
+    width: 1px;
+    height: 100%;
+    min-height: 62px;
+    background: linear-gradient(180deg, transparent, #bfdbfe, transparent);
+  }
+
+  .sidePanelFindMeals {
+    white-space: nowrap;
+    margin: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .compactPantryUtilityRow {
+    gap: 12px;
+  }
+
+  .compactPantrySidePanel {
+    grid-template-columns: auto 1fr;
+    padding: 15px;
+    border-radius: 20px;
+  }
+
+  .compactPantrySidePanel > div:nth-of-type(3),
+  .compactPantrySidePanel .sidePanelDivider {
+    display: none;
+  }
+
+  .sidePanelFindMeals {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   MILESTONE 8 — OPTION C COMPACT & EXPANDABLE RECOMMENDATIONS
+   ========================================================= */
+.optionCRecommendations {
+  display: grid;
+  gap: 14px;
+}
+
+.optionCHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 75% 35%, rgba(187, 247, 208, .55), transparent 26%),
+    radial-gradient(circle at 88% 24%, rgba(191, 219, 254, .60), transparent 22%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,246,255,.96));
+  box-shadow: 0 18px 44px rgba(15,23,42,.10);
+}
+
+.optionCBreadcrumb {
+  color: #047857;
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.optionCHeader h1 {
+  margin: 8px 0 8px;
+  color: #0f172a;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1;
+  font-weight: 950;
+}
+
+.optionCHeader p {
+  margin: 0;
+  color: #475569;
+  font-weight: 700;
+}
+
+.optionCFindButton {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 14px;
+  padding: 13px 18px;
+  background: #2563eb;
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 10px 24px rgba(37,99,235,.24);
+}
+
+.optionCNotice {
+  margin: 0 !important;
+  border-radius: 16px !important;
+}
+
+.optionCStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 14px 18px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.97);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 34px rgba(15,23,42,.08);
+}
+
+.optionCStats article {
+  display: grid;
+  grid-template-columns: 44px auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  padding: 8px 18px;
+  border-right: 1px solid #dbeafe;
+}
+
+.optionCStats article:last-child { border-right: 0; }
+.optionCStats article > span {
+  grid-row: 1 / 3;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: 1.25rem;
+}
+.optionCStats .blue { background: #eff6ff; color: #2563eb; }
+.optionCStats .orange { background: #fff7ed; color: #f97316; }
+.optionCStats .green { background: #ecfdf5; color: #16a34a; }
+.optionCStats .purple { background: #faf5ff; color: #9333ea; }
+.optionCStats strong { font-size: 1.65rem; line-height: 1; }
+.optionCStats small { color: #475569; font-weight: 850; }
+
+.optionCFilterRow {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.optionCPrimaryFilters,
+.optionCExtraFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.optionCFilterRow button {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: white;
+  color: #334155;
+  font-weight: 900;
+}
+.optionCFilterRow button.active {
+  border-color: #047857;
+  background: #047857;
+  color: white;
+}
+.optionCMoreFilters { margin-left: auto; }
+.optionCExtraFilters {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  padding: 10px;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 14px 32px rgba(15,23,42,.14);
+}
+
+.optionCCustomMealPrompt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-weight: 800;
+}
+.optionCCustomMealPrompt button {
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 9px 16px;
+  background: white;
+  color: #166534;
+  font-weight: 950;
+}
+.optionCCustomMealPanel { margin: 0 !important; }
+
+.optionCRecipeList {
+  display: grid;
+  gap: 11px;
+}
+.optionCRecipeCard {
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255,255,255,.98);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 24px rgba(15,23,42,.07);
+}
+.optionCRecipeCard.expanded {
+  border-color: #bfdbfe;
+  box-shadow: 0 18px 42px rgba(15,23,42,.11);
+}
+
+.optionCRecipeSummary {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 74px minmax(210px, 1.4fr) repeat(3, minmax(90px, .65fr)) minmax(210px, 1.15fr) 100px 30px;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+}
+.optionCRecipeSummary:hover { background: #f8fafc; }
+.optionCMealIcon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+  border: 1px solid #dbeafe;
+  font-size: 2rem;
+}
+.optionCRecipeIdentity {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+}
+.optionCRecipeIdentity strong { font-size: 1.05rem; font-weight: 950; }
+.optionCRecipeIdentity small {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: .7rem;
+  font-weight: 850;
+}
+.optionCMetric {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  border-left: 1px solid #e2e8f0;
+  text-align: center;
+}
+.optionCMetric small { color: #64748b; font-size: .7rem; }
+.optionCMetric strong { font-size: 1.05rem; }
+.optionCIngredients { display: grid; gap: 5px; }
+.optionCIngredients small { color: #334155; font-size: .76rem; line-height: 1.3; }
+.optionCScore {
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  min-height: 64px;
+  border-radius: 14px;
+  background: #f0fdf4;
+  color: #166534;
+  text-align: center;
+}
+.optionCScore small { font-size: .68rem; }
+.optionCScore strong { font-size: 1.6rem; }
+.optionCChevron { color: #047857; font-size: 1.4rem; font-weight: 950; }
+
+.optionCRecipeDetails {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-top: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #fbfdff, #ffffff);
+}
+.optionCDetailActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.optionCDetailActions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+}
+.optionCEmptyState { margin: 0 !important; }
+.optionCHelpBar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(90deg, #ecfdf5, #f8fafc);
+  color: #166534;
+  font-weight: 900;
+}
+
+/* prevent old two-column recipe layout from affecting Option C */
+.optionCRecommendations .recommendationGrid { display: block !important; }
+
+@media (max-width: 1200px) {
+  .optionCRecipeSummary {
+    grid-template-columns: 64px minmax(190px, 1.5fr) repeat(3, 90px) 100px 28px;
+  }
+  .optionCIngredients { display: none; }
+}
+
+@media (max-width: 950px) {
+  .optionCHeader { align-items: flex-start; flex-direction: column; padding: 20px; }
+  .optionCFindButton { width: 100%; }
+  .optionCStats { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px; }
+  .optionCStats article { border-right: 0; border-bottom: 1px solid #dbeafe; }
+  .optionCStats article:nth-last-child(-n+2) { border-bottom: 0; }
+  .optionCFilterRow { align-items: flex-start; flex-direction: column; }
+  .optionCMoreFilters { margin-left: 0; }
+  .optionCExtraFilters { position: static; }
+  .optionCCustomMealPrompt { align-items: stretch; flex-direction: column; }
+  .optionCRecipeSummary {
+    grid-template-columns: 58px minmax(0, 1fr) 74px 24px;
+    gap: 10px;
+  }
+  .optionCMealIcon { width: 54px; height: 54px; font-size: 1.6rem; }
+  .optionCMetric,
+  .optionCIngredients { display: none; }
+  .optionCScore { min-height: 54px; }
+  .optionCScore strong { font-size: 1.3rem; }
+  .optionCRecipeDetails { padding: 13px; }
+  .optionCDetailActions { display: grid; grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .optionCStats { grid-template-columns: 1fr 1fr; }
+  .optionCStats article { padding: 7px; grid-template-columns: 34px 1fr; }
+  .optionCStats article > span { width: 32px; height: 32px; font-size: 1rem; }
+  .optionCStats strong { font-size: 1.25rem; }
+  .optionCStats small { font-size: .7rem; }
+  .optionCPrimaryFilters { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .optionCPrimaryFilters button { padding: 8px 6px; font-size: .76rem; }
+  .optionCRecipeSummary { grid-template-columns: 48px minmax(0, 1fr) 62px 18px; padding: 10px; }
+  .optionCMealIcon { width: 44px; height: 44px; font-size: 1.35rem; }
+  .optionCRecipeIdentity strong { font-size: .9rem; }
+  .optionCRecipeIdentity .phaseBadge { font-size: .62rem; padding: 4px 7px; }
+  .optionCRecipeIdentity small { display: none; }
+}
+
+
+/* =========================================================
+   MILESTONE 8 — OPTION C FINAL STRUCTURE
+   Compact, expandable Meal Recommendations
+   ========================================================= */
+
+.optionCRecommendations {
+  display: grid !important;
+  gap: 14px !important;
+  width: 100% !important;
+}
+
+.optionCHeader {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 24px !important;
+  min-height: 150px !important;
+  padding: 26px 28px !important;
+  border: 1px solid rgba(219, 234, 254, .95) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(191, 219, 254, .55), transparent 30%),
+    radial-gradient(circle at 68% 78%, rgba(187, 247, 208, .48), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(239,246,255,.96)) !important;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .10) !important;
+}
+
+.optionCBreadcrumb {
+  display: block !important;
+  margin-bottom: 10px !important;
+  color: #047857 !important;
+  font-size: .82rem !important;
+  font-weight: 900 !important;
+}
+
+.optionCHeader h1 {
+  margin: 0 0 8px !important;
+  color: #0f172a !important;
+  font-size: clamp(2.1rem, 4vw, 3.65rem) !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.035em !important;
+}
+
+.optionCHeader p {
+  margin: 0 !important;
+  color: #334155 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.optionCFindButton {
+  min-height: 46px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  padding: 12px 20px !important;
+  background: #2563eb !important;
+  color: white !important;
+  font-size: .9rem !important;
+  font-weight: 950 !important;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, .24) !important;
+}
+
+.optionCStats {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  padding: 16px 18px !important;
+  border-radius: 22px !important;
+  background: rgba(255,255,255,.97) !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .08) !important;
+}
+
+.optionCStats article {
+  display: grid !important;
+  grid-template-columns: 48px 1fr !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 78px !important;
+  padding: 10px 18px !important;
+  border-right: 1px solid #dbeafe !important;
+  background: transparent !important;
+}
+
+.optionCStats article:last-child {
+  border-right: 0 !important;
+}
+
+.optionCStats article > span {
+  width: 42px !important;
+  height: 42px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 14px !important;
+  font-size: 1.25rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCStats article > div {
+  display: grid !important;
+  gap: 3px !important;
+}
+
+.optionCStats strong {
+  color: #0f172a !important;
+  font-size: 1.55rem !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+}
+
+.optionCStats small {
+  color: #475569 !important;
+  font-size: .75rem !important;
+  line-height: 1.25 !important;
+  font-weight: 850 !important;
+}
+
+.optionCStats .blue { background: #eff6ff !important; color: #2563eb !important; }
+.optionCStats .orange { background: #fff7ed !important; color: #f97316 !important; }
+.optionCStats .green { background: #ecfdf5 !important; color: #16a34a !important; }
+.optionCStats .purple { background: #faf5ff !important; color: #9333ea !important; }
+
+.optionCFilterRow {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 2px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.optionCPrimaryFilters {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 9px !important;
+}
+
+.optionCPrimaryFilters button,
+.optionCMoreFilters,
+.optionCExtraFilters button {
+  min-height: 38px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 999px !important;
+  padding: 9px 15px !important;
+  background: white !important;
+  color: #334155 !important;
+  font-size: .78rem !important;
+  font-weight: 900 !important;
+}
+
+.optionCPrimaryFilters button.active,
+.optionCExtraFilters button.active {
+  border-color: #15803d !important;
+  background: #15803d !important;
+  color: white !important;
+}
+
+.optionCMoreFilters {
+  margin-left: auto !important;
+}
+
+.optionCExtraFilters {
+  position: absolute !important;
+  top: 48px !important;
+  right: 0 !important;
+  z-index: 30 !important;
+  display: flex !important;
+  gap: 7px !important;
+  padding: 10px !important;
+  border-radius: 16px !important;
+  background: white !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, .14) !important;
+}
+
+.optionCCustomMealPrompt {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 52px !important;
+  padding: 10px 16px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(90deg, #ecfdf5, #f0fdf4) !important;
+  border: 1px solid #bbf7d0 !important;
+  color: #166534 !important;
+  font-size: .86rem !important;
+  font-weight: 800 !important;
+}
+
+.optionCCustomMealPrompt button {
+  flex: 0 0 auto !important;
+  min-height: 36px !important;
+  border: 1px solid #86efac !important;
+  border-radius: 999px !important;
+  padding: 8px 16px !important;
+  background: white !important;
+  color: #166534 !important;
+  font-weight: 950 !important;
+}
+
+.optionCCustomMealPanel {
+  margin: 0 !important;
+  padding: 18px !important;
+  border-radius: 22px !important;
+}
+
+.optionCEmptyState {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+  min-height: 118px !important;
+  margin: 0 !important;
+  padding: 18px 20px !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.97) !important;
+  border: 1px solid #dbeafe !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .08) !important;
+}
+
+.optionCEmptyIcon {
+  width: 62px !important;
+  height: 62px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 20px !important;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff) !important;
+  font-size: 1.8rem !important;
+}
+
+.optionCEmptyCopy {
+  min-width: 0 !important;
+}
+
+.optionCEmptyCopy .eyebrow {
+  display: block !important;
+  margin-bottom: 4px !important;
+  font-size: .7rem !important;
+}
+
+.optionCEmptyCopy h2 {
+  margin: 0 0 5px !important;
+  color: #0f172a !important;
+  font-size: 1.25rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCEmptyCopy p {
+  margin: 0 !important;
+  color: #475569 !important;
+  font-size: .86rem !important;
+  line-height: 1.4 !important;
+}
+
+.optionCEmptyActions {
+  display: flex !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.optionCEmptyPrimary,
+.optionCEmptySecondary {
+  min-height: 40px !important;
+  border-radius: 999px !important;
+  padding: 9px 16px !important;
+  font-size: .78rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCEmptyPrimary {
+  border: 0 !important;
+  background: #2563eb !important;
+  color: white !important;
+}
+
+.optionCEmptySecondary {
+  border: 1px solid #86efac !important;
+  background: white !important;
+  color: #166534 !important;
+}
+
+.optionCRecipeList {
+  display: grid !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.optionCRecipeCard {
+  width: 100% !important;
+  overflow: hidden !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.98) !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 26px rgba(15,23,42,.07) !important;
+}
+
+.optionCRecipeSummary {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns:
+    62px minmax(200px, 1.3fr)
+    minmax(90px, .55fr) minmax(100px, .65fr) minmax(90px, .55fr)
+    minmax(190px, 1.15fr) 92px 24px !important;
+  gap: 12px !important;
+  align-items: center !important;
+  min-height: 96px !important;
+  padding: 12px 14px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  text-align: left !important;
+}
+
+.optionCMealIcon {
+  width: 54px !important;
+  height: 54px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff) !important;
+  font-size: 1.65rem !important;
+}
+
+.optionCRecipeIdentity {
+  display: grid !important;
+  justify-items: start !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+
+.optionCRecipeIdentity > strong {
+  width: 100% !important;
+  overflow: hidden !important;
+  color: #0f172a !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.optionCRecipeIdentity > small {
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  font-size: .67rem !important;
+  font-weight: 850 !important;
+}
+
+.optionCRecipeIdentity .phaseBadge {
+  padding: 4px 8px !important;
+  border-radius: 999px !important;
+  font-size: .65rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCMetric {
+  display: grid !important;
+  justify-items: center !important;
+  gap: 4px !important;
+  padding: 5px 8px !important;
+  border-left: 1px solid #e2e8f0 !important;
+  text-align: center !important;
+}
+
+.optionCMetric small {
+  color: #64748b !important;
+  font-size: .65rem !important;
+  line-height: 1.15 !important;
+}
+
+.optionCMetric strong {
+  color: #0f172a !important;
+  font-size: .95rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCIngredients {
+  display: grid !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  padding-left: 10px !important;
+  border-left: 1px solid #e2e8f0 !important;
+}
+
+.optionCIngredients small {
+  overflow: hidden !important;
+  color: #334155 !important;
+  font-size: .68rem !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.optionCScore {
+  min-height: 64px !important;
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 3px !important;
+  border-radius: 14px !important;
+  padding: 8px !important;
+  text-align: center !important;
+}
+
+.optionCScore small {
+  font-size: .62rem !important;
+  font-weight: 850 !important;
+}
+
+.optionCScore strong {
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+}
+
+.optionCChevron {
+  color: #047857 !important;
+  font-size: 1.1rem !important;
+  font-weight: 950 !important;
+}
+
+.optionCRecipeDetails {
+  display: grid !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border-top: 1px solid #dbeafe !important;
+  background: #fbfdff !important;
+}
+
+.optionCDetailActions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.optionCDetailActions button {
+  min-height: 38px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 8px 15px !important;
+  background: #2563eb !important;
+  color: white !important;
+  font-weight: 900 !important;
+}
+
+.optionCNoFilterResults {
+  display: grid !important;
+  place-items: center !important;
+  gap: 4px !important;
+  min-height: 100px !important;
+  padding: 16px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.95) !important;
+  border: 1px solid #dbeafe !important;
+  color: #475569 !important;
+  text-align: center !important;
+}
+
+.optionCHelpBar {
+  width: 100% !important;
+  min-height: 42px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin: 0 !important;
+  border: 1px solid #bbf7d0 !important;
+  border-radius: 13px !important;
+  padding: 9px 14px !important;
+  background: linear-gradient(90deg, #f0fdf4, #ecfdf5) !important;
+  color: #166534 !important;
+  font-size: .78rem !important;
+  font-weight: 900 !important;
+}
+
+@media (max-width: 1180px) {
+  .optionCRecipeSummary {
+    grid-template-columns: 58px minmax(190px, 1.2fr) repeat(3, 90px) 86px 22px !important;
+  }
+
+  .optionCIngredients {
+    display: none !important;
+  }
+}
+
+@media (max-width: 850px) {
+  .optionCHeader {
+    grid-template-columns: 1fr !important;
+    min-height: auto !important;
+    padding: 20px !important;
+  }
+
+  .optionCFindButton {
+    width: 100% !important;
+  }
+
+  .optionCStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .optionCStats article {
+    border-right: 0 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 15px !important;
+    padding: 9px !important;
+  }
+
+  .optionCFilterRow {
+    align-items: flex-start !important;
+  }
+
+  .optionCMoreFilters {
+    flex: 0 0 auto !important;
+  }
+
+  .optionCEmptyState {
+    grid-template-columns: auto 1fr !important;
+  }
+
+  .optionCEmptyActions {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  .optionCEmptyActions button {
+    flex: 1 !important;
+  }
+
+  .optionCRecipeSummary {
+    grid-template-columns: 50px minmax(0, 1fr) 74px 20px !important;
+    min-height: 84px !important;
+    padding: 10px !important;
+  }
+
+  .optionCMetric,
+  .optionCIngredients {
+    display: none !important;
+  }
+
+  .optionCScore {
+    min-height: 54px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .optionCRecommendations {
+    gap: 10px !important;
+  }
+
+  .optionCHeader h1 {
+    font-size: 2rem !important;
+  }
+
+  .optionCStats {
+    padding: 10px !important;
+  }
+
+  .optionCStats article {
+    grid-template-columns: 36px 1fr !important;
+    min-height: 66px !important;
+  }
+
+  .optionCStats article > span {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .optionCPrimaryFilters {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+
+  .optionCPrimaryFilters button {
+    padding: 8px !important;
+    font-size: .7rem !important;
+  }
+
+  .optionCFilterRow {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+  }
+
+  .optionCMoreFilters {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+  }
+
+  .optionCCustomMealPrompt {
+    align-items: flex-start !important;
+    flex-direction: column !important;
+  }
+
+  .optionCCustomMealPrompt button {
+    width: 100% !important;
+  }
+
+  .optionCEmptyState {
+    grid-template-columns: 1fr !important;
+    text-align: center !important;
+  }
+
+  .optionCEmptyIcon {
+    margin: 0 auto !important;
+  }
+
+  .optionCEmptyActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .optionCRecipeSummary {
+    grid-template-columns: 46px minmax(0, 1fr) 68px 18px !important;
+  }
+
+  .optionCMealIcon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 1.35rem !important;
+  }
+
+  .optionCRecipeIdentity > strong {
+    font-size: .86rem !important;
+  }
+
+  .optionCRecipeIdentity > small {
+    display: none !important;
+  }
+
+  .optionCDetailActions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+/* =========================================================
+   MILESTONE 8 — NAVIGATION ORDER + INLINE LOG OUT
+   ========================================================= */
+
+.sidebar nav .navLogoutInline {
+  width: 100% !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  padding: 11px 12px !important;
+  background: rgba(255, 255, 255, 0.13) !important;
+  color: white !important;
+  font: inherit !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+
+.sidebar nav .navLogoutInline:hover,
+.sidebar nav .navLogoutInline:focus-visible {
+  background: white !important;
+  color: #0f766e !important;
+  outline: none !important;
+}
+
+.sidebar nav .navLogoutInline .navIcon {
+  flex: 0 0 auto;
+}
+
+/* Prevent older logout rules from pushing the button to the bottom. */
+.sidebar > .navLogoutButton {
+  margin-top: 0 !important;
+}
