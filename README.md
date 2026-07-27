@@ -1,102 +1,920 @@
-# Smart Pantry 2.0
+Smart Pantry
 
-Smart Pantry is a pantry-aware meal recommendation and research platform built with React, FastAPI, and Supabase. It helps participants track food, notice expiration risk, receive practical meal recommendations, and record what happened after each recommendation.
+Smart Pantry 2.0 — Pantry-Aware Meal Recommendation and Decision-Support System
 
-The capstone research focus is whether pantry-aware recommendations improve pantry awareness, recommendation usefulness, and ingredient utilization.
+Smart Pantry is a pantry-aware meal recommendation and decision-support system designed to help users better understand the food they already have, reduce food waste, and make realistic meal decisions based on available pantry ingredients.
 
-## Core features
+Smart Pantry 2.0 is a rebuilt version of the original Smart Pantry prototype. The current application uses a React frontend, FastAPI backend, and Supabase PostgreSQL database. The rebuild provides a more scalable architecture for pantry tracking, personalized meal recommendations, recommendation history, user study data collection, and future expansion.
 
-- Participant registration and login
-- User-specific pantry inventory
-- Barcode and item lookup
-- Profile preferences, allergies, and foods to avoid
-- Explainable meal recommendations
-- Smart Score, Pantry Match, Nutrition Fit, expiration priority, and Smart Swaps
-- Complete and near-complete meal classification
-- Meal and cuisine filters with Top 10 plus Show More
-- Adaptive learning from Save, Made, and Skip actions
-- Recipe-fatigue and diversity controls
-- Recommendation history and feedback
-- Pre-study and post-study surveys
-- Admin study metrics and exports
+The goal of Smart Pantry is not simply to generate recipes. The system is designed to answer a more practical question:
 
-## Recommendation engine
+What can I realistically make with the food I already have, and what should I use first?
 
-The engine evaluates the realistic candidate pool, applies safety filters, validates pantry evidence, scores pantry usefulness and nutrition, applies gentle preference and behavior adjustments, controls recipe-family repetition, and returns participant-facing explanations. See `docs/RECOMMENDATION_ENGINE_ARCHITECTURE.md`.
+Smart Pantry considers pantry availability, expiration dates, missing ingredients, user preferences, nutrition information, recipe characteristics, and prior recommendation activity when generating meal suggestions. Users remain in control of the final decision and can record what they actually made, substitute ingredients, or report that pantry ingredients were used elsewhere.
 
-## Technology
+Project Purpose
 
-- **Frontend:** React, Vite, JavaScript, CSS, Recharts
-- **Backend:** FastAPI, Python, Pydantic, Supabase client
-- **Database:** Supabase PostgreSQL
-- **Data:** cleaned recipe and barcode CSV files
-- **ML support:** Random Forest Nutrition Fit model
+Smart Pantry was developed as a graduate capstone project for Full Sail University.
 
-## Project structure
+The project investigates whether a pantry management and meal recommendation system can improve:
 
-```text
+Pantry awareness
+
+Ingredient utilization
+
+Meal decision-making
+
+Use of food before expiration
+
+Perceived usefulness of pantry-based recommendations
+
+The application supports a 7–14 day user study in which participants can create an account, complete study surveys, build a pantry inventory, receive meal recommendations, and record what they actually did with those recommendations.
+
+Rather than treating recipe recommendation as an isolated task, Smart Pantry connects recommendation behavior with pantry inventory and ingredient usage.
+
+Smart Pantry Workflow
+
+The general Smart Pantry workflow is:
+
+A participant creates an account and completes the pre-study survey.
+
+The participant adds food items to their pantry.
+
+Pantry quantities, categories, and expiration dates are stored in Supabase.
+
+Smart Pantry evaluates the participant's current pantry and saved preferences.
+
+The recommendation engine searches the recipe library for realistic meal possibilities.
+
+Recommendations are ranked using pantry availability, expiration priority, nutrition fit, missing ingredients, user preferences, diversity, and recommendation quality rules.
+
+The participant can save a recommendation, make the meal, use ingredients elsewhere, or indicate that the recommendation was not used.
+
+Pantry usage and recommendation activity are recorded for later analysis.
+
+Participants complete a post-study survey at the end of the study period.
+
+Core Features
+
+User Accounts
+
+Participants can register and log in using their own credentials.
+
+Each participant has access to their own:
+
+Pantry inventory
+
+Profile and preferences
+
+Meal recommendations
+
+Recommendation history
+
+Survey responses
+
+User-specific records are associated with participant IDs so pantry and study activity remain separated between participants.
+
+An administrator account provides study-level visibility through the Smart Pantry admin dashboard.
+
+Pantry Management
+
+Users can create and maintain a digital pantry inventory.
+
+Pantry records can include:
+
+Item name
+
+Category
+
+Quantity
+
+Measurement unit
+
+Container or package type
+
+Expiration date
+
+Barcode / UPC
+
+Brand
+
+Notes
+
+Users can edit pantry records as their inventory changes.
+
+Smart Pantry supports multiple quantity and measurement formats so pantry inventory does not have to use the same measurement as a recipe. For example, a user may store flour as a multi-pound package while later recording recipe usage in cups or ounces.
+
+Supported measurement concepts include common units such as:
+
+Teaspoons
+
+Tablespoons
+
+Cups
+
+Fluid ounces
+
+Ounces
+
+Pounds
+
+Grams
+
+Kilograms
+
+Milliliters
+
+Liters
+
+Gallons
+
+Items
+
+Servings
+
+Slices
+
+Pieces
+
+Dozens
+
+Strips
+
+Patties
+
+Eggs
+
+Cloves
+
+This provides the foundation for more accurate pantry deduction and quantity conversion.
+
+Barcode and Item Lookup
+
+Smart Pantry includes barcode and item lookup functionality to make pantry entry easier.
+
+Users can enter a barcode / UPC or search for common food items to help populate pantry information.
+
+The application also supports manual entry so users are not dependent on barcode coverage.
+
+Grocery Receipt and Camera Support
+
+Smart Pantry includes a grocery receipt workflow that allows users to upload or photograph a receipt for pantry entry support.
+
+On compatible devices, the application can access the device camera for receipt capture. Manual image upload remains available as a fallback.
+
+Dashboard
+
+The participant dashboard provides a quick overview of pantry and study activity.
+
+Dashboard information can include:
+
+Survey completion
+
+Pantry item count
+
+Pantry quantities
+
+Pantry category distribution
+
+Expiration alerts
+
+Items that should be used soon
+
+Suggested grocery items
+
+Study activity indicators
+
+The dashboard is intended to make pantry status understandable without requiring the participant to manually review every pantry record.
+
+Profile and Preferences
+
+Participants can save information used to personalize recommendations.
+
+Profile information includes:
+
+Household size
+
+Allergies
+
+Dietary restrictions
+
+Foods to avoid
+
+Preferred meal types
+
+Preferred cuisines
+
+Quick-meal preferences
+
+Additional profile notes
+
+These preferences help Smart Pantry determine whether a recipe is appropriate in addition to whether its ingredients match the pantry.
+
+Meal Recommendation Engine
+
+Smart Pantry's recommendation system is designed to recommend realistic meals, not simply recipes containing one matching ingredient.
+
+The engine evaluates the user's current pantry against available recipe data and ranks eligible recipes according to multiple factors.
+
+The recommendation pipeline includes services for:
+
+Candidate discovery
+
+Ingredient normalization
+
+Pantry matching
+
+Profile safety
+
+Meal eligibility
+
+Meal classification
+
+Expiration analysis
+
+Nutrition Fit
+
+Preference fit
+
+Smart Score calculation
+
+Recommendation quality validation
+
+Smart Swap generation
+
+Recipe realism filtering
+
+Recipe-family diversity
+
+Behavior learning
+
+This modular structure allows each recommendation concern to be evaluated independently while contributing to the final ranking.
+
+Recipe Data
+
+Smart Pantry uses a cleaned recipe dataset stored in the backend data directory:
+
+backend/data/smart_pantry_recipe_dataset.csv
+
+The system is designed to evaluate a broad candidate pool rather than stopping after a small number of recipe matches.
+
+This supports both practical pantry matches and broader recipe discovery.
+
+Ingredient Matching
+
+Recipe ingredients are normalized and compared with ingredients currently available in the user's pantry.
+
+Recommendations identify ingredients that are:
+
+Available in the pantry
+
+Missing from the pantry
+
+Potential candidates for substitution
+
+This allows Smart Pantry to distinguish between meals that can already be made and meals that are close to being possible.
+
+Pantry Match
+
+Pantry Match represents how well the ingredients required by a recipe correspond to ingredients currently available in the participant's pantry.
+
+Recipes with stronger pantry coverage can rank higher because they require fewer additional ingredients.
+
+This helps prioritize meals that make practical use of food the participant already owns.
+
+Expiration-Aware Recommendations
+
+Expiration awareness is one of the central features of Smart Pantry.
+
+The recommendation engine can prioritize recipes that use pantry ingredients approaching their expiration dates.
+
+This allows the system to recommend not only:
+
+"What can you make?"
+
+but also:
+
+"What could you make that helps use food before it expires?"
+
+Expiration is handled automatically as part of recommendation ranking rather than requiring the participant to configure an expiration window each time.
+
+Missing Ingredients and Near-Complete Meals
+
+Smart Pantry does not require every recipe ingredient to already exist in the pantry.
+
+Recipes requiring a small number of additional ingredients may still be useful recommendations.
+
+The system can therefore distinguish between:
+
+Complete pantry meals
+
+Strong pantry matches
+
+Near-complete meals
+
+Meals requiring a limited number of additional ingredients
+
+Lower-priority recipes requiring too many missing ingredients
+
+This prevents the recommendation system from becoming unnecessarily restrictive while still keeping recommendations realistic.
+
+Smart Swaps
+
+When a recipe is missing an ingredient, Smart Pantry can support ingredient substitutions through Smart Swaps.
+
+Automatic Smart Swaps are intended to consider:
+
+Food-family compatibility
+
+Culinary-role compatibility
+
+Recipe context
+
+The system prefers showing no swap over suggesting an obviously inappropriate replacement.
+
+When an appropriate automatic substitution is unavailable, users can also use Add Your Own Smart Swap to select the pantry ingredient they actually used instead.
+
+This gives the participant final control over real-world substitutions.
+
+Nutrition Fit
+
+Smart Pantry includes a Nutrition Fit evaluation pipeline.
+
+The backend contains a trained Random Forest model:
+
+backend/ml/random_forest_nutrition_fit_model.pkl
+
+This model is used as part of the Nutrition Fit evaluation process, allowing recipe nutrition information to contribute to recommendation quality where appropriate.
+
+Nutrition Fit is one recommendation signal among several. It is not intended to provide medical or clinical nutrition advice.
+
+Smart Score
+
+Smart Pantry combines multiple recommendation signals into a Smart Score.
+
+Depending on available recipe and participant data, recommendation scoring can consider factors such as:
+
+Pantry ingredient coverage
+
+Expiration priority
+
+Missing ingredient penalties
+
+Nutrition Fit
+
+User preferences
+
+Meal context
+
+Recipe practicality
+
+Recommendation quality
+
+Behavior-learning signals
+
+The Smart Score is intended to rank recipes according to their overall usefulness for the current participant and pantry rather than relying on a single matching percentage.
+
+Context-Aware Meal Classification
+
+Recipe metadata can be inconsistent, especially when recipe datasets use broad or incorrect meal labels.
+
+Smart Pantry includes a second classification layer that evaluates recipe characteristics rather than blindly trusting the original dataset label.
+
+Meal classification can consider:
+
+Recipe title
+
+Ingredient structure
+
+Dish type
+
+Original dataset meal type
+
+Cooking context
+
+Recipe characteristics
+
+Supported participant-facing meal filters include:
+
+Breakfast
+
+Lunch
+
+Dinner
+
+Snack
+
+Quick Meal
+
+Brunch
+
+This helps reduce unrealistic results, such as desserts or breakfast-only dishes appearing simply because the dataset incorrectly labeled them as lunch.
+
+Recipe Realism and Diversity
+
+Recommendation quality includes more than a numeric score.
+
+Smart Pantry includes realism and diversity rules intended to reduce:
+
+Novelty or gimmick recipes that are unlikely to be useful
+
+Duplicate recipe families
+
+Repeated versions of nearly identical dishes
+
+Overrepresentation of one protein or meal family
+
+For example, renamed versions of the same basic dish should not occupy multiple recommendation positions simply because their recipe titles differ.
+
+The system is intended to provide variety while still respecting pantry availability and expiration priority.
+
+Behavior Learning
+
+Smart Pantry records participant interactions with recommendations.
+
+Behavior signals can include:
+
+Saved recipes
+
+Made recipes
+
+Skipped or unused recipes
+
+These signals can gently influence future rankings without replacing pantry usefulness, dietary safety, or recommendation quality.
+
+The goal is to allow the recommendation experience to become more personalized over time without trapping participants in a narrow set of meals.
+
+Add My Own Meal
+
+Participants are not limited to meals generated by Smart Pantry.
+
+The Add My Own Meal feature allows participants to record something they prepared independently.
+
+This is important because pantry usage can occur even when a participant does not select a system-generated recommendation.
+
+Recording these meals helps keep pantry quantities and recommendation-history data more representative of actual participant behavior.
+
+Pantry Usage and Quantity Adjustment
+
+When a participant reports making a meal, pantry usage should reflect what the participant actually used rather than assuming the entire pantry item was consumed.
+
+Smart Pantry allows participants to enter the amount and measurement unit used for individual ingredients.
+
+For example:
+
+Pantry inventory: 5 lb bag of flour
+
+Meal 1 usage: 3 oz flour
+
+Meal 2 usage: 1 cup flour
+
+The amount used can therefore differ from the pantry item's stored measurement.
+
+The quantity conversion layer supports common kitchen-unit conversions and safer handling of ingredient-specific conversions where the relationship between weight and volume is not universal.
+
+When a conversion cannot be safely determined, the application should avoid silently inventing a precise value.
+
+Recommendation Actions and History
+
+Participants can record what happened after receiving a meal recommendation.
+
+Recommendation actions include:
+
+Made Meal
+
+Used Elsewhere
+
+Saved for Later
+
+Did Not Use
+
+Recommendation history provides a record of how participants interacted with Smart Pantry's suggestions.
+
+This information is also valuable to the capstone study because recommendation generation can be compared with actual participant behavior.
+
+Surveys and Research Data
+
+Smart Pantry includes pre-study and post-study surveys.
+
+Survey responses are stored in Supabase and support evaluation of the project's research questions.
+
+The surveys are intended to help examine changes in areas such as:
+
+Pantry awareness
+
+Food-use behavior
+
+Meal decision confidence
+
+Perceived recommendation usefulness
+
+Ingredient utilization
+
+System interaction data provides an additional behavioral perspective alongside participant survey responses.
+
+Admin Dashboard
+
+The Smart Pantry admin dashboard provides study-level visibility into participant activity.
+
+Administrative information can include:
+
+Participant accounts
+
+Survey completion
+
+Pantry activity
+
+Recommendation activity
+
+Recommendation outcomes
+
+Study participation metrics
+
+The admin interface supports research monitoring while participant-facing pages remain focused on pantry and meal decisions.
+
+Technology Stack
+
+Frontend
+
+React
+
+Vite
+
+JavaScript
+
+CSS
+
+Recharts
+
+Backend
+
+FastAPI
+
+Python
+
+Supabase Python Client
+
+CSV-based recipe and barcode loading
+
+Recommendation services
+
+Random Forest Nutrition Fit model
+
+Database
+
+Supabase
+
+PostgreSQL
+
+Development and Deployment
+
+Git
+
+GitHub
+
+Vercel-compatible frontend configuration
+
+FastAPI / Uvicorn development server
+
+Project Structure
+
 Smart_Pantry_2.0/
-  backend/
-    main.py
-    config.py
-    routes/
-    services/
-    models/
-    tests/
-    data/
-    ml/
-  frontend/
-    src/
-      api/
-      components/
-      pages/
-  database/
-  docs/
-  scripts/
-```
+│
+├── backend/
+│   ├── .env.example
+│   ├── config.py
+│   ├── main.py
+│   ├── requirements.txt
+│   │
+│   ├── data/
+│   │   ├── openfoodfacts_barcode_lookup.csv
+│   │   └── smart_pantry_recipe_dataset.csv
+│   │
+│   ├── ml/
+│   │   └── random_forest_nutrition_fit_model.pkl
+│   │
+│   ├── models/
+│   │   ├── recommendation_api.py
+│   │   ├── schemas.py
+│   │   └── __init__.py
+│   │
+│   ├── routes/
+│   │   ├── admin.py
+│   │   ├── auth.py
+│   │   ├── barcodes.py
+│   │   ├── pantry.py
+│   │   ├── profile.py
+│   │   ├── recommendations.py
+│   │   ├── surveys.py
+│   │   └── __init__.py
+│   │
+│   ├── services/
+│   │   ├── barcode_service.py
+│   │   ├── recipe_filters.py
+│   │   ├── recommendation_service.py
+│   │   ├── recommendation_tracking.py
+│   │   ├── supabase_service.py
+│   │   ├── __init__.py
+│   │   │
+│   │   └── recommendations/
+│   │       ├── api_adapter.py
+│   │       ├── behavior_learning.py
+│   │       ├── candidate_discovery.py
+│   │       ├── contracts.py
+│   │       ├── diversity.py
+│   │       ├── engine.py
+│   │       ├── expiry_analyzer.py
+│   │       ├── ingredient_normalizer.py
+│   │       ├── meal_classifier.py
+│   │       ├── meal_context.py
+│   │       ├── meal_eligibility.py
+│   │       ├── nutrition_fit.py
+│   │       ├── pantry_matcher.py
+│   │       ├── preference_fit.py
+│   │       ├── profile_safety.py
+│   │       ├── recipe_realism.py
+│   │       ├── recipe_repository.py
+│   │       ├── recommendation_quality.py
+│   │       ├── recommendation_service.py
+│   │       ├── smart_score.py
+│   │       ├── smart_swaps.py
+│   │       └── __init__.py
+│   │
+│   └── tests/
+│       ├── test_meal_classifier.py
+│       ├── test_phase18_production_readiness.py
+│       ├── test_recommendation_phase11.py
+│       ├── test_recommendation_phase12.py
+│       ├── test_recommendation_phase13.py
+│       ├── test_recommendation_phase14.py
+│       ├── test_recommendation_phase16.py
+│       ├── test_recommendation_phase17.py
+│       ├── test_recommendation_phase18_2.py
+│       ├── test_recommendation_phase18_4.py
+│       ├── test_recommendation_phase18_5.py
+│       ├── test_recommendation_phase18_9.py
+│       └── earlier recommendation-engine tests
+│
+├── database/
+│   ├── schema.sql
+│   └── migrations/
+│       └── 20260721_phase_12_candidate_expansion.sql
+│
+├── docs/
+│   ├── DEMO_CHECKLIST.md
+│   ├── DEPLOYMENT_CHECKLIST.md
+│   ├── PHASE_12_CANDIDATE_EXPANSION.md
+│   ├── PHASE_13_RECOMMENDATION_QUALITY_CALIBRATION.md
+│   ├── PHASE_18_10_FRIENDLY_KITCHEN_QUANTITIES.md
+│   ├── PHASE_18_11_SERVING_SELECTION_PANTRY_UPDATE.md
+│   ├── PHASE_18_12_PER_INGREDIENT_QUANTITY_SELECTOR.md
+│   ├── PHASE_18_VALIDATION_PLAN.md
+│   ├── RECIPE_DATASET_AUDIT.json
+│   └── RECOMMENDATION_ENGINE_ARCHITECTURE.md
+│
+├── frontend/
+│   ├── .env.example
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── vercel.json
+│   │
+│   ├── public/
+│   │   └── SmartPantry_logo.png
+│   │
+│   └── src/
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── styles.css
+│       │
+│       ├── api/
+│       │   └── client.js
+│       │
+│       ├── components/
+│       │   ├── Navbar.jsx
+│       │   ├── StatCard.jsx
+│       │   └── SurveyForm.jsx
+│       │
+│       ├── data/
+│       │   └── surveyQuestions.js
+│       │
+│       ├── pages/
+│       │   ├── Admin.jsx
+│       │   ├── Dashboard.jsx
+│       │   ├── History.jsx
+│       │   ├── Login.jsx
+│       │   ├── Pantry.jsx
+│       │   ├── Profile.jsx
+│       │   └── Recommendations.jsx
+│       │
+│       └── utils/
+│           └── quantityConversion.js
+│
+├── Project doc/
+│   ├── Jones_Thesis_Draft2.docx
+│   └── study flyer.png
+│
+├── scripts/
+│   └── validate_release.sh
+│
+├── .gitignore
+├── package-lock.json
+└── README.md
 
-## Local setup
+Running the Project Locally
 
-### Backend
+Backend
 
-```bash
+Navigate to the backend directory:
+
 cd backend
-python -m venv .venv
-# Activate the environment for your operating system.
+
+Create a Python virtual environment if needed:
+
+python -m venv venv
+
+Activate it in Windows Git Bash:
+
+source venv/Scripts/activate
+
+Install backend dependencies:
+
 pip install -r requirements.txt
-cp .env.example .env
+
+Start FastAPI:
+
 uvicorn main:app --reload
-```
 
-Enter working Supabase values in `backend/.env` before using participant data routes.
+The backend should normally run at:
 
-### Frontend
+http://127.0.0.1:8000
 
-```bash
+Frontend
+
+Open another terminal and navigate to the frontend directory:
+
 cd frontend
-npm ci
-cp .env.example .env
+
+Install dependencies:
+
+npm install
+
+Start the Vite development server:
+
 npm run dev
-```
 
-The default frontend expects the API at `http://127.0.0.1:8000/api`.
+Use the local address displayed by Vite to open Smart Pantry in the browser.
 
-## Validation
+Environment Variables
 
-From the project root:
+Environment files are intentionally excluded from Git version control.
 
-```bash
-./scripts/validate_release.sh
-```
+The repository includes .env.example files where applicable.
 
-This compiles the Python code, runs the backend test suite, and creates the React production build.
+Do not commit:
 
-## Release documentation
+Supabase service keys
 
-- `PHASE_18_NOTES.md`
-- `docs/PHASE_18_VALIDATION_PLAN.md`
-- `docs/DEPLOYMENT_CHECKLIST.md`
-- `docs/DEMO_CHECKLIST.md`
-- `docs/RECOMMENDATION_ENGINE_ARCHITECTURE.md`
+Private API credentials
 
-No Phase 18 database migration is required.
+Passwords
+
+Authentication secrets
+
+Local .env files
+
+Testing and Validation
+
+The backend contains automated tests covering multiple stages of the rebuilt recommendation engine.
+
+Testing includes areas such as:
+
+Recommendation generation
+
+Candidate expansion
+
+Recommendation quality
+
+Smart Score behavior
+
+Smart Swaps
+
+Meal classification
+
+Recipe realism
+
+Diversity
+
+Pantry quantity conversion
+
+Production-readiness behavior
+
+The docs/ directory also contains validation and demo checklists used during development.
+
+Current Project Status
+
+Smart Pantry 2.0 currently includes the primary architecture and functionality needed for the capstone study, including:
+
+Participant authentication
+
+Pantry management
+
+Barcode and item lookup
+
+Grocery receipt capture support
+
+Pantry quantity tracking
+
+Kitchen-unit conversion
+
+Expiration awareness
+
+Participant profiles and preferences
+
+Pantry-based meal recommendations
+
+Large recipe-library evaluation
+
+Smart Score ranking
+
+Nutrition Fit evaluation
+
+Random Forest Nutrition Fit model
+
+Missing ingredient detection
+
+Smart Swaps
+
+User-defined Smart Swaps
+
+Context-aware meal classification
+
+Recipe realism filtering
+
+Recipe-family diversity
+
+Behavior-learning signals
+
+Add My Own Meal functionality
+
+Recommendation actions and history
+
+Pre-study and post-study surveys
+
+Administrative study monitoring
+
+The system continues to be tested and refined, particularly around recommendation ranking, recipe classification, ingredient normalization, quantity conversion, and recommendation response time.
+
+Known Limitations
+
+Smart Pantry is a capstone research prototype and is not intended to provide medical or clinical nutrition advice.
+
+Recipe datasets can contain inconsistent:
+
+Ingredient names
+
+Measurement formats
+
+Meal classifications
+
+Dish types
+
+Nutrition information
+
+Recipe titles
+
+Smart Pantry includes normalization, validation, classification, and filtering logic to improve recommendation quality, but some recipe metadata may still require refinement.
+
+Ingredient substitutions are also context-dependent. A technically similar ingredient is not always an appropriate cooking substitution, which is why Smart Pantry prioritizes conservative Smart Swaps and allows participants to provide their own substitutions.
+
+Quantity conversion between volume and weight can also depend on the ingredient itself. Where a safe deterministic conversion is unavailable, the application should avoid presenting false precision.
+
+Recommendation quality ultimately depends in part on the accuracy of the participant's pantry inventory.
+
+Future Development
+
+Potential future improvements include:
+
+Expanded ingredient normalization
+
+Additional ingredient-specific unit conversions
+
+Improved automatic Smart Swap suggestions
+
+Continued recipe and meal-type classification refinement
+
+Additional recipe sources
+
+Recommendation performance optimization
+
+More advanced nutrition personalization
+
+Grocery-list integration
+
+Expanded barcode coverage
+
+Improved package-size interpretation
+
+Mobile-focused interface improvements
+
+Additional recommendation-learning features based on participant behavior
