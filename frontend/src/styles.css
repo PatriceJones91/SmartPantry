@@ -10132,3 +10132,53 @@ body,
   .mealUsageRow input,.mealUsageRow select,.mealUsageCustomSwapGrid input,.mealUsageCustomSwapGrid select{width:100%;font-size:16px}
   .barcodeScannerHeader,.receiptCameraHeader{gap:8px}
 }
+
+
+/* Phase 18.15.8 — manual pantry-unit fallback for unsafe conversions */
+.manualPantryFallback{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px 12px;
+  border:1px solid #f5c2bd;
+  border-radius:10px;
+  background:#fff8f7;
+}
+.manualPantryFallback > small:first-child{
+  color:#b42318;
+  font-weight:700;
+}
+.manualPantryFallback label{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  color:#33475a;
+  font-weight:700;
+}
+.manualPantryFallbackInput{
+  display:grid;
+  grid-template-columns:minmax(110px,1fr) auto;
+  align-items:center;
+  gap:8px;
+}
+.manualPantryFallbackInput input{
+  width:100%;
+  min-height:40px;
+  border:1px solid #d5c7c5;
+  border-radius:9px;
+  padding:8px 10px;
+  font:inherit;
+}
+.manualPantryFallbackInput strong{
+  white-space:nowrap;
+  color:#10243e;
+}
+.manualPantryHint{
+  color:#6b7280 !important;
+  font-weight:500 !important;
+}
+@media (max-width:700px){
+  .manualPantryFallbackInput{
+    grid-template-columns:1fr;
+  }
+}

@@ -633,6 +633,20 @@ export default function Recommendations() {
     }));
   }
 
+  function changeManualPantryAmount(recipeName, itemId, value) {
+    setUsageByRecipe((prev) => ({
+      ...prev,
+      [recipeName]: (prev[recipeName] || []).map((row) =>
+        row.item_id === itemId
+          ? {
+              ...row,
+              manual_pantry_amount: value,
+            }
+          : row
+      ),
+    }));
+  }
+
   function openMealUsageModal(recipe, actionName = "made") {
     setError("");
     setMessage("");
@@ -682,14 +696,39 @@ export default function Recommendations() {
         selectedUnit: row.selected_unit || pantryItem.unit,
       });
 
-      if (!conversion.comparable) {
-        throw new Error(
-          `${pantryItem.item_name}: ${conversion.reason || "Choose a measurement that can be converted to the pantry quantity."}`
-        );
+      let amountUsedInPantryUnit;
+
+      if (conversion.comparable) {
+        amountUsedInPantryUnit = cleanQuantity(conversion.pantryAmount);
+      } else {
+        const manualPantryAmount = cleanQuantity(row.manual_pantry_amount);
+
+        if (!(manualPantryAmount > 0)) {
+          throw new Error(
+            `${pantryItem.item_name}: Smart Pantry cannot safely convert the meal measurement to ${displayUnit(
+              pantryItem.unit,
+              pantryItem.quantity
+            )}. Enter how much of the pantry item you actually used.`
+          );
+        }
+
+        amountUsedInPantryUnit = manualPantryAmount;
       }
 
       const currentQuantity = cleanQuantity(pantryItem.quantity);
-      const amountUsedInPantryUnit = cleanQuantity(conversion.pantryAmount);
+
+      if (amountUsedInPantryUnit > currentQuantity + 1e-9) {
+        throw new Error(
+          `${pantryItem.item_name}: You entered ${formatSmartQuantity(amountUsedInPantryUnit)} ${displayUnit(
+            pantryItem.unit,
+            amountUsedInPantryUnit
+          )}, but only ${formatSmartQuantity(currentQuantity)} ${displayUnit(
+            pantryItem.unit,
+            currentQuantity
+          )} is currently in My Pantry.`
+        );
+      }
+
       const remainingQuantity = Math.max(currentQuantity - amountUsedInPantryUnit, 0);
 
       await api.updatePantryItem(pantryItem.id, {
@@ -1250,11 +1289,54 @@ export default function Recommendations() {
                             {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                           </select>
                           <div className={`mealUsageConversion ${conversion && !conversion.comparable ? "warning" : ""}`}>
-                            {!conversion
-                              ? <small>Nothing will be removed until you enter an amount.</small>
-                              : conversion.comparable
-                                ? <small>Removes about {formatSmartQuantity(conversion.pantryAmount)} {displayUnit(pantryItem?.unit, conversion.pantryAmount)} from My Pantry{conversion.confidence === "estimated" ? " (estimated)" : ""}.</small>
-                                : <small>{conversion.reason}</small>}
+                            {!conversion ? (
+                              <small>Nothing will be removed until you enter an amount.</small>
+                            ) : conversion.comparable ? (
+                              <small>
+                                Removes about {formatSmartQuantity(conversion.pantryAmount)}{" "}
+                                {displayUnit(pantryItem?.unit, conversion.pantryAmount)} from My Pantry
+                                {conversion.confidence === "estimated" ? " (estimated)" : ""}.
+                              </small>
+                            ) : (
+                              <div className="manualPantryFallback">
+                                <small>
+                                  Smart Pantry cannot safely convert {displayUnit(selectedUnit, row.amount_used)} to{" "}
+                                  {displayUnit(pantryItem?.unit, pantryItem?.quantity)} for this pantry item.
+                                </small>
+                                <label>
+                                  <span>How much should be removed from My Pantry?</span>
+                                  <div className="manualPantryFallbackInput">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={pantryItem?.quantity ?? undefined}
+                                      step="0.01"
+                                      inputMode="decimal"
+                                      value={row.manual_pantry_amount || ""}
+                                      onChange={(e) =>
+                                        changeManualPantryAmount(
+                                          recipe.recipe_name,
+                                          row.item_id,
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Amount used"
+                                      aria-label={`Pantry amount of ${row.item_name} to remove`}
+                                    />
+                                    <strong>
+                                      {displayUnit(
+                                        pantryItem?.unit,
+                                        row.manual_pantry_amount || pantryItem?.quantity
+                                      )}
+                                    </strong>
+                                  </div>
+                                </label>
+                                <small className="manualPantryHint">
+                                  Example: the recipe can say 1 cup of cheese while your pantry is stored as servings.
+                                  Enter the number of servings you actually used.
+                                </small>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
