@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 function getUser() {
@@ -15,6 +16,7 @@ const links = [
 export default function Navbar() {
   const navigate = useNavigate();
   const user = getUser();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   function logout() {
     localStorage.removeItem("sp2_user");
@@ -24,7 +26,7 @@ export default function Navbar() {
   if (!user) return null;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${mobileOpen ? "mobileNavOpen" : ""}`}>
       <div className="brand navBrandClean">
         <img
           src="/SmartPantry_logo.png"
@@ -33,6 +35,9 @@ export default function Navbar() {
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         <div><h2>Smart<br />Pantry <small>2.0</small></h2></div>
+        <button type="button" className="mobileNavToggle" aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
+          <span aria-hidden="true">{mobileOpen ? "✕" : "☰"}</span>
+        </button>
       </div>
 
       <div className="userBox">
@@ -42,13 +47,13 @@ export default function Navbar() {
 
       <nav aria-label="Main navigation">
         {links.map((link) => (
-          <NavLink key={link.to} to={link.to} end={link.end}>
+          <NavLink key={link.to} to={link.to} end={link.end} onClick={() => setMobileOpen(false)}>
             <span className="navIcon" aria-hidden="true">{link.icon}</span>
             <span>{link.label}</span>
           </NavLink>
         ))}
         {user.role === "admin" && (
-          <NavLink to="/admin">
+          <NavLink to="/admin" onClick={() => setMobileOpen(false)}>
             <span className="navIcon" aria-hidden="true">◆</span>
             <span>Admin Dashboard</span>
           </NavLink>
