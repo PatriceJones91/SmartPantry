@@ -1,23 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client.js";
 
-const VARIABLE_MAP = {
-  pre_pantry_awareness: "Pantry Awareness",
-  post_pantry_awareness: "Pantry Awareness",
-  pre_expiration_awareness: "Expiration Awareness",
-  post_expiration_awareness: "Expiration Awareness",
-  pre_ingredient_utilization: "Ingredient Utilization",
-  post_ingredient_utilization: "Ingredient Utilization",
-  pre_meal_planning_confidence: "Meal Planning Confidence",
-  post_meal_planning_confidence: "Meal Planning Confidence",
-  pre_current_method_easy: "Ease of Current Method",
-  post_ease_of_use: "Ease of Use / Usability",
-  post_recommendation_usefulness: "Recommendation Usefulness",
-  post_recommendation_quality: "Recommendation Quality",
-  post_overall_satisfaction: "User Satisfaction",
-  post_continued_use: "Continued Use Intention",
-};
-
 function formatDate(value) {
   if (!value) return "N/A";
 
@@ -71,52 +54,6 @@ function safeJson(value) {
 
 function getUserName(userMap, userId) {
   return userMap[userId] || userId || "Unknown";
-}
-
-function parseJsonPreview(value) {
-  if (!value) return "N/A";
-
-  const parsed = safeJson(value);
-
-  if (Array.isArray(parsed)) {
-    return parsed.slice(0, 4).join(", ");
-  }
-
-  if (parsed && typeof parsed === "object") {
-    return Object.entries(parsed)
-      .slice(0, 4)
-      .map(([key, val]) => `${key}: ${val}`)
-      .join(" | ");
-  }
-
-  return String(value);
-}
-
-function average(values) {
-  const clean = values
-    .map((value) => Number(value))
-    .filter((value) => !Number.isNaN(value));
-
-  if (clean.length === 0) return null;
-
-  return clean.reduce((sum, value) => sum + value, 0) / clean.length;
-}
-
-function formatAverage(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "N/A";
-  }
-
-  return value.toFixed(1);
-}
-
-function formatChange(value) {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "N/A";
-  }
-
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}`;
 }
 
 function formatUsedIngredients(value) {
@@ -372,7 +309,6 @@ function AdminAccountTools() {
 export default function Admin() {
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
-  const [surveys, setSurveys] = useState([]);
   const [pantry, setPantry] = useState([]);
   const [logs, setLogs] = useState([]);
   const [activity1Rows, setActivity1Rows] = useState([]);
@@ -404,18 +340,16 @@ export default function Admin() {
     setError("");
 
     try {
-      const [summaryData, usersData, surveysData, pantryData, logsData] =
+      const [summaryData, usersData, pantryData, logsData] =
         await Promise.all([
           api.adminSummary(),
           api.adminUsers(),
-          api.adminSurveys(),
           api.adminPantry(),
           api.adminLogs(),
         ]);
 
       setSummary(summaryData || {});
       setUsers(safeArray(usersData));
-      setSurveys(safeArray(surveysData));
       setPantry(safeArray(pantryData));
       setLogs(safeArray(logsData));
     } catch (err) {
@@ -460,40 +394,6 @@ export default function Admin() {
     )[0];
   }, [activity1Rows]);
 
-  const surveySummary = useMemo(() => {
-    const userSurveyMap = {};
-
-    participantUsers.forEach((user) => {
-      userSurveyMap[user.id] = {
-        user_id: user.id,
-        username: user.username,
-        pre: false,
-        post: false,
-      };
-    });
-
-    surveys.forEach((survey) => {
-      if (!userSurveyMap[survey.user_id]) {
-        userSurveyMap[survey.user_id] = {
-          user_id: survey.user_id,
-          username: getUserName(userMap, survey.user_id),
-          pre: false,
-          post: false,
-        };
-      }
-
-      if (survey.survey_type === "pre") {
-        userSurveyMap[survey.user_id].pre = true;
-      }
-
-      if (survey.survey_type === "post") {
-        userSurveyMap[survey.user_id].post = true;
-      }
-    });
-
-    return Object.values(userSurveyMap);
-  }, [participantUsers, surveys, userMap]);
-
   const metrics = useMemo(() => {
     const recommendationLogs = logs.filter((log) => log.action !== "general_feedback");
 
@@ -505,8 +405,6 @@ export default function Admin() {
     const notUsed = recommendationLogs.filter((log) => log.action === "not_used").length;
     const customMeal = recommendationLogs.filter((log) => log.action === "custom_meal").length;
 
-    const preComplete = surveySummary.filter((item) => item.pre).length;
-    const postComplete = surveySummary.filter((item) => item.post).length;
     const activePantryItems = pantry.filter((item) => item.status !== "deleted");
 
     const positiveActions = made + usedElsewhere + saved + customMeal;
@@ -518,8 +416,6 @@ export default function Admin() {
     return {
       participants: participantUsers.length,
       totalUsers: users.length,
-      preComplete,
-      postComplete,
       pantryItems: activePantryItems.length,
       recommendationActions: recommendationLogs.length,
       made,
@@ -529,73 +425,13 @@ export default function Admin() {
       customMeal,
       acceptanceRate,
     };
-  }, [users, participantUsers, surveySummary, pantry, logs]);
-
-  const variableRows = useMemo(() => {
-    const grouped = {};
-
-    surveys.forEach((survey) => {
-      const responses = safeJson(survey.responses);
-
-      if (!responses || typeof responses !== "object") return;
-
-      Object.entries(responses).forEach(([questionId, value]) => {
-        const variable = VARIABLE_MAP[questionId];
-
-        if (!variable) return;
-
-        if (!grouped[variable]) {
-          grouped[variable] = {
-            variable,
-            pre: [],
-            post: [],
-          };
-        }
-
-        if (questionId.startsWith("pre_")) {
-          grouped[variable].pre.push(value);
-        }
-
-        if (questionId.startsWith("post_")) {
-          grouped[variable].post.push(value);
-        }
-      });
-    });
-
-    return Object.values(grouped).map((row) => {
-      const preAverage = average(row.pre);
-      const postAverage = average(row.post);
-      const change =
-        preAverage !== null && postAverage !== null
-          ? postAverage - preAverage
-          : null;
-
-      return {
-        variable: row.variable,
-        preAverage,
-        postAverage,
-        change,
-      };
-    });
-  }, [surveys]);
+  }, [users, participantUsers, pantry, logs]);
 
   const recentLogs = useMemo(() => {
     return [...logs]
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
       .slice(0, 8);
   }, [logs]);
-
-  function exportSurveys() {
-    const rows = surveys.map((survey) => ({
-      participant: getUserName(userMap, survey.user_id),
-      survey_type: survey.survey_type,
-      responses: survey.responses,
-      comments: survey.comments,
-      created_at: formatDate(survey.created_at),
-    }));
-
-    downloadCsv("smart_pantry_surveys.csv", rows);
-  }
 
   function exportPantry() {
     const rows = pantry.map((item) => ({
@@ -629,14 +465,13 @@ export default function Admin() {
   }
 
   function exportParticipants() {
-    const rows = surveySummary.map((row) => ({
-      participant: row.username,
-      pre_survey: row.pre ? "Complete" : "Not Done",
-      post_survey: row.post ? "Complete" : "Not Done",
-      pantry_items: pantry.filter((item) => item.user_id === row.user_id).length,
+    const rows = participantUsers.map((user) => ({
+      participant: user.username,
+      pantry_items: pantry.filter((item) => item.user_id === user.id).length,
       recommendation_actions: logs.filter(
-        (log) => log.user_id === row.user_id && log.action !== "general_feedback"
+        (log) => log.user_id === user.id && log.action !== "general_feedback"
       ).length,
+      survey_tracking: "Google Forms response sheets",
     }));
 
     downloadCsv("smart_pantry_participant_activity.csv", rows);
@@ -667,8 +502,8 @@ export default function Admin() {
           <h1>Admin Dashboard</h1>
           <p>
             This page gives the admin a study-level view of participants, pantry
-            activity, survey completion, recommendation behavior, and ingredient
-            use evidence.
+            activity, recommendation behavior, and ingredient-use evidence.
+            Pre-study and post-study survey responses are tracked separately in Google Forms.
           </p>
         </div>
 
@@ -699,12 +534,8 @@ export default function Admin() {
             <span>Participants</span>
           </div>
           <div>
-            <strong>{metrics.preComplete}</strong>
-            <span>Pre-study surveys</span>
-          </div>
-          <div>
-            <strong>{metrics.postComplete}</strong>
-            <span>Post-study surveys</span>
+            <strong>Google Forms</strong>
+            <span>Survey responses tracked separately</span>
           </div>
           <div>
             <strong>{metrics.pantryItems}</strong>
@@ -818,44 +649,6 @@ export default function Admin() {
         </div>
       </section>
 
-      <section className="card adminSectionCard">
-        <div className="adminSectionHeader">
-          <div>
-            <h2>Survey Results by Variable</h2>
-            <p>
-              Pre/post averages help connect the questions to measurable study
-              variables.
-            </p>
-          </div>
-        </div>
-
-        {variableRows.length === 0 ? (
-          <div className="groceryEmpty">No survey variable data yet.</div>
-        ) : (
-          <div className="adminTableWrap">
-            <table className="adminDataTable">
-              <thead>
-                <tr>
-                  <th>Variable</th>
-                  <th>Pre Average</th>
-                  <th>Post Average</th>
-                  <th>Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {variableRows.map((row) => (
-                  <tr key={row.variable}>
-                    <td>{row.variable}</td>
-                    <td>{formatAverage(row.preAverage)}</td>
-                    <td>{formatAverage(row.postAverage)}</td>
-                    <td>{formatChange(row.change)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
 
       <section className="card adminSectionCard">
         <div className="adminSectionHeader">
@@ -866,7 +659,6 @@ export default function Admin() {
         </div>
 
         <div className="exportButtonGrid">
-          <button onClick={exportSurveys}>Export Survey Data CSV</button>
           <button onClick={exportLogs}>Export Recommendation Logs CSV</button>
           <button onClick={exportPantry}>Export Pantry Data CSV</button>
           <button onClick={exportParticipants}>
@@ -881,47 +673,44 @@ export default function Admin() {
       <section className="card adminSectionCard">
         <div className="adminSectionHeader">
           <div>
-            <h2>Survey Completion by Participant</h2>
-            <p>Tracks who has completed each study survey.</p>
+            <h2>Participant Activity</h2>
+            <p>
+              Survey completion is checked in the Google Forms response sheets.
+              This table shows Smart Pantry activity only.
+            </p>
           </div>
         </div>
 
-        {surveySummary.length === 0 ? (
-          <p>No participant survey records yet.</p>
+        {participantUsers.length === 0 ? (
+          <p>No participant accounts yet.</p>
         ) : (
           <div className="adminTableWrap">
             <table className="adminDataTable">
               <thead>
                 <tr>
                   <th>Participant</th>
-                  <th>Pre-Study Survey</th>
-                  <th>Post-Study Survey</th>
+                  <th>Survey Tracking</th>
                   <th>Pantry Items</th>
                   <th>Recommendation Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {surveySummary.map((row) => (
-                  <tr key={row.user_id}>
-                    <td>{row.username}</td>
+                {participantUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.username}</td>
                     <td>
-                      <span
-                        className={row.pre ? "statusComplete" : "statusMissing"}
-                      >
-                        {row.pre ? "Complete" : "Not Done"}
+                      <span className="statusComplete">
+                        Check Google Forms
                       </span>
                     </td>
                     <td>
-                      <span
-                        className={row.post ? "statusComplete" : "statusMissing"}
-                      >
-                        {row.post ? "Complete" : "Not Done"}
-                      </span>
+                      {pantry.filter((item) => item.user_id === user.id).length}
                     </td>
-                    <td>{pantry.filter((item) => item.user_id === row.user_id).length}</td>
                     <td>
                       {logs.filter(
-                        (log) => log.user_id === row.user_id && log.action !== "general_feedback"
+                        (log) =>
+                          log.user_id === user.id &&
+                          log.action !== "general_feedback"
                       ).length}
                     </td>
                   </tr>
@@ -975,7 +764,7 @@ export default function Admin() {
         <div className="adminSectionHeader">
           <div>
             <h2>Admin Evidence Tables</h2>
-            <p>Raw evidence tables for users, surveys, pantry items, and logs.</p>
+            <p>Raw evidence tables for users, pantry items, Activity 1, and recommendation logs.</p>
           </div>
         </div>
 
@@ -985,12 +774,6 @@ export default function Admin() {
             onClick={() => setActiveTable("users")}
           >
             Users
-          </button>
-          <button
-            className={activeTable === "surveys" ? "activeFilter" : "secondary"}
-            onClick={() => setActiveTable("surveys")}
-          >
-            Surveys
           </button>
           <button
             className={activeTable === "pantry" ? "activeFilter" : "secondary"}
@@ -1028,33 +811,6 @@ export default function Admin() {
                     <td>{user.username}</td>
                     <td>{user.role}</td>
                     <td>{formatDate(user.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {activeTable === "surveys" && (
-          <div className="adminTableWrap">
-            <table className="adminDataTable wideAdminTable">
-              <thead>
-                <tr>
-                  <th>Participant</th>
-                  <th>Survey Type</th>
-                  <th>Response Preview</th>
-                  <th>Comments</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {surveys.map((survey) => (
-                  <tr key={survey.id}>
-                    <td>{getUserName(userMap, survey.user_id)}</td>
-                    <td>{survey.survey_type}</td>
-                    <td>{parseJsonPreview(survey.responses)}</td>
-                    <td>{survey.comments || "N/A"}</td>
-                    <td>{formatDate(survey.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
