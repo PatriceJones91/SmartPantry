@@ -13,6 +13,7 @@ from models.recommendation_api import (
 from models.schemas import RecommendationActionRequest, RecommendationFeedbackRequest
 from services.recommendations import generate_recommendations
 from services.recommendations.api_adapter import ENGINE_VERSION, build_api_response
+from services.dashboard_grocery import build_grocery_suggestions
 from services.recommendation_tracking import (
     build_action_row,
     persist_generation,
@@ -154,6 +155,68 @@ def save_general_feedback(payload: GeneralFeedbackRequest):
     if not response.data:
         raise HTTPException(status_code=400, detail="Could not save general feedback.")
     return {"status": "ok", "message": "Feedback saved. Thank you.", "feedback": response.data[0]}
+
+
+
+@router.get("/grocery-suggestions/{user_id}")
+def latest_grocery_suggestions(user_id: str):
+    """Build the dashboard grocery list from the latest recorded recommendation session."""
+    try:
+        supabase = get_supabase()
+
+        session_response = (
+            supabase.table("sp2_recommendation_sessions")
+            .select("id, generated_at, returned_count")
+            .eq("user_id", user_id)
+            .order("generated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        sessions = session_response.data or []
+
+        if not sessions:
+            return {
+                "session_id": None,
+                "generated_at": None,
+                "recommendation_count": 0,
+                "suggestions": [],
+            }
+
+        session = sessions[0]
+        session_id = session["id"]
+
+        results_response = (
+            supabase.table("sp2_recommendation_results")
+            .select("recipe_name, final_rank, recommendation_snapshot")
+            .eq("user_id", user_id)
+            .eq("session_id", session_id)
+            .order("final_rank")
+            .execute()
+        )
+
+        pantry_response = (
+            supabase.table("sp2_pantry_items")
+            .select("item_name")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        suggestions = build_grocery_suggestions(
+            results_response.data or [],
+            pantry_response.data or [],
+        )
+
+        return {
+            "session_id": session_id,
+            "generated_at": session.get("generated_at"),
+            "recommendation_count": len(results_response.data or []),
+            "suggestions": suggestions,
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Suggested grocery items could not be loaded.",
+        ) from exc
 
 
 @router.get("/history/{user_id}")

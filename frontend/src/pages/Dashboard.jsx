@@ -14,68 +14,6 @@ const COLORS = [
   "#ec4899",
 ];
 
-const GROCERY_IDEAS = [
-  {
-    item: "Tortillas",
-    worksWith: ["chicken", "lettuce", "beans", "rice", "cheese", "eggs", "beef"],
-    profileMatches: ["lunch", "dinner", "mexican", "tex-mex"],
-  },
-  {
-    item: "Bread",
-    worksWith: ["eggs", "tuna", "chicken", "lettuce", "cheese", "turkey"],
-    profileMatches: ["breakfast", "lunch", "american"],
-  },
-  {
-    item: "Cheese",
-    worksWith: ["eggs", "chicken", "rice", "pasta", "bread", "tortillas", "beef"],
-    profileMatches: ["breakfast", "lunch", "dinner", "american", "mexican"],
-  },
-  {
-    item: "Rice",
-    worksWith: ["chicken", "beans", "beef", "fish", "vegetables", "eggs"],
-    profileMatches: ["lunch", "dinner", "asian", "mexican", "american"],
-  },
-  {
-    item: "Beans",
-    worksWith: ["rice", "chicken", "lettuce", "tortillas", "beef", "cheese"],
-    profileMatches: ["lunch", "dinner", "mexican", "tex-mex"],
-  },
-  {
-    item: "Pasta",
-    worksWith: ["chicken", "cheese", "vegetables", "beef", "tomatoes"],
-    profileMatches: ["dinner", "italian", "american"],
-  },
-  {
-    item: "Pasta sauce",
-    worksWith: ["pasta", "chicken", "beef", "cheese", "vegetables"],
-    profileMatches: ["dinner", "italian", "american"],
-  },
-  {
-    item: "Tomatoes",
-    worksWith: ["lettuce", "chicken", "tortillas", "bread", "beans", "cheese"],
-    profileMatches: ["lunch", "dinner", "mexican", "american"],
-  },
-  {
-    item: "Salad dressing",
-    worksWith: ["lettuce", "spinach", "chicken", "tuna", "fish"],
-    profileMatches: ["lunch", "dinner"],
-  },
-  {
-    item: "Mixed vegetables",
-    worksWith: ["chicken", "rice", "pasta", "eggs", "beef"],
-    profileMatches: ["lunch", "dinner", "american", "asian"],
-  },
-  {
-    item: "Oats",
-    worksWith: ["milk", "yogurt", "fruit", "banana"],
-    profileMatches: ["breakfast"],
-  },
-  {
-    item: "Fruit",
-    worksWith: ["yogurt", "oats", "cereal", "milk"],
-    profileMatches: ["breakfast", "snack"],
-  },
-];
 
 function getUser() {
   return JSON.parse(localStorage.getItem("sp2_user"));
@@ -221,6 +159,8 @@ export default function Dashboard() {
 
   const [pantry, setPantry] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [recommendationGroceries, setRecommendationGroceries] = useState([]);
+  const [recommendationSession, setRecommendationSession] = useState(null);
   const [customItem, setCustomItem] = useState("");
   const [customGroceries, setCustomGroceries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -228,13 +168,18 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [pantryData, profileData] = await Promise.all([
+        const [pantryData, profileData, groceryData] = await Promise.all([
           api.getPantry(user.id),
           api.getProfile ? api.getProfile(user.id) : Promise.resolve(null),
+          api.getRecommendationGrocerySuggestions
+            ? api.getRecommendationGrocerySuggestions(user.id)
+            : Promise.resolve({ suggestions: [] }),
         ]);
 
         setPantry(pantryData || []);
         setProfile(profileData || null);
+        setRecommendationGroceries(groceryData?.suggestions || []);
+        setRecommendationSession(groceryData?.session_id || null);
 
         const savedCustomItems = JSON.parse(localStorage.getItem(customKey) || "[]");
         setCustomGroceries(savedCustomItems);
@@ -302,41 +247,17 @@ export default function Dashboard() {
       .sort((a, b) => a.days - b.days);
   }, [pantry]);
 
-  const suggestedGroceries = useMemo(() => {
-    const pantryNames = pantry.map((item) => normalizeText(item.item_name));
-    const userProfileText = profileText(profile);
-
-    const suggestions = GROCERY_IDEAS.map((idea) => {
-      if (pantryHasItem(pantryNames, idea.item)) return null;
-
-      const matchedPantryItems = idea.worksWith.filter((ingredient) =>
-        pantryNames.some((name) => name.includes(ingredient))
-      );
-
-      const profileMatched = idea.profileMatches.some((preference) =>
-        userProfileText.includes(preference)
-      );
-
-      if (matchedPantryItems.length === 0 && !profileMatched) return null;
-
-      const status = getSuggestionLabel(matchedPantryItems.length, profileMatched);
-
-      return {
-        item: idea.item,
-        label: status.label,
-        className: status.className,
-        note: status.note,
-      };
-    })
-      .filter(Boolean)
-      .sort((a, b) => {
-        const rank = { High: 1, Medium: 2, Suggested: 3, Low: 4 };
-        return rank[a.label] - rank[b.label];
-      })
-      .slice(0, 6);
-
-    return suggestions;
-  }, [pantry, profile]);
+  const suggestedGroceries = useMemo(
+    () =>
+      recommendationGroceries.map((suggestion) => ({
+        item: suggestion.item,
+        label: suggestion.label,
+        className: suggestion.class_name || "suggested",
+        note: suggestion.note,
+        neededFor: suggestion.needed_for || [],
+      })),
+    [recommendationGroceries]
+  );
 
   const totalAmount = pantry.reduce(
     (sum, item) => sum + Number(item.quantity || 0),
@@ -571,8 +492,8 @@ export default function Dashboard() {
               <p className="m8DashboardSectionLabel">Optional additions</p>
               <h2>Suggested Grocery List</h2>
               <p>
-                These ideas can help you create more meals with what is already in
-                your pantry. They are suggestions, not required purchases.
+                Based on missing ingredients from your latest meal recommendations.
+                These are suggestions, not required purchases.
               </p>
             </div>
           </header>
@@ -592,9 +513,15 @@ export default function Dashboard() {
 
           {suggestedGroceries.length === 0 && customGroceries.length === 0 ? (
             <div className="m8DashboardEmptyState compact">
-              <strong>No suggestions yet</strong>
-              <p>Add more pantry items or save your meal preferences to receive ideas.</p>
-              <button type="button" onClick={() => navigate("/profile")}>Review Preferences</button>
+              <strong>{recommendationSession ? "No missing grocery items" : "Generate meal recommendations first"}</strong>
+              <p>
+                {recommendationSession
+                  ? "Your latest recommendations are covered by pantry ingredients or available Smart Swaps."
+                  : "The Suggested Grocery List will update after you generate meal recommendations."}
+              </p>
+              <button type="button" onClick={() => navigate("/recommendations")}>
+                {recommendationSession ? "Review Recommendations" : "Find Meal Recommendations"}
+              </button>
             </div>
           ) : (
             <div className="m8GroceryList">

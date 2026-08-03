@@ -106,6 +106,8 @@ export const api = {
 
   getRecommendationHistory: (userId) =>
     request(`/recommendations/history/${userId}`),
+  getRecommendationGrocerySuggestions: (userId) =>
+    request(`/recommendations/grocery-suggestions/${userId}`),
 
   getProfile: (userId) => request(`/profile/${userId}`),
 
