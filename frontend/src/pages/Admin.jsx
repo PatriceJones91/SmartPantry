@@ -491,7 +491,7 @@ export default function Admin() {
       saved_at: formatDate(item.created_at),
     }));
 
-    downloadCsv("activity1_manual_tracking_data.csv", rows);
+    downloadCsv("pantry_note_tracker.csv", rows);
   }
 
   return (
@@ -665,7 +665,7 @@ export default function Admin() {
             Export Participant Activity CSV
           </button>
           <button onClick={exportActivity1}>
-            Export Activity 1 Manual Tracking CSV
+            Export Pantry Note Tracker CSV
           </button>
         </div>
       </section>

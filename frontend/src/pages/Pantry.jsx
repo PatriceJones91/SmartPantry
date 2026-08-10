@@ -500,6 +500,97 @@ function parseProductLine(line, section) {
   };
 }
 
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+  const source = String(text || "").replace(/^\uFEFF/, "");
+
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        value += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && next === '\n') i += 1;
+      row.push(value);
+      if (row.some((cell) => String(cell).trim() !== "")) rows.push(row);
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += char;
+  }
+
+  row.push(value);
+  if (row.some((cell) => String(cell).trim() !== "")) rows.push(row);
+  return rows;
+}
+
+function parsePantryNoteTrackerCsv(text) {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) return null;
+
+  const headers = rows[0].map((cell) => String(cell || "").trim().toLowerCase());
+  const required = ["item_name", "quantity", "unit", "category", "expiration_date", "notes"];
+  const isTrackerCsv = required.every((header) => headers.includes(header));
+  if (!isTrackerCsv) return null;
+
+  const indexFor = (name) => headers.indexOf(name);
+  const items = [];
+
+  for (const row of rows.slice(1)) {
+    const itemName = String(row[indexFor("item_name")] || "").trim();
+    if (!itemName) continue;
+
+    const rawQuantity = String(row[indexFor("quantity")] || "").trim();
+    const parsedQuantity = Number(rawQuantity);
+    const rawUnit = String(row[indexFor("unit")] || "").trim();
+    const rawCategory = String(row[indexFor("category")] || "").trim();
+    const rawExpiration = String(row[indexFor("expiration_date")] || "").trim();
+    const rawNotes = String(row[indexFor("notes")] || "").trim();
+
+    const unit = UNIT_OPTIONS.includes(rawUnit) ? rawUnit : "item";
+    const category = CATEGORY_OPTIONS.includes(rawCategory)
+      ? rawCategory
+      : guessCategory(itemName);
+
+    items.push({
+      selected: true,
+      item_name: itemName,
+      category,
+      quantity: Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1,
+      unit,
+      container_type: "",
+      expiration_date: cleanDate(rawExpiration),
+      barcode: "",
+      brand: "",
+      source: "pantry_note_tracker_csv",
+      notes: rawNotes,
+    });
+  }
+
+  return items;
+}
+
 function parseGroceryText(text) {
   const lines = String(text || "")
     .split(/\n|,/)
@@ -909,6 +1000,7 @@ async function scanReceiptWithOcr() {
 
   async function handleGroceryTextFile(e) {
     const file = e.target.files?.[0];
+    e.target.value = "";
 
     setMessage("");
     setError("");
@@ -917,11 +1009,49 @@ async function scanReceiptWithOcr() {
 
     try {
       const text = await file.text();
+      const trackerItems = file.name.toLowerCase().endsWith(".csv")
+        ? parsePantryNoteTrackerCsv(text)
+        : null;
+
+      if (trackerItems) {
+        if (trackerItems.length === 0) {
+          setDetectedItems([]);
+          setOcrText("");
+          setError("This Pantry Note Tracker CSV does not contain any pantry items to import.");
+          return;
+        }
+
+        const existingKeys = new Set(
+          items.map((item) => `${String(item.item_name || "").trim().toLowerCase()}|${cleanDate(item.expiration_date)}`)
+        );
+        let duplicateCount = 0;
+        const reviewedItems = trackerItems.map((item) => {
+          const key = `${item.item_name.trim().toLowerCase()}|${cleanDate(item.expiration_date)}`;
+          if (existingKeys.has(key)) {
+            duplicateCount += 1;
+            return { ...item, selected: false };
+          }
+          return item;
+        });
+
+        setOcrText("");
+        setDetectedItems(reviewedItems);
+        setMessage(
+          `${reviewedItems.length} Pantry Note Tracker item(s) ready for review.${duplicateCount ? ` ${duplicateCount} possible duplicate(s) were left unselected.` : ""}`
+        );
+        return;
+      }
+
       setOcrText(text);
-      setDetectedItems(parseGroceryText(text));
-      setMessage("Text file loaded. Review the detected items before saving.");
+      const detected = parseGroceryText(text);
+      setDetectedItems(detected);
+      setMessage(
+        detected.length
+          ? `Grocery file loaded. ${detected.length} possible item(s) detected. Review before saving.`
+          : "File loaded, but no grocery items were detected. Try one item per line or use a Pantry Note Tracker CSV export."
+      );
     } catch {
-      setError("Could not read that file. Try a .txt or .csv file.");
+      setError("Could not read that file. Try a .txt or Pantry Note Tracker .csv file.");
     }
   }
 
@@ -1573,7 +1703,7 @@ async function scanReceiptWithOcr() {
                 <span aria-hidden="true">📄</span>
                 <strong>Upload File</strong>
                 <small>TXT or CSV grocery list</small>
-                <input type="file" accept=".txt,.csv" onChange={handleGroceryTextFile} />
+                <input type="file" accept=".txt,.csv,text/csv" onChange={handleGroceryTextFile} />
               </label>
             </div>
 
@@ -1581,7 +1711,7 @@ async function scanReceiptWithOcr() {
               <div className="compactReceiptDetails">
                 <div className="compactReceiptToolbar">
                   <div>
-                    <strong>Receipt review</strong>
+                    <strong>Import / receipt review</strong>
                     <span>Scan, correct, and choose the items you want to save.</span>
                   </div>
                   <div>
