@@ -1,5 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from services.supabase_service import table, rows
+from services.google_study_sheets import load_study_evidence
+from routes.auth import require_admin_user
 
 router = APIRouter()
 
@@ -47,3 +50,20 @@ def recommendation_logs():
 @router.get("/recommendation-sessions")
 def recommendation_sessions():
     return rows(table("sp2_recommendation_sessions").select("*").order("generated_at", desc=True).execute())
+
+
+class StudyEvidencePayload(BaseModel):
+    admin_username: str
+    admin_password: str
+
+
+@router.post("/study-evidence")
+def study_evidence(payload: StudyEvidencePayload):
+    """Return de-identified Google Forms/Sheets evidence to a verified admin."""
+    require_admin_user(payload.admin_username, payload.admin_password)
+    try:
+        return load_study_evidence()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Could not load study response sheets: {type(exc).__name__}")

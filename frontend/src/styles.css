@@ -10310,3 +10310,152 @@ body,
     padding: 8px 12px !important;
   }
 }
+
+/* Admin study-evidence usability update */
+.adminQuickControls {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+}
+
+.adminControlRow {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.adminControlRow label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-weight: 900;
+  min-width: 220px;
+}
+
+.adminControlRow select {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+  color: #0f172a;
+  font-weight: 750;
+}
+
+.adminJumpLinks {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminJumpLinks a {
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.researchEvidenceGrid,
+.tamGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.researchEvidenceGrid > div,
+.tamGrid > div {
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.researchEvidenceGrid h3,
+.tamGrid h3 {
+  margin: 0 0 7px;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.researchEvidenceGrid p,
+.tamGrid p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.adminConnectionNote {
+  margin-top: 12px;
+  border-left: 5px solid #f59e0b;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fffbeb;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+@media (max-width: 950px) {
+  .adminQuickControls {
+    position: static;
+  }
+
+  .researchEvidenceGrid,
+  .tamGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminControlRow {
+    align-items: stretch;
+  }
+
+  .adminControlRow label {
+    width: 100%;
+  }
+}
+
+/* Private Google study evidence connection */
+.adminStudyLoadRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.adminStudyLoadRow input {
+  min-width: 220px;
+  flex: 1 1 260px;
+}
+
+.statusReady {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+}
+
+.researchNoteCard ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.adminMutedNote {
+  margin-top: 0.75rem;
+  opacity: 0.75;
+}
+
+.exportButtonGrid button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
