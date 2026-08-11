@@ -74,6 +74,13 @@ async def request_context_and_cors(request: Request, call_next):
     )
     return response
 
+@app.get("/")
+def root():
+    return {
+        "message": "Smart Pantry API is running",
+        "health": "/api/health",
+        "docs": "/docs",
+    }
 
 @app.get("/api/health")
 def health_check():
