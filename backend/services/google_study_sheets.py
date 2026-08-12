@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-"""Private Google Sheets reader for Smart Pantry study evidence.
-
-This module is used only by the admin research dashboard. It reads the first
-worksheet in each configured Google Form response spreadsheet using a Google
-service account. The service account JSON stays in the backend environment and
-is never returned to the browser.
-"""
-=======
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
 from __future__ import annotations
 
 import json
@@ -66,12 +56,7 @@ def _first_worksheet_values(session: AuthorizedSession, spreadsheet_id: str) -> 
 
 
 def _clean_header(value: Any) -> str:
-<<<<<<< HEAD
-    text = re.sub(r"\s+", " ", str(value or "")).strip()
-    return text
-=======
     return re.sub(r"\s+", " ", str(value or "")).strip()
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
 
 
 def _rows(values: list[list[str]]) -> list[dict[str, Any]]:
@@ -95,13 +80,10 @@ def _participant(row: dict[str, Any]) -> str:
     return ""
 
 
-<<<<<<< HEAD
-=======
 def _participant_key(value: Any) -> str:
     return re.sub(r"[^a-z0-9]", "", str(value or "").lower())
 
 
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
 def _timestamp(row: dict[str, Any]) -> str:
     for key, value in row.items():
         if key.lower() == "timestamp":
@@ -145,11 +127,7 @@ def _tam_record(row: dict[str, Any], task: str) -> dict[str, Any]:
         awareness = [_number(q.get(4))]
         utilization = [_number(q.get(6))]
         intention = [_number(q.get(8))]
-<<<<<<< HEAD
-    else:  # task3
-=======
     else:
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
         ease = [_number(q.get(1)), _number(q.get(2))]
         usefulness = [_number(q.get(i)) for i in (3, 4, 5, 6, 7)]
         awareness = [_number(q.get(3)), _number(q.get(4))]
@@ -182,32 +160,11 @@ def _summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-<<<<<<< HEAD
-def _basic_survey_rows(rows: list[dict[str, Any]], include_open_text: bool = True) -> list[dict[str, Any]]:
-=======
 def _basic_survey_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
     output = []
     for row in rows:
         q = _question_map(row)
         numeric = {str(i): _number(value) for i, value in q.items() if _number(value) is not None}
-<<<<<<< HEAD
-        text = {str(i): str(value or "") for i, value in q.items() if _number(value) is None and str(value or "").strip()}
-        item = {"participant": _participant(row), "timestamp": _timestamp(row), "ratings": numeric}
-        if include_open_text:
-            item["text"] = text
-        output.append(item)
-    return output
-
-
-def load_study_evidence() -> dict[str, Any]:
-    credentials = _credentials()
-    session = AuthorizedSession(credentials)
-
-    raw: dict[str, list[dict[str, Any]]] = {}
-    for key in DEFAULT_SHEETS:
-        raw[key] = _rows(_first_worksheet_values(session, _sheet_id(key)))
-=======
         text = {
             str(i): str(value or "")
             for i, value in q.items()
@@ -261,7 +218,6 @@ def load_study_evidence() -> dict[str, Any]:
         key: _rows(_first_worksheet_values(session, _sheet_id(key)))
         for key in DEFAULT_SHEETS
     }
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
 
     task1 = [_tam_record(row, "task1") for row in raw["task1"]]
     task2 = [_tam_record(row, "task2") for row in raw["task2"]]
@@ -269,33 +225,22 @@ def load_study_evidence() -> dict[str, Any]:
 
     consent = []
     for row in raw["consent"]:
-<<<<<<< HEAD
-        agreed = ""
-        for header, value in row.items():
-            if "agree to participate" in header.lower():
-                agreed = str(value or "")
-                break
-=======
         agreed = next(
             (str(value or "") for header, value in row.items() if "agree to participate" in header.lower()),
             "",
         )
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
         consent.append({
             "participant": _participant(row),
             "timestamp": _timestamp(row),
             "consented": agreed.lower().startswith("yes"),
         })
 
-<<<<<<< HEAD
-=======
     tam_summary = {
         "task1": _summary(task1),
         "task2": _summary(task2),
         "task3": _summary(task3),
     }
 
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
     return {
         "status": "ok",
         "sources": {
@@ -312,22 +257,10 @@ def load_study_evidence() -> dict[str, Any]:
         "task2": task2,
         "task3": task3,
         "post": _basic_survey_rows(raw["post"]),
-<<<<<<< HEAD
-        "tam_summary": {
-            "task1": _summary(task1),
-            "task2": _summary(task2),
-            "task3": _summary(task3),
-        },
-        "notes": [
-            "TAM scores use 1-10 survey ratings.",
-            "Task 2 usefulness uses questions 3, 5, 6, and 7; question 4 is shown separately as pantry-awareness evidence.",
-            "The current Post-Study response sheet contains duplicate wording for questions 13 and 14; the dashboard keeps the source data unchanged.",
-=======
         "tam_summary": tam_summary,
         "pre_post_awareness": _matched_awareness(raw["pre"], raw["post"]),
         "notes": [
             "Scores are descriptive while the participant study is in progress.",
             "Post-Study questions 13 and 14 currently have duplicate wording in the source form.",
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
         ],
     }

@@ -10459,8 +10459,6 @@ body,
   opacity: 0.55;
   cursor: not-allowed;
 }
-<<<<<<< HEAD
-=======
 
 /* Admin study review */
 .studyProgressGrid {
@@ -10551,4 +10549,3 @@ body,
     grid-template-columns: 1fr 1fr;
   }
 }
->>>>>>> e45c667 (Finalize admin study evidence dashboard)
