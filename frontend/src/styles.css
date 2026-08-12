@@ -10459,3 +10459,96 @@ body,
   opacity: 0.55;
   cursor: not-allowed;
 }
+<<<<<<< HEAD
+=======
+
+/* Admin study review */
+.studyProgressGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.studyProgressGrid > div,
+.prePostStrip > div {
+  border: 1px solid var(--border-color, #d9e3dc);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--card-bg, #fff);
+}
+
+.studyProgressGrid strong,
+.prePostStrip strong {
+  display: block;
+  font-size: 1.35rem;
+  margin-bottom: 4px;
+}
+
+.studyProgressGrid span,
+.prePostStrip span {
+  display: block;
+  font-size: 0.86rem;
+  opacity: 0.78;
+}
+
+.prePostStrip {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(3, minmax(100px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.researchEvidenceGrid > div > strong {
+  display: block;
+  font-size: 1.55rem;
+  margin: 8px 0;
+}
+
+.tamComparisonTable td:not(:first-child),
+.tamComparisonTable th:not(:first-child) {
+  text-align: center;
+}
+
+.evidenceDetails {
+  margin-top: 16px;
+  border: 1px solid var(--border-color, #d9e3dc);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+}
+
+.evidenceDetails > summary {
+  cursor: pointer;
+  padding: 14px 16px;
+  font-weight: 700;
+  user-select: none;
+}
+
+.evidenceDetails[open] > summary {
+  border-bottom: 1px solid var(--border-color, #d9e3dc);
+}
+
+.evidenceDetails .adminTableWrap {
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 1100px) {
+  .studyProgressGrid {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+
+  .prePostStrip {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .studyProgressGrid,
+  .prePostStrip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)

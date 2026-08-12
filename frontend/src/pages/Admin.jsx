@@ -330,6 +330,7 @@ export default function Admin() {
   const [activeTable, setActiveTable] = useState("users");
   const [participantFilter, setParticipantFilter] = useState("all");
   const [studyEvidence, setStudyEvidence] = useState(null);
+<<<<<<< HEAD
   const [studyPassword, setStudyPassword] = useState("");
   const [studyEvidenceLoading, setStudyEvidenceLoading] = useState(false);
   const [studyEvidenceError, setStudyEvidenceError] = useState("");
@@ -340,23 +341,49 @@ export default function Admin() {
       return user.username || "admin";
     } catch {
       return "admin";
+=======
+  const [studyEvidenceLoading, setStudyEvidenceLoading] = useState(false);
+  const [studyEvidenceError, setStudyEvidenceError] = useState("");
+
+  function getAdminSession() {
+    try {
+      return JSON.parse(sessionStorage.getItem("sp2_admin_session") || "null");
+    } catch {
+      return null;
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
     }
   }
 
   async function loadGoogleStudyEvidence() {
+<<<<<<< HEAD
     if (!studyPassword) {
       setStudyEvidenceError("Enter your admin password to load private Google study responses.");
       return;
     }
+=======
+    const adminSession = getAdminSession();
+    if (!adminSession?.username || !adminSession?.password) {
+      setStudyEvidenceError("Admin study access expired. Log out and back in to refresh it.");
+      return;
+    }
+
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
     setStudyEvidenceLoading(true);
     setStudyEvidenceError("");
     try {
       const data = await api.adminStudyEvidence({
+<<<<<<< HEAD
         admin_username: getAdminUsername(),
         admin_password: studyPassword,
       });
       setStudyEvidence(data || null);
       setStudyPassword("");
+=======
+        admin_username: adminSession.username,
+        admin_password: adminSession.password,
+      });
+      setStudyEvidence(data || null);
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
     } catch (err) {
       setStudyEvidenceError(err.message || "Could not load Google study responses.");
     } finally {
@@ -408,6 +435,7 @@ export default function Admin() {
   useEffect(() => {
     loadAdminData();
     loadActivity1Rows();
+    loadGoogleStudyEvidence();
   }, []);
 
   const userMap = useMemo(() => {
@@ -423,6 +451,19 @@ export default function Admin() {
   const participantUsers = useMemo(() => {
     return users.filter((user) => user.role !== "admin");
   }, [users]);
+
+  const selectedParticipant = useMemo(() => {
+    if (participantFilter === "all") return null;
+    return participantUsers.find((user) => user.id === participantFilter) || null;
+  }, [participantFilter, participantUsers]);
+
+  const selectedParticipantKey = normalizeParticipantKey(selectedParticipant?.username);
+
+  function studyRows(section) {
+    const rows = safeArray(studyEvidence?.[section]);
+    if (!selectedParticipantKey) return rows;
+    return rows.filter((row) => normalizeParticipantKey(row.participant) === selectedParticipantKey);
+  }
 
   const activity1ParticipantCount = useMemo(() => {
     const names = activity1Rows
@@ -536,13 +577,26 @@ export default function Admin() {
         task1_items: task1Items.length,
         task1_tam_ease: sheetEvidence.task1?.ease_of_use ?? "",
         task1_tam_usefulness: sheetEvidence.task1?.perceived_usefulness ?? "",
+<<<<<<< HEAD
         task2_tam_ease: sheetEvidence.task2?.ease_of_use ?? "",
         task2_tam_usefulness: sheetEvidence.task2?.perceived_usefulness ?? "",
         task2_tam_intention: sheetEvidence.task2?.behavioral_intention ?? "",
+=======
+        task1_tam_intention: sheetEvidence.task1?.behavioral_intention ?? "",
+        task1_awareness: sheetEvidence.task1?.pantry_awareness ?? "",
+        task2_tam_ease: sheetEvidence.task2?.ease_of_use ?? "",
+        task2_tam_usefulness: sheetEvidence.task2?.perceived_usefulness ?? "",
+        task2_tam_intention: sheetEvidence.task2?.behavioral_intention ?? "",
+        task2_awareness: sheetEvidence.task2?.pantry_awareness ?? "",
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
         task3_pantry_items: userPantry.length,
         task3_tam_ease: sheetEvidence.task3?.ease_of_use ?? "",
         task3_tam_usefulness: sheetEvidence.task3?.perceived_usefulness ?? "",
         task3_tam_intention: sheetEvidence.task3?.behavioral_intention ?? "",
+<<<<<<< HEAD
+=======
+        task3_awareness: sheetEvidence.task3?.pantry_awareness ?? "",
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
         task3_recommendation_actions: userLogs.length,
         made_meal: userLogs.filter((log) => log.action === "made").length,
         used_elsewhere: userLogs.filter((log) => log.action === "used_elsewhere").length,
@@ -613,8 +667,18 @@ export default function Admin() {
 
   function exportTamSummary() {
     if (!studyEvidence?.tam_summary) return;
+<<<<<<< HEAD
     const rows = Object.entries(studyEvidence.tam_summary).map(([task, values]) => ({
       study_task: task === "task1" ? "Study Task 1 – Pantry Note Tracker" : task === "task2" ? "Study Task 2 – Samsung Food Ingredient Recipe Finder" : "Study Task 3 – Smart Pantry",
+=======
+    const labels = {
+      task1: "Study Task 1 – Pantry Note Tracker",
+      task2: "Study Task 2 – Samsung Food",
+      task3: "Study Task 3 – Smart Pantry",
+    };
+    const rows = Object.entries(studyEvidence.tam_summary).map(([task, values]) => ({
+      study_task: labels[task],
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
       responses: values.responses,
       perceived_ease_of_use: values.ease_of_use,
       perceived_usefulness: values.perceived_usefulness,
@@ -625,6 +689,41 @@ export default function Admin() {
     downloadCsv("smart_pantry_tam_summary.csv", rows);
   }
 
+<<<<<<< HEAD
+=======
+  function exportResearchOutcomeSummary() {
+    if (!studyEvidence?.tam_summary) return;
+    const rows = [
+      {
+        outcome: "Pantry Awareness",
+        task1: studyEvidence.tam_summary.task1?.pantry_awareness,
+        task2: studyEvidence.tam_summary.task2?.pantry_awareness,
+        task3: studyEvidence.tam_summary.task3?.pantry_awareness,
+        pre_average: studyEvidence.pre_post_awareness?.pre_average,
+        post_average: studyEvidence.pre_post_awareness?.post_average,
+        pre_post_change: studyEvidence.pre_post_awareness?.change,
+      },
+      {
+        outcome: "Recommendation Usefulness",
+        task1: studyEvidence.tam_summary.task1?.perceived_usefulness,
+        task2: studyEvidence.tam_summary.task2?.perceived_usefulness,
+        task3: studyEvidence.tam_summary.task3?.perceived_usefulness,
+      },
+      {
+        outcome: "Ingredient Utilization",
+        task1: studyEvidence.tam_summary.task1?.ingredient_utilization,
+        task2: studyEvidence.tam_summary.task2?.ingredient_utilization,
+        task3: studyEvidence.tam_summary.task3?.ingredient_utilization,
+        made_meal: metrics.made,
+        used_elsewhere: metrics.usedElsewhere,
+        saved_for_later: metrics.saved,
+        did_not_use: metrics.notUsed,
+      },
+    ];
+    downloadCsv("smart_pantry_research_outcome_summary.csv", rows);
+  }
+
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
   return (
     <div className="adminPage">
       <section className="adminHeroCard">
@@ -632,8 +731,12 @@ export default function Admin() {
           <p className="eyebrow">Smart Pantry Admin</p>
           <h1>Admin Dashboard</h1>
           <p>
+<<<<<<< HEAD
             Research control center for Study Task 1, Study Task 2, Study Task 3,
             participant evidence, TAM measures, and study-data exports.
+=======
+            Review participant progress, TAM measures, research outcomes, Smart Pantry behavior, and exports in one place.
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
           </p>
         </div>
 
@@ -641,9 +744,10 @@ export default function Admin() {
           onClick={() => {
             loadAdminData();
             loadActivity1Rows();
+            loadGoogleStudyEvidence();
           }}
         >
-          Refresh Admin Data
+          Refresh All Study Data
         </button>
       </section>
 
@@ -666,9 +770,17 @@ export default function Admin() {
             </select>
           </label>
           <div className="adminJumpLinks">
+<<<<<<< HEAD
             <a href="#research-outcomes">Research Outcomes</a>
             <a href="#task1">Task 1</a>
             <a href="#task2">Task 2 / TAM</a>
+=======
+            <a href="#study-progress">Study Progress</a>
+            <a href="#research-outcomes">Research Outcomes</a>
+            <a href="#tam-comparison">TAM Comparison</a>
+            <a href="#task1">Task 1</a>
+            <a href="#task2">Task 2</a>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
             <a href="#task3">Task 3</a>
             <a href="#exports">Exports</a>
             <a href="#raw-evidence">Raw Evidence</a>
@@ -679,38 +791,122 @@ export default function Admin() {
       {loading && <section className="card">Loading admin dashboard...</section>}
       {error && <section className="card error">{error}</section>}
 
+<<<<<<< HEAD
       <section id="research-outcomes" className="card adminSectionCard">
         <div className="adminSectionHeader">
           <div>
+=======
+      <section id="study-progress" className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+            <h2>Study Progress</h2>
+            <p>Response counts from the connected study forms. These are not final study results.</p>
+          </div>
+          <span className={studyEvidence ? "statusReady" : "statusMissing"}>
+            {studyEvidence ? "Google study responses connected" : studyEvidenceLoading ? "Loading responses" : "Responses unavailable"}
+          </span>
+        </div>
+
+        {studyEvidenceLoading && <p>Loading study responses...</p>}
+        {!studyEvidenceLoading && studyEvidenceError && (
+          <div className="groceryEmpty"><strong>Study response data unavailable.</strong> {studyEvidenceError}</div>
+        )}
+
+        <div className="studyProgressGrid">
+          <div><strong>{studyEvidence?.sources?.consent ?? 0}</strong><span>Consent</span></div>
+          <div><strong>{studyEvidence?.sources?.pre ?? 0}</strong><span>Pre-Study</span></div>
+          <div><strong>{studyEvidence?.sources?.task1 ?? 0}</strong><span>Task 1 Feedback</span></div>
+          <div><strong>{studyEvidence?.sources?.task2 ?? 0}</strong><span>Task 2 Feedback</span></div>
+          <div><strong>{studyEvidence?.sources?.task3 ?? 0}</strong><span>Task 3 Feedback</span></div>
+          <div><strong>{studyEvidence?.sources?.post ?? 0}</strong><span>Post-Study</span></div>
+        </div>
+      </section>
+
+      <section id="research-outcomes" className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
             <h2>Research Outcome Summary</h2>
             <p>Quick evidence view aligned with pantry awareness, recommendation usefulness, and ingredient utilization.</p>
           </div>
         </div>
 
         <div className="polishedAdminGrid">
+          <div><strong>{metrics.participants}</strong><span>Participant accounts</span></div>
+          <div><strong>{metrics.pantryItems}</strong><span>Smart Pantry items</span></div>
+          <div><strong>{metrics.recommendationActions}</strong><span>Recommendation actions</span></div>
+          <div><strong>{metrics.made + metrics.usedElsewhere}</strong><span>Made meal / used elsewhere</span></div>
+          <div><strong>{metrics.acceptanceRate}%</strong><span>Positive action rate</span></div>
+        </div>
+
+        {studyEvidence?.pre_post_awareness && (
+          <div className="prePostStrip">
+            <div><span>Matched Pre/Post Awareness</span><strong>{studyEvidence.pre_post_awareness.matched_participants}</strong></div>
+            <div><span>Pre</span><strong>{formatScore(studyEvidence.pre_post_awareness.pre_average)}</strong></div>
+            <div><span>Post</span><strong>{formatScore(studyEvidence.pre_post_awareness.post_average)}</strong></div>
+            <div><span>Change</span><strong>{studyEvidence.pre_post_awareness.change == null ? "—" : `${studyEvidence.pre_post_awareness.change > 0 ? "+" : ""}${studyEvidence.pre_post_awareness.change}`}</strong></div>
+          </div>
+        )}
+      </section>
+
+      <section className="card adminSectionCard researchAlignmentCard">
+        <div className="adminSectionHeader">
           <div>
-            <strong>{metrics.participants}</strong>
-            <span>Participants</span>
+            <h2>Hypothesis Evidence Map</h2>
+            <p>Use these evidence groups when explaining how the study evaluates the hypothesis.</p>
+          </div>
+        </div>
+        <div className="researchEvidenceGrid">
+          <div>
+            <h3>Pantry Awareness</h3>
+            <strong>{formatScore(studyEvidence?.tam_summary?.task3?.pantry_awareness)} / 10</strong>
+            <p>Task feedback, Smart Pantry activity, and matched Pre/Post awareness ratings.</p>
           </div>
           <div>
-            <strong>Google Forms</strong>
-            <span>Survey responses tracked separately</span>
+            <h3>Recommendation Usefulness</h3>
+            <strong>{formatScore(studyEvidence?.tam_summary?.task3?.perceived_usefulness)} / 10</strong>
+            <p>Compare usefulness ratings across all three tasks and review recommendation actions.</p>
           </div>
           <div>
-            <strong>{metrics.pantryItems}</strong>
-            <span>Pantry items entered</span>
+            <h3>Ingredient Utilization</h3>
+            <strong>{metrics.made + metrics.usedElsewhere}</strong>
+            <p>Made Meal and Used Elsewhere provide behavioral evidence alongside task ratings.</p>
           </div>
+        </div>
+        <p className="adminMutedNote">This dashboard organizes descriptive evidence. Statistical significance is determined after the study closes.</p>
+      </section>
+
+      <section id="tam-comparison" className="card adminSectionCard">
+        <div className="adminSectionHeader">
           <div>
-            <strong>{metrics.recommendationActions}</strong>
-            <span>Recommendation actions</span>
+            <h2>TAM Comparison</h2>
+            <p>Side-by-side perceived ease of use, perceived usefulness, and behavioral intention.</p>
           </div>
-          <div>
-            <strong>{metrics.acceptanceRate}%</strong>
-            <span>Acceptance rate</span>
-          </div>
+        </div>
+        <div className="adminTableWrap">
+          <table className="adminDataTable tamComparisonTable">
+            <thead><tr><th>Study Task</th><th>Responses</th><th>Ease of Use</th><th>Usefulness</th><th>Behavioral Intention</th><th>Pantry Awareness</th></tr></thead>
+            <tbody>
+              {[
+                ["Study Task 1 – Pantry Note Tracker", studyEvidence?.tam_summary?.task1],
+                ["Study Task 2 – Samsung Food", studyEvidence?.tam_summary?.task2],
+                ["Study Task 3 – Smart Pantry", studyEvidence?.tam_summary?.task3],
+              ].map(([label, values]) => (
+                <tr key={label}>
+                  <td><strong>{label}</strong></td>
+                  <td>{values?.responses ?? 0}</td>
+                  <td>{formatScore(values?.ease_of_use)}</td>
+                  <td>{formatScore(values?.perceived_usefulness)}</td>
+                  <td>{formatScore(values?.behavioral_intention)}</td>
+                  <td>{formatScore(values?.pantry_awareness)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
+<<<<<<< HEAD
       <section className="card adminSectionCard researchAlignmentCard">
         <div className="adminSectionHeader">
           <div>
@@ -740,6 +936,14 @@ export default function Admin() {
             <h2>Study Task 1 – Pantry Note Tracker</h2>
             <p>Manual baseline pantry entries submitted through the Pantry Note Tracker.</p>
           </div>
+=======
+      <section id="task1" className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+            <h2>Study Task 1 – Pantry Note Tracker</h2>
+            <p>Manual baseline pantry entries submitted through the Pantry Note Tracker.</p>
+          </div>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
           <button onClick={loadActivity1Rows}>Refresh Task 1 Data</button>
         </div>
 
@@ -758,6 +962,32 @@ export default function Admin() {
           </div>
         </div>
 
+<<<<<<< HEAD
+=======
+        {studyEvidence && (
+          <>
+            <div className="tamGrid">
+              <div><h3>Perceived Ease of Use</h3><strong>{formatScore(studyEvidence.tam_summary?.task1?.ease_of_use)} / 10</strong></div>
+              <div><h3>Perceived Usefulness</h3><strong>{formatScore(studyEvidence.tam_summary?.task1?.perceived_usefulness)} / 10</strong></div>
+              <div><h3>Behavioral Intention</h3><strong>{formatScore(studyEvidence.tam_summary?.task1?.behavioral_intention)} / 10</strong></div>
+            </div>
+            {studyRows("task1").length > 0 && (
+              <details className="evidenceDetails">
+                <summary>View Task 1 participant feedback</summary>
+                <div className="adminTableWrap">
+                  <table className="adminDataTable wideAdminTable">
+                    <thead><tr><th>Participant</th><th>Ease</th><th>Usefulness</th><th>Intention</th><th>What Worked</th><th>Confusing / Missing</th><th>Would Improve</th></tr></thead>
+                    <tbody>{studyRows("task1").map((row, index) => (
+                      <tr key={`${row.participant}-${index}`}><td>{row.participant || "Unknown"}</td><td>{formatScore(row.ease_of_use)}</td><td>{formatScore(row.perceived_usefulness)}</td><td>{formatScore(row.behavioral_intention)}</td><td>{row.worked_well || "—"}</td><td>{row.confusing_or_missing || "—"}</td><td>{row.make_more_useful || "—"}</td></tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              </details>
+            )}
+          </>
+        )}
+
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
         {activity1Loading && <p>Loading Study Task 1 data...</p>}
         {activity1Error && <p className="error">{activity1Error}</p>}
 
@@ -765,7 +995,9 @@ export default function Admin() {
           activity1Rows.length === 0 ? (
             <div className="groceryEmpty">No Study Task 1 Pantry Note Tracker entries yet.</div>
           ) : (
-            <div className="adminTableWrap">
+            <details className="evidenceDetails">
+              <summary>View Task 1 manual pantry entries ({filteredActivity1Rows.length})</summary>
+              <div className="adminTableWrap">
               <table className="adminDataTable wideAdminTable">
                 <thead>
                   <tr>
@@ -794,7 +1026,8 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </details>
           )
         )}
       </section>
@@ -802,6 +1035,7 @@ export default function Admin() {
       <section id="task2" className="card adminSectionCard">
         <div className="adminSectionHeader">
           <div>
+<<<<<<< HEAD
             <h2>Study Task 2 – Samsung Food Ingredient Recipe Finder</h2>
             <p>TAM feedback from the connected Google Form response sheet.</p>
           </div>
@@ -886,10 +1120,18 @@ export default function Admin() {
           <div>
             <h2>Study Task 3 – Smart Pantry Behavioral Evidence</h2>
             <p>Behavioral evidence from Smart Pantry meal recommendation actions.</p>
+=======
+            <h2>Study Task 2 – Samsung Food</h2>
+            <p>Ingredient Recipe Finder comparison. Feedback is pulled from the connected Google response sheet.</p>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
           </div>
+          <span className={studyEvidence ? "statusReady" : "statusMissing"}>
+            {studyEvidence ? `${studyEvidence.sources?.task2 ?? 0} responses` : studyEvidenceLoading ? "Loading" : "Unavailable"}
+          </span>
         </div>
 
         {studyEvidence && (
+<<<<<<< HEAD
           <div className="tamGrid">
             <div><h3>Perceived Ease of Use</h3><strong>{formatScore(studyEvidence.tam_summary?.task3?.ease_of_use)} / 10</strong></div>
             <div><h3>Perceived Usefulness</h3><strong>{formatScore(studyEvidence.tam_summary?.task3?.perceived_usefulness)} / 10</strong></div>
@@ -925,16 +1167,99 @@ export default function Admin() {
       <section id="exports" className="card adminSectionCard">
         <div className="adminSectionHeader">
           <div>
+=======
+          <>
+            <div className="tamGrid">
+              <div><h3>Perceived Ease of Use</h3><strong>{formatScore(studyEvidence.tam_summary?.task2?.ease_of_use)} / 10</strong><p>Questions 1 and 2</p></div>
+              <div><h3>Perceived Usefulness</h3><strong>{formatScore(studyEvidence.tam_summary?.task2?.perceived_usefulness)} / 10</strong><p>Questions 3, 5, 6, and 7</p></div>
+              <div><h3>Behavioral Intention</h3><strong>{formatScore(studyEvidence.tam_summary?.task2?.behavioral_intention)} / 10</strong><p>Question 8</p></div>
+            </div>
+
+            <div className="adminTableWrap">
+              <table className="adminDataTable wideAdminTable">
+                <thead><tr><th>Participant</th><th>Ease</th><th>Usefulness</th><th>Intention</th><th>Pantry Awareness</th><th>What Worked</th><th>Confusing / Missing</th><th>Would Improve</th></tr></thead>
+                <tbody>
+                  {studyRows("task2").map((row, index) => (
+                    <tr key={`${row.participant}-${index}`}>
+                      <td>{row.participant || "Unknown"}</td>
+                      <td>{formatScore(row.ease_of_use)}</td>
+                      <td>{formatScore(row.perceived_usefulness)}</td>
+                      <td>{formatScore(row.behavioral_intention)}</td>
+                      <td>{formatScore(row.pantry_awareness)}</td>
+                      <td>{row.worked_well || "—"}</td>
+                      <td>{row.confusing_or_missing || "—"}</td>
+                      <td>{row.make_more_useful || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {studyRows("task2").length === 0 && <div className="groceryEmpty">No Task 2 feedback for this participant yet.</div>}
+          </>
+        )}
+      </section>
+
+      <section id="task3" className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+            <h2>Study Task 3 – Smart Pantry</h2>
+            <p>TAM feedback plus behavioral evidence recorded inside Smart Pantry.</p>
+          </div>
+        </div>
+
+        {studyEvidence && (
+          <div className="tamGrid">
+            <div><h3>Perceived Ease of Use</h3><strong>{formatScore(studyEvidence.tam_summary?.task3?.ease_of_use)} / 10</strong></div>
+            <div><h3>Perceived Usefulness</h3><strong>{formatScore(studyEvidence.tam_summary?.task3?.perceived_usefulness)} / 10</strong></div>
+            <div><h3>Behavioral Intention</h3><strong>{formatScore(studyEvidence.tam_summary?.task3?.behavioral_intention)} / 10</strong></div>
+          </div>
+        )}
+
+        <div className="polishedActionGrid">
+          <div className="adminActionCard madeCard"><strong>{metrics.made}</strong><span>Made Meal</span></div>
+          <div className="adminActionCard usedCard"><strong>{metrics.usedElsewhere}</strong><span>Used Elsewhere</span></div>
+          <div className="adminActionCard savedCard"><strong>{metrics.saved}</strong><span>Saved for Later</span></div>
+          <div className="adminActionCard customCard"><strong>{metrics.customMeal}</strong><span>Custom Meals</span></div>
+          <div className="adminActionCard notUsedCard"><strong>{metrics.notUsed}</strong><span>Did Not Use</span></div>
+        </div>
+
+        {studyEvidence && studyRows("task3").length > 0 && (
+          <details className="evidenceDetails">
+            <summary>View Task 3 participant feedback</summary>
+            <div className="adminTableWrap">
+              <table className="adminDataTable wideAdminTable">
+                <thead><tr><th>Participant</th><th>Ease</th><th>Usefulness</th><th>Intention</th><th>What Worked</th><th>Confusing / Missing</th><th>Would Improve</th></tr></thead>
+                <tbody>{studyRows("task3").map((row, index) => (
+                  <tr key={`${row.participant}-${index}`}><td>{row.participant || "Unknown"}</td><td>{formatScore(row.ease_of_use)}</td><td>{formatScore(row.perceived_usefulness)}</td><td>{formatScore(row.behavioral_intention)}</td><td>{row.worked_well || "—"}</td><td>{row.confusing_or_missing || "—"}</td><td>{row.make_more_useful || "—"}</td></tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </details>
+        )}
+      </section>
+
+      <section id="exports" className="card adminSectionCard">
+        <div className="adminSectionHeader">
+          <div>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
             <h2>Export Study Evidence</h2>
             <p>Download CSV files for thesis charts and results analysis.</p>
           </div>
         </div>
 
         <div className="exportButtonGrid">
+<<<<<<< HEAD
           <button onClick={exportParticipants}>Export Combined Participant Evidence CSV</button>
           <button onClick={exportTamSummary} disabled={!studyEvidence}>Export TAM Summary CSV</button>
           <button onClick={() => exportGoogleStudySection("task1", "study_task_1_feedback.csv")} disabled={!studyEvidence}>Export Task 1 Feedback CSV</button>
           <button onClick={() => exportGoogleStudySection("task2", "study_task_2_samsung_food_tam.csv")} disabled={!studyEvidence}>Export Task 2 TAM CSV</button>
+=======
+          <button onClick={exportParticipants}>Export Analysis-Ready Participant CSV</button>
+          <button onClick={exportResearchOutcomeSummary} disabled={!studyEvidence}>Export Research Outcome Summary CSV</button>
+          <button onClick={exportTamSummary} disabled={!studyEvidence}>Export TAM Summary CSV</button>
+          <button onClick={() => exportGoogleStudySection("task1", "study_task_1_feedback.csv")} disabled={!studyEvidence}>Export Task 1 Feedback CSV</button>
+          <button onClick={() => exportGoogleStudySection("task2", "study_task_2_samsung_food.csv")} disabled={!studyEvidence}>Export Task 2 Feedback CSV</button>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
           <button onClick={() => exportGoogleStudySection("task3", "study_task_3_smart_pantry_tam.csv")} disabled={!studyEvidence}>Export Task 3 TAM CSV</button>
           <button onClick={() => exportGoogleStudySection("pre", "pre_study_survey.csv")} disabled={!studyEvidence}>Export Pre-Study CSV</button>
           <button onClick={() => exportGoogleStudySection("post", "post_study_survey.csv")} disabled={!studyEvidence}>Export Post-Study CSV</button>
@@ -942,7 +1267,11 @@ export default function Admin() {
           <button onClick={exportPantry}>Export Smart Pantry Data CSV</button>
           <button onClick={exportActivity1}>Export Pantry Note Tracker Entries CSV</button>
         </div>
+<<<<<<< HEAD
         {!studyEvidence && <p className="adminMutedNote">Load Google Study Responses first to enable survey/TAM exports.</p>}
+=======
+        {!studyEvidence && <p className="adminMutedNote">Survey/TAM exports are available when the private study response connection is active.</p>}
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
       </section>
 
       {studyEvidence?.notes?.length > 0 && (
@@ -969,18 +1298,34 @@ export default function Admin() {
             <table className="adminDataTable wideAdminTable">
               <thead>
                 <tr>
+<<<<<<< HEAD
                   <th>Participant</th><th>Consent</th><th>Pre</th><th>Task 1 Items</th>
                   <th>Task 2 Ease</th><th>Task 2 Useful</th><th>Task 2 Intention</th>
                   <th>Task 3 Pantry</th><th>Task 3 Ease</th><th>Task 3 Useful</th><th>Task 3 Intention</th>
+=======
+                  <th>Participant</th><th>Consent</th><th>Pre</th><th>Task 1 Items</th><th>Task 1 Useful</th>
+                  <th>Task 2 Useful</th><th>Task 2 Intention</th>
+                  <th>Task 3 Pantry</th><th>Task 3 Useful</th><th>Task 3 Intention</th>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
                   <th>Actions</th><th>Made</th><th>Used Elsewhere</th><th>Saved</th><th>Not Used</th><th>Post</th>
                 </tr>
               </thead>
               <tbody>
+<<<<<<< HEAD
                 {participantEvidence.map((row) => (
                   <tr key={row.participant}>
                     <td>{row.participant}</td><td>{row.consent}</td><td>{row.pre_study}</td><td>{row.task1_items}</td>
                     <td>{formatScore(row.task2_tam_ease)}</td><td>{formatScore(row.task2_tam_usefulness)}</td><td>{formatScore(row.task2_tam_intention)}</td>
                     <td>{row.task3_pantry_items}</td><td>{formatScore(row.task3_tam_ease)}</td><td>{formatScore(row.task3_tam_usefulness)}</td><td>{formatScore(row.task3_tam_intention)}</td>
+=======
+                {participantEvidence
+                  .filter((row) => !selectedParticipantKey || normalizeParticipantKey(row.participant) === selectedParticipantKey)
+                  .map((row) => (
+                  <tr key={row.participant}>
+                    <td>{row.participant}</td><td>{row.consent}</td><td>{row.pre_study}</td><td>{row.task1_items}</td><td>{formatScore(row.task1_tam_usefulness)}</td>
+                    <td>{formatScore(row.task2_tam_usefulness)}</td><td>{formatScore(row.task2_tam_intention)}</td>
+                    <td>{row.task3_pantry_items}</td><td>{formatScore(row.task3_tam_usefulness)}</td><td>{formatScore(row.task3_tam_intention)}</td>
+>>>>>>> e45c667 (Finalize admin study evidence dashboard)
                     <td>{row.task3_recommendation_actions}</td><td>{row.made_meal}</td><td>{row.used_elsewhere}</td><td>{row.saved_for_later}</td><td>{row.did_not_use}</td><td>{row.post_study}</td>
                   </tr>
                 ))}
