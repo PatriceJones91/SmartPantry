@@ -128,9 +128,4 @@ export const api = {
   adminSurveys: () => request("/admin/surveys"),
   adminPantry: () => request("/admin/pantry"),
   adminLogs: () => request("/admin/recommendation-logs"),
-  adminStudyEvidence: (payload) =>
-    request("/admin/study-evidence", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }),
 };

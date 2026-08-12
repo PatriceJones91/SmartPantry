@@ -91,14 +91,6 @@ export default function Login() {
 
       const user = await api.login({ username: cleanUsername, password });
       localStorage.setItem("sp2_user", JSON.stringify(user));
-      if (user.role === "admin") {
-        sessionStorage.setItem(
-          "sp2_admin_session",
-          JSON.stringify({ username: user.username, password })
-        );
-      } else {
-        sessionStorage.removeItem("sp2_admin_session");
-      }
       navigate("/");
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");

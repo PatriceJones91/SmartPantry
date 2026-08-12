@@ -20,7 +20,6 @@ export default function Navbar() {
 
   function logout() {
     localStorage.removeItem("sp2_user");
-    sessionStorage.removeItem("sp2_admin_session");
     navigate("/login");
   }
 
