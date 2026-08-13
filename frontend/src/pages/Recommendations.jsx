@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { participantUnitOptions, convertParticipantAmountToPantry, displayUnit, formatSmartQuantity } from "../utils/quantityConversion.js";
 
@@ -358,6 +358,8 @@ export default function Recommendations() {
   const [extraFiltersOpen, setExtraFiltersOpen] = useState(false);
   const [mealUsageModal, setMealUsageModal] = useState(null);
   const [mealUsageAction, setMealUsageAction] = useState("made");
+  const [savingAction, setSavingAction] = useState(false);
+  const actionSaveInFlight = useRef(false);
 
   async function loadPantryItems() {
     const pantry = await api.getPantry(user.id);
@@ -764,6 +766,12 @@ export default function Recommendations() {
   }
 
   async function saveAction(recipe, actionName) {
+    if (actionSaveInFlight.current) {
+      return;
+    }
+
+    actionSaveInFlight.current = true;
+    setSavingAction(true);
     setMessage("");
     setError("");
 
@@ -781,7 +789,7 @@ export default function Recommendations() {
 
       // Save the recommendation action first using the current v1 backend contract.
       // This prevents pantry quantities from being deducted when action validation fails.
-      await api.saveRecommendationAction({
+      const savedAction = await api.saveRecommendationAction({
         user_id: user.id,
         session_id: currentSessionId,
         recommendation_result_id: recipe.recommendation_result_id || null,
@@ -801,6 +809,12 @@ export default function Recommendations() {
               : recipe.matched_ingredients || [],
         },
       });
+
+      if (savedAction?.duplicate_ignored) {
+        closeMealUsageModal();
+        setMessage("Already saved: " + recipe.recipe_name + ". The extra click was not recorded.");
+        return;
+      }
 
       if ((actionName === "made" || actionName === "used_elsewhere") && usedIngredientSummary.length > 0) {
         await updatePantryAmounts(usageRows);
@@ -827,6 +841,9 @@ export default function Recommendations() {
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      actionSaveInFlight.current = false;
+      setSavingAction(false);
     }
   }
 
@@ -1391,8 +1408,12 @@ export default function Recommendations() {
 
               <div className="mealUsageActions">
                 <button type="button" className="ghostButton" onClick={closeMealUsageModal}>Cancel</button>
-                <button type="button" onClick={() => saveAction(recipe, mealUsageAction)}>
-                  {mealUsageAction === "made" ? "Confirm Made Meal" : "Confirm Used Elsewhere"}
+                <button type="button" disabled={savingAction} onClick={() => saveAction(recipe, mealUsageAction)}>
+                  {savingAction
+                    ? "Saving..."
+                    : mealUsageAction === "made"
+                      ? "Confirm Made Meal"
+                      : "Confirm Used Elsewhere"}
                 </button>
               </div>
             </div>

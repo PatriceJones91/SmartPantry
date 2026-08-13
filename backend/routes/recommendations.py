@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException
 
@@ -124,10 +125,31 @@ def save_action(payload: RecommendationActionRequest):
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    response = get_supabase().table("sp2_recommendation_actions").insert(row).execute()
+    supabase = get_supabase()
+    duplicate_cutoff = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
+    duplicate_response = (
+        supabase.table("sp2_recommendation_actions")
+        .select("id, created_at")
+        .eq("user_id", row["user_id"])
+        .eq("session_id", row["session_id"])
+        .eq("recipe_id", row["recipe_id"])
+        .eq("action", row["action"])
+        .gte("created_at", duplicate_cutoff)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if duplicate_response.data:
+        return {
+            **duplicate_response.data[0],
+            "duplicate_ignored": True,
+            "message": "This action was already saved in the last 60 seconds.",
+        }
+
+    response = supabase.table("sp2_recommendation_actions").insert(row).execute()
     if not response.data:
         raise HTTPException(status_code=400, detail="Could not save recommendation action.")
-    return response.data[0]
+    return {**response.data[0], "duplicate_ignored": False}
 
 
 @router.post("/feedback")
