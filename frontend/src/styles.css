@@ -4156,6 +4156,20 @@ button {
   line-height: 1.5 !important;
 }
 
+.recipeSourceLink {
+  display: inline-block;
+  margin-left: 4px;
+  color: #166534;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recipeSourceLink:hover,
+.recipeSourceLink:focus-visible {
+  color: #14532d;
+}
+
 /* Milestone 7 Update 1.3 - clearer suggested/custom Smart Swap tracking */
 .smartSwapOptionsBox h3 {
   margin-bottom: 6px !important;

@@ -58,6 +58,21 @@ function displayNumber(value, suffix = "") {
   return `${value}${suffix}`;
 }
 
+function recipeSourceUrl(recipe) {
+  const value = String(
+    recipe?.recipe_url || recipe?.url || recipe?.source_url || recipe?.sourceUrl || ""
+  ).trim();
+
+  if (!value) return "";
+
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : "";
+  } catch {
+    return "";
+  }
+}
+
 
 function ingredientDisplayName(value) {
   if (typeof value === "string") return value;
@@ -1148,7 +1163,26 @@ export default function Recommendations() {
                     </div>
                   )}
 
-                  <details className="recipeDetails"><summary>View instructions</summary><p>{recipe.instructions || "No instructions available for this recipe yet."}</p></details>
+                  <details className="recipeDetails">
+                    <summary>View instructions</summary>
+                    {recipe.instructions ? (
+                      <p>{recipe.instructions}</p>
+                    ) : recipeSourceUrl(recipe) ? (
+                      <p>
+                        Instructions are available on the original recipe website.{" "}
+                        <a
+                          className="recipeSourceLink"
+                          href={recipeSourceUrl(recipe)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Open full recipe
+                        </a>
+                      </p>
+                    ) : (
+                      <p>No instructions or source link are available for this recipe yet.</p>
+                    )}
+                  </details>
 
                   <label className="feedbackLabel">Meal feedback or notes<textarea maxLength="250" placeholder="Share what happened with this recommendation." value={feedback[recipe.recipe_name] || ""} onChange={(e) => changeFeedback(recipe.recipe_name, e.target.value)} /></label>
                   <div className="buttonRow recommendationActions">
