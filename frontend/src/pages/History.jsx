@@ -201,7 +201,7 @@ export default function History() {
                     {actionLabel(log.action)}
                   </span>
                   <span className="historyScore">
-                    Smart Score: {log.score ?? "N/A"}
+                    Smart Score: {log.smart_score ?? "N/A"}
                   </span>
                 </div>
 

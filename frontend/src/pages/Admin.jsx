@@ -522,7 +522,7 @@ export default function Admin() {
       participant: getUserName(userMap, log.user_id),
       recipe_name: log.recipe_name,
       action: actionLabel(log.action),
-      score: log.score,
+      score: log.smart_score,
       used_ingredients: formatUsedIngredients(log.used_ingredients),
       feedback: log.feedback,
       created_at: formatDate(log.created_at),
@@ -1035,7 +1035,7 @@ export default function Admin() {
                         {actionLabel(log.action)}
                       </span>
                     </td>
-                    <td>{log.score ?? "N/A"}</td>
+                    <td>{log.smart_score ?? "N/A"}</td>
                     <td>{formatUsedIngredients(log.used_ingredients)}</td>
                     <td>{log.feedback || "N/A"}</td>
                     <td>{formatDate(log.created_at)}</td>
