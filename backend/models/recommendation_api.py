@@ -35,6 +35,14 @@ class IngredientMatchResponse(BaseModel):
     expires_on: Optional[str] = None
     days_until_expiration: Optional[int] = None
 
+    # Recipe-native quantity data comes directly from smart_pantry_recipe_dataset.csv.
+    # Exposing it here lets the frontend scale ingredient use by the number of
+    # servings actually prepared without hard-coding meal-specific amounts.
+    recipe_quantity: Optional[float] = None
+    recipe_measure: Optional[str] = None
+    recipe_weight_grams: Optional[float] = None
+    recipe_text: Optional[str] = None
+
 
 class NutritionSummaryResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")

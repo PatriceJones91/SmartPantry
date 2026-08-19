@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client.js";
-import { participantUnitOptions, convertParticipantAmountToPantry, displayUnit, formatSmartQuantity } from "../utils/quantityConversion.js";
+import {
+  participantUnitOptions,
+  convertParticipantAmountToPantry,
+  convertRecipeAmountToPantry,
+  displayUnit,
+  formatSmartQuantity,
+} from "../utils/quantityConversion.js";
 
 function getUser() {
   return JSON.parse(localStorage.getItem("sp2_user"));
@@ -311,7 +317,59 @@ function findPantryMatches(recipe, pantryItems) {
   return matches;
 }
 
-function buildUsageRows(recipe, pantryItems) {
+function recipeServingCount(recipe) {
+  const nutrition = recipe?.nutrition || {};
+  const value = Number(nutrition.reported_servings ?? nutrition.servings ?? recipe?.servings);
+  return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+function buildUsageRows(recipe, pantryItems, madeServings = 1) {
+  const matchedObjects = Array.isArray(recipe.matched_ingredient_objects)
+    ? recipe.matched_ingredient_objects
+    : [];
+  const recipeServings = recipeServingCount(recipe);
+  const scale = Math.max(Number(madeServings) || 1, 0) / recipeServings;
+
+  // Prefer the backend's exact pantry-item match so the quantity/measure stays
+  // connected to the recipe selected from smart_pantry_recipe_dataset.csv.
+  if (matchedObjects.length > 0) {
+    return matchedObjects
+      .map((match) => {
+        const pantryItem = pantryItems.find(
+          (item) => String(item.id) === String(match.pantry_item_id)
+        );
+        if (!pantryItem) return null;
+
+        const recipeQuantity = Number(match.recipe_quantity);
+        const hasRecipeQuantity = Number.isFinite(recipeQuantity) && recipeQuantity >= 0;
+        const recipeMeasure = match.recipe_measure || pantryItem.unit || "item";
+        const scaledAmount = hasRecipeQuantity ? recipeQuantity * scale : "";
+
+        return {
+          item_id: pantryItem.id,
+          item_name: pantryItem.item_name,
+          current_quantity: pantryItem.quantity ?? 0,
+          unit: pantryItem.unit || "item",
+          amount_used: hasRecipeQuantity ? formatSmartQuantity(scaledAmount, 3) : "",
+          selected_unit: recipeMeasure,
+          recipe_quantity: hasRecipeQuantity ? recipeQuantity : null,
+          recipe_measure: match.recipe_measure || null,
+          recipe_weight_grams: Number.isFinite(Number(match.recipe_weight_grams))
+            ? Number(match.recipe_weight_grams)
+            : null,
+          recipe_text: match.recipe_text || match.recipe_ingredient || pantryItem.item_name,
+          normalized_ingredient: match.normalized_ingredient || match.recipe_ingredient || pantryItem.item_name,
+          recipe_ingredient: match.recipe_ingredient || pantryItem.item_name,
+          recipe_scale: scale,
+          auto_from_recipe: hasRecipeQuantity,
+          manual_pantry_amount: "",
+        };
+      })
+      .filter(Boolean);
+  }
+
+  // Compatibility fallback for older API responses that do not expose the
+  // structured recipe quantities yet.
   return findPantryMatches(recipe, pantryItems).map((item) => ({
     item_id: item.id,
     item_name: item.item_name,
@@ -319,6 +377,8 @@ function buildUsageRows(recipe, pantryItems) {
     unit: item.unit || "item",
     amount_used: "",
     selected_unit: item.unit || "item",
+    auto_from_recipe: false,
+    manual_pantry_amount: "",
   }));
 }
 
@@ -355,9 +415,11 @@ export default function Recommendations() {
   ]);
   const [expandedRecipes, setExpandedRecipes] = useState({});
   const [customMealOpen, setCustomMealOpen] = useState(false);
+  const [customMealSourceRecipe, setCustomMealSourceRecipe] = useState(null);
   const [extraFiltersOpen, setExtraFiltersOpen] = useState(false);
   const [mealUsageModal, setMealUsageModal] = useState(null);
   const [mealUsageAction, setMealUsageAction] = useState("made");
+  const [servingsByRecipe, setServingsByRecipe] = useState({});
   const [savingAction, setSavingAction] = useState(false);
   const actionSaveInFlight = useRef(false);
 
@@ -598,9 +660,14 @@ export default function Recommendations() {
       setCurrentSessionId(data?.metadata?.session_id || "");
 
       const nextUsage = {};
+      const nextServings = {};
       meals.forEach((recipe) => {
-        nextUsage[recipe.recipe_name] = buildUsageRows(recipe, pantry);
+        // Default to one prepared serving. The participant can change this
+        // before confirming the meal, and all recipe amounts rescale instantly.
+        nextServings[recipe.recipe_name] = 1;
+        nextUsage[recipe.recipe_name] = buildUsageRows(recipe, pantry, 1);
       });
+      setServingsByRecipe(nextServings);
       setUsageByRecipe(nextUsage);
 
       if (!data.recommendations || data.recommendations.length === 0) {
@@ -630,6 +697,7 @@ export default function Recommendations() {
           ? {
               ...row,
               amount_used: value,
+              auto_from_recipe: false,
             }
           : row
       ),
@@ -644,10 +712,32 @@ export default function Recommendations() {
           ? {
               ...row,
               selected_unit: value,
+              auto_from_recipe: false,
             }
           : row
       ),
     }));
+  }
+
+  function changePreparedServings(recipe, value) {
+    const madeServings = Math.max(Number(value) || 0, 0);
+    if (!(madeServings > 0)) return;
+
+    setServingsByRecipe((prev) => ({
+      ...prev,
+      [recipe.recipe_name]: madeServings,
+    }));
+
+    setUsageByRecipe((prev) => ({
+      ...prev,
+      [recipe.recipe_name]: buildUsageRows(recipe, pantryItems, madeServings),
+    }));
+  }
+
+  function choosePackageFraction(recipeName, itemId, pantryQuantity, fraction) {
+    const current = cleanQuantity(pantryQuantity);
+    const amount = current * fraction;
+    changeManualPantryAmount(recipeName, itemId, formatSmartQuantity(amount, 3));
   }
 
   function changeManualPantryAmount(recipeName, itemId, value) {
@@ -674,6 +764,40 @@ export default function Recommendations() {
   function closeMealUsageModal() {
     setMealUsageModal(null);
     setMealUsageAction("made");
+  }
+
+  function resetCustomMealForm() {
+    setCustomMealName("");
+    setCustomMealNotes("");
+    setCustomUsageRows([{ item_id: "", amount_used: "" }]);
+  }
+
+  function toggleCustomMeal() {
+    setError("");
+    setMessage("");
+
+    if (customMealOpen && !customMealSourceRecipe) {
+      setCustomMealOpen(false);
+      return;
+    }
+
+    setCustomMealSourceRecipe(null);
+    resetCustomMealForm();
+    setCustomMealOpen(true);
+  }
+
+  function openUsedElsewhere(recipe) {
+    setError("");
+    setMessage("");
+    setCustomMealSourceRecipe(recipe);
+    resetCustomMealForm();
+    setCustomMealOpen(true);
+  }
+
+  function closeCustomMeal() {
+    setCustomMealOpen(false);
+    setCustomMealSourceRecipe(null);
+    resetCustomMealForm();
   }
 
   function changeCustomUsage(index, field, value) {
@@ -706,12 +830,19 @@ export default function Recommendations() {
       const pantryItem = pantryItems.find((item) => item.id === row.item_id);
       if (!pantryItem) continue;
 
-      const conversion = convertParticipantAmountToPantry({
-        pantryItem,
-        ingredientName: row.item_name || pantryItem.item_name,
-        amount: row.amount_used,
-        selectedUnit: row.selected_unit || pantryItem.unit,
-      });
+      const conversion = row.auto_from_recipe && row.recipe_quantity != null
+        ? convertRecipeAmountToPantry({
+            match: row,
+            pantryItem,
+            recipeAmount: row.recipe_quantity,
+            scale: row.recipe_scale || 1,
+          })
+        : convertParticipantAmountToPantry({
+            pantryItem,
+            ingredientName: row.item_name || pantryItem.item_name,
+            amount: row.amount_used,
+            selectedUnit: row.selected_unit || pantryItem.unit,
+          });
 
       let amountUsedInPantryUnit;
 
@@ -803,6 +934,8 @@ export default function Recommendations() {
             : null,
         metadata: {
           feedback: buildActionNotes(recipe),
+          prepared_servings: servingsByRecipe[recipe.recipe_name] || null,
+          recipe_servings: recipeServingCount(recipe),
           used_ingredients:
             usedIngredientSummary.length > 0
               ? usedIngredientSummary
@@ -872,27 +1005,51 @@ export default function Recommendations() {
     try {
       const customName = customMealName.trim();
       const customRecipeId = `custom:${normalizeText(customName).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "meal"}`;
+      const isUsedElsewhere = Boolean(customMealSourceRecipe);
+      const sourceSmartScore = isUsedElsewhere
+        ? Number.isFinite(Number(customMealSourceRecipe.smart_score))
+          ? Number(customMealSourceRecipe.smart_score)
+          : Number.isFinite(Number(customMealSourceRecipe.score))
+            ? Number(customMealSourceRecipe.score)
+            : null
+        : null;
 
       await api.saveRecommendationAction({
         user_id: user.id,
         session_id: currentSessionId,
-        recommendation_result_id: null,
+        recommendation_result_id: isUsedElsewhere
+          ? customMealSourceRecipe.recommendation_result_id || null
+          : null,
         recipe_id: customRecipeId,
         recipe_name: customName,
-        action: "custom_meal",
-        smart_score: null,
+        action: isUsedElsewhere ? "used_elsewhere" : "custom_meal",
+        smart_score: sourceSmartScore,
         metadata: {
           feedback: customMealNotes,
           used_ingredients: usedIngredientSummary,
+          ...(isUsedElsewhere
+            ? {
+                original_recommendation: {
+                  recipe_id: customMealSourceRecipe.recipe_id,
+                  recipe_name: customMealSourceRecipe.recipe_name,
+                  recommendation_result_id:
+                    customMealSourceRecipe.recommendation_result_id || null,
+                  smart_score: sourceSmartScore,
+                },
+              }
+            : {}),
         },
       });
 
       await updatePantryAmounts(customUsageRows);
 
-      setCustomMealName("");
-      setCustomMealNotes("");
-      setCustomUsageRows([{ item_id: "", amount_used: "" }]);
-      setMessage("Custom meal saved. Pantry amounts were updated.");
+      const originalRecipeName = customMealSourceRecipe?.recipe_name || "the recommendation";
+      closeCustomMeal();
+      setMessage(
+        isUsedElsewhere
+          ? `Saved: You used pantry ingredients in ${customName} instead of ${originalRecipeName}. Pantry amounts were updated.`
+          : "Custom meal saved. Pantry amounts were updated."
+      );
     } catch (err) {
       setError(err.message);
     }
@@ -1039,7 +1196,7 @@ export default function Recommendations() {
 
       <section className="optionCCustomMealPrompt">
         <span>Add your own meal to keep pantry usage and recommendation history accurate.</span>
-        <button onClick={() => setCustomMealOpen((open) => !open)}>
+        <button onClick={customMealSourceRecipe ? closeCustomMeal : toggleCustomMeal}>
           {customMealOpen ? "Close" : "Add My Own Meal"}
         </button>
       </section>
@@ -1049,9 +1206,13 @@ export default function Recommendations() {
           <div className="customMealIntro">
             <span className="customMealIcon" aria-hidden="true">+</span>
             <div>
-              <span className="eyebrow">CUSTOM MEAL</span>
-              <h2>Add My Own Meal</h2>
-              <p>Record a meal Smart Pantry did not recommend and update the pantry ingredients you used.</p>
+              <span className="eyebrow">{customMealSourceRecipe ? "USED ELSEWHERE" : "CUSTOM MEAL"}</span>
+              <h2>{customMealSourceRecipe ? "What Did You Make Instead?" : "Add My Own Meal"}</h2>
+              <p>
+                {customMealSourceRecipe
+                  ? `You did not make ${customMealSourceRecipe.recipe_name}. Record the different meal you made and the pantry ingredients you actually used.`
+                  : "Record a meal Smart Pantry did not recommend and update the pantry ingredients you used."}
+              </p>
             </div>
           </div>
 
@@ -1082,7 +1243,7 @@ export default function Recommendations() {
             </div>
             <div className="customMealActions">
               <button type="button" className="secondary" onClick={addCustomUsageRow}>Add Ingredient</button>
-              <button type="submit">Save My Meal</button>
+              <button type="submit">{customMealSourceRecipe ? "Save Used Elsewhere" : "Save My Meal"}</button>
             </div>
           </form>
         </section>
@@ -1204,7 +1365,7 @@ export default function Recommendations() {
                   <label className="feedbackLabel">Meal feedback or notes<textarea maxLength="250" placeholder="Share what happened with this recommendation." value={feedback[recipe.recipe_name] || ""} onChange={(e) => changeFeedback(recipe.recipe_name, e.target.value)} /></label>
                   <div className="buttonRow recommendationActions">
                     <button onClick={() => openMealUsageModal(recipe, "made")}>Make This Meal</button>
-                    <button className="secondary" onClick={() => openMealUsageModal(recipe, "used_elsewhere")}>Used Elsewhere</button>
+                    <button className="secondary" onClick={() => openUsedElsewhere(recipe)}>Used Elsewhere</button>
                     <button className="secondary" onClick={() => saveAction(recipe, "saved")}>Save for Later</button>
                     <button className="ghostButton" onClick={() => saveAction(recipe, "not_used")}>Did Not Use</button>
                   </div>
@@ -1291,11 +1452,46 @@ export default function Recommendations() {
                 </section>
               )}
 
+              {mealUsageAction === "made" && (
+                <section className="mealUsageAmountSection">
+                  <div className="mealUsageSectionHeading">
+                    <div>
+                      <h3>How many servings did you make?</h3>
+                      <p>Recipe makes about {formatSmartQuantity(recipeServingCount(recipe), 1)} serving(s). Smart Pantry scales the recipe ingredient amounts automatically.</p>
+                    </div>
+                  </div>
+                  <div className="buttonRow recommendationActions" style={{ flexWrap: "wrap", gap: "8px" }}>
+                    {[1, 2, 3, 4].map((count) => (
+                      <button
+                        type="button"
+                        key={count}
+                        className={(servingsByRecipe[recipe.recipe_name] || 1) === count ? "" : "secondary"}
+                        onClick={() => changePreparedServings(recipe, count)}
+                      >
+                        {count} serving{count === 1 ? "" : "s"}
+                      </button>
+                    ))}
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>Other:</span>
+                      <input
+                        type="number"
+                        min="0.25"
+                        step="0.25"
+                        value={[1, 2, 3, 4].includes(servingsByRecipe[recipe.recipe_name] || 1) ? "" : (servingsByRecipe[recipe.recipe_name] || "")}
+                        onChange={(e) => changePreparedServings(recipe, e.target.value)}
+                        placeholder="e.g. 6"
+                        style={{ width: "90px" }}
+                      />
+                    </label>
+                  </div>
+                </section>
+              )}
+
               <section className="mealUsageAmountSection">
                 <div className="mealUsageSectionHeading">
                   <div>
-                    <h3>How much did you use?</h3>
-                    <p>Enter the amount in the measurement that makes sense to you for this meal.</p>
+                    <h3>{mealUsageAction === "made" ? "Recipe amounts for the servings you made" : "How much did you use?"}</h3>
+                    <p>{mealUsageAction === "made" ? "These amounts come from the selected recipe dataset and are scaled by servings. You can still adjust any ingredient if you used a different amount." : "Enter the amount in the measurement that makes sense to you for this meal."}</p>
                   </div>
                 </div>
 
@@ -1308,12 +1504,19 @@ export default function Recommendations() {
                       const selectedUnit = row.selected_unit || row.unit || pantryItem?.unit || "item";
                       const options = participantUnitOptions(row.item_name, pantryItem?.unit || row.unit, selectedUnit);
                       const conversion = cleanQuantity(row.amount_used) > 0 && pantryItem
-                        ? convertParticipantAmountToPantry({
-                            pantryItem,
-                            ingredientName: row.item_name,
-                            amount: row.amount_used,
-                            selectedUnit,
-                          })
+                        ? row.auto_from_recipe && row.recipe_quantity != null
+                          ? convertRecipeAmountToPantry({
+                              match: row,
+                              pantryItem,
+                              recipeAmount: row.recipe_quantity,
+                              scale: row.recipe_scale || 1,
+                            })
+                          : convertParticipantAmountToPantry({
+                              pantryItem,
+                              ingredientName: row.item_name,
+                              amount: row.amount_used,
+                              selectedUnit,
+                            })
                         : null;
 
                       return (
@@ -1321,6 +1524,9 @@ export default function Recommendations() {
                           <div className="mealUsageIngredient">
                             <strong>{row.item_name}</strong>
                             <small>You have {formatSmartQuantity(row.current_quantity)} {displayUnit(row.unit, row.current_quantity)}</small>
+                            {row.auto_from_recipe && row.recipe_text && (
+                              <small>Recipe: {row.recipe_text}</small>
+                            )}
                           </div>
                           <input
                             type="number"
@@ -1354,38 +1560,32 @@ export default function Recommendations() {
                                   Smart Pantry cannot safely convert {displayUnit(selectedUnit, row.amount_used)} to{" "}
                                   {displayUnit(pantryItem?.unit, pantryItem?.quantity)} for this pantry item.
                                 </small>
-                                <label>
-                                  <span>How much should be removed from My Pantry?</span>
-                                  <div className="manualPantryFallbackInput">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max={pantryItem?.quantity ?? undefined}
-                                      step="0.01"
-                                      inputMode="decimal"
-                                      value={row.manual_pantry_amount || ""}
-                                      onChange={(e) =>
-                                        changeManualPantryAmount(
-                                          recipe.recipe_name,
-                                          row.item_id,
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Amount used"
-                                      aria-label={`Pantry amount of ${row.item_name} to remove`}
-                                    />
-                                    <strong>
-                                      {displayUnit(
-                                        pantryItem?.unit,
-                                        row.manual_pantry_amount || pantryItem?.quantity
-                                      )}
-                                    </strong>
+                                <div>
+                                  <span>Smart Pantry knows the recipe amount, but the pantry item is stored as a package/container. About how much of what you had did you use?</span>
+                                  <div className="buttonRow recommendationActions" style={{ flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+                                    {[
+                                      ["A little", 0.1],
+                                      ["About ¼", 0.25],
+                                      ["About ½", 0.5],
+                                      ["Most", 0.75],
+                                      ["All", 1],
+                                    ].map(([label, fraction]) => (
+                                      <button
+                                        type="button"
+                                        className="secondary"
+                                        key={label}
+                                        onClick={() => choosePackageFraction(recipe.recipe_name, row.item_id, pantryItem?.quantity, fraction)}
+                                      >
+                                        {label}
+                                      </button>
+                                    ))}
                                   </div>
-                                </label>
-                                <small className="manualPantryHint">
-                                  Example: the recipe can say 1 cup of cheese while your pantry is stored as servings.
-                                  Enter the number of servings you actually used.
-                                </small>
+                                  {row.manual_pantry_amount && (
+                                    <small className="manualPantryHint">
+                                      Will remove about {formatSmartQuantity(row.manual_pantry_amount)} {displayUnit(pantryItem?.unit, row.manual_pantry_amount)} from My Pantry.
+                                    </small>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
