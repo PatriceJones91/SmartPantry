@@ -2,10 +2,14 @@ import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 function getUser() {
-  return JSON.parse(localStorage.getItem("sp2_user"));
+  try {
+    return JSON.parse(localStorage.getItem("sp2_user"));
+  } catch {
+    return null;
+  }
 }
 
-const links = [
+const participantLinks = [
   { to: "/", label: "Dashboard", icon: "⌂", end: true },
   { to: "/profile", label: "Profile & Preferences", icon: "♙" },
   { to: "/pantry", label: "My Pantry", icon: "🧺" },
@@ -35,7 +39,13 @@ export default function Navbar() {
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         <div><h2>Smart<br />Pantry <small>2.0</small></h2></div>
-        <button type="button" className="mobileNavToggle" aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>
+        <button
+          type="button"
+          className="mobileNavToggle"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((open) => !open)}
+        >
           <span aria-hidden="true">{mobileOpen ? "✕" : "☰"}</span>
         </button>
       </div>
@@ -46,16 +56,30 @@ export default function Navbar() {
       </div>
 
       <nav aria-label="Main navigation">
-        {links.map((link) => (
+        {user.role === "participant" && participantLinks.map((link) => (
           <NavLink key={link.to} to={link.to} end={link.end} onClick={() => setMobileOpen(false)}>
             <span className="navIcon" aria-hidden="true">{link.icon}</span>
             <span>{link.label}</span>
           </NavLink>
         ))}
+
         {user.role === "admin" && (
-          <NavLink to="/admin" onClick={() => setMobileOpen(false)}>
-            <span className="navIcon" aria-hidden="true">◆</span>
-            <span>Admin Dashboard</span>
+          <>
+            <NavLink to="/admin" onClick={() => setMobileOpen(false)}>
+              <span className="navIcon" aria-hidden="true">◆</span>
+              <span>Admin Dashboard</span>
+            </NavLink>
+            <NavLink to="/committee" onClick={() => setMobileOpen(false)}>
+              <span className="navIcon" aria-hidden="true">▣</span>
+              <span>Committee Dashboard</span>
+            </NavLink>
+          </>
+        )}
+
+        {user.role === "committee" && (
+          <NavLink to="/committee" onClick={() => setMobileOpen(false)}>
+            <span className="navIcon" aria-hidden="true">▣</span>
+            <span>Committee Dashboard</span>
           </NavLink>
         )}
 

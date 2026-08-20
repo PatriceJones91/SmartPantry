@@ -26,7 +26,7 @@ def summary():
 
 @router.get("/users")
 def users():
-    return rows(table("sp2_users").select("id, username, role, created_at").execute())
+    return rows(table("sp2_users").select("id, username, role, household_size, created_at").execute())
 
 
 @router.get("/surveys")

@@ -5,7 +5,7 @@ function formatDate(value) {
   if (!value) return "N/A";
 
   try {
-    return new Date(value).toLocaleString();
+    return new Date(value).toLocaleDateString();
   } catch {
     return "N/A";
   }
@@ -14,7 +14,7 @@ function formatDate(value) {
 function actionLabel(action) {
   const labels = {
     made: "Made Meal",
-    used_elsewhere: "Used Elsewhere",
+    used_elsewhere: "Custom Meal",
     saved: "Saved for Later",
     not_used: "Did Not Use",
     custom_meal: "Custom Meal",
@@ -27,7 +27,7 @@ function actionLabel(action) {
 function actionClass(action) {
   const classes = {
     made: "historyMade",
-    used_elsewhere: "historyUsedElsewhere",
+    used_elsewhere: "historyCustomMeal",
     saved: "historySaved",
     not_used: "historyNotUsed",
     custom_meal: "historyCustomMeal",
@@ -387,7 +387,7 @@ export default function Admin() {
   }, [users]);
 
   const participantUsers = useMemo(() => {
-    return users.filter((user) => user.role !== "admin");
+    return users.filter((user) => user.role === "participant");
   }, [users]);
 
   const selectedParticipant = useMemo(() => {
@@ -417,17 +417,16 @@ export default function Admin() {
     const recommendationLogs = logs.filter((log) => log.action !== "general_feedback");
 
     const made = recommendationLogs.filter((log) => log.action === "made").length;
-    const usedElsewhere = recommendationLogs.filter(
-      (log) => log.action === "used_elsewhere"
-    ).length;
     const saved = recommendationLogs.filter((log) => log.action === "saved").length;
     const notUsed = recommendationLogs.filter((log) => log.action === "not_used").length;
-    const customMeal = recommendationLogs.filter((log) => log.action === "custom_meal").length;
-    const ingredientUtilization = made + usedElsewhere + customMeal;
+    const customMeal = recommendationLogs.filter(
+      (log) => log.action === "custom_meal" || log.action === "used_elsewhere"
+    ).length;
+    const ingredientUtilization = made + customMeal;
 
     const activePantryItems = pantry.filter((item) => item.status !== "deleted");
 
-    const positiveActions = made + usedElsewhere + saved + customMeal;
+    const positiveActions = made + saved + customMeal;
     const acceptanceRate =
       recommendationLogs.length > 0
         ? Math.round((positiveActions / recommendationLogs.length) * 100)
@@ -439,7 +438,6 @@ export default function Admin() {
       pantryItems: activePantryItems.length,
       recommendationActions: recommendationLogs.length,
       made,
-      usedElsewhere,
       saved,
       notUsed,
       customMeal,
@@ -491,12 +489,14 @@ export default function Admin() {
 
       return {
         participant: user.username,
+        household_size: user.household_size || "N/A",
         task1_manual_items: task1Items.length,
         task3_pantry_items: userPantry.length,
         task3_recommendation_actions: userLogs.length,
         made_meal: userLogs.filter((log) => log.action === "made").length,
-        used_elsewhere: userLogs.filter((log) => log.action === "used_elsewhere").length,
-        custom_meal: userLogs.filter((log) => log.action === "custom_meal").length,
+        custom_meal: userLogs.filter(
+          (log) => log.action === "custom_meal" || log.action === "used_elsewhere"
+        ).length,
         ingredient_utilization: userLogs.filter(
           (log) =>
             log.action === "made" ||
@@ -644,7 +644,7 @@ export default function Admin() {
           <div><strong>{metrics.participants}</strong><span>Participant accounts</span></div>
           <div><strong>{metrics.pantryItems}</strong><span>Smart Pantry items</span></div>
           <div><strong>{metrics.recommendationActions}</strong><span>Recommendation actions</span></div>
-          <div><strong>{metrics.made + metrics.usedElsewhere}</strong><span>Made meal / used elsewhere</span></div>
+          <div><strong>{metrics.ingredientUtilization}</strong><span>Ingredient utilization actions</span></div>
           <div><strong>{metrics.acceptanceRate}%</strong><span>Positive action rate</span></div>
         </div>
 
@@ -661,7 +661,7 @@ export default function Admin() {
         <div className="researchEvidenceGrid">
           <div><h3>Pantry Awareness</h3><strong>Survey + pantry evidence</strong><p>Pre/Post survey responses are analyzed with Task 1 and Smart Pantry pantry activity.</p></div>
           <div><h3>Recommendation Usefulness</h3><strong>TAM + recommendation evidence</strong><p>Task feedback is analyzed with recommendation actions such as made meal, saved, or did not use.</p></div>
-          <div><h3>Ingredient Utilization</h3><strong>{metrics.ingredientUtilization} utilization actions</strong><p>Made Meal, Used Elsewhere, and Custom Meal actions provide behavioral evidence that participants used pantry ingredients.</p></div>
+          <div><h3>Ingredient Utilization</h3><strong>{metrics.ingredientUtilization} utilization actions</strong><p>Made Meal and Custom Meal actions provide behavioral evidence that participants used pantry ingredients.</p></div>
         </div>
       </section>
 
@@ -779,7 +779,6 @@ export default function Admin() {
 
         <div className="polishedActionGrid">
           <div className="adminActionCard madeCard"><strong>{metrics.made}</strong><span>Made Meal</span></div>
-          <div className="adminActionCard usedCard"><strong>{metrics.usedElsewhere}</strong><span>Used Elsewhere</span></div>
           <div className="adminActionCard savedCard"><strong>{metrics.saved}</strong><span>Saved for Later</span></div>
           <div className="adminActionCard customCard"><strong>{metrics.customMeal}</strong><span>Custom Meals</span></div>
           <div className="adminActionCard notUsedCard"><strong>{metrics.notUsed}</strong><span>Did Not Use</span></div>
@@ -825,11 +824,11 @@ export default function Admin() {
               <thead>
                 <tr>
                   <th>Participant</th>
+                  <th>Household Size</th>
                   <th>Task 1 Manual Items</th>
                   <th>Task 3 Pantry Items</th>
                   <th>Recommendation Actions</th>
                   <th>Made Meal</th>
-                  <th>Used Elsewhere</th>
                   <th>Custom Meal</th>
                   <th>Ingredient Utilization</th>
                   <th>Saved</th>
@@ -842,11 +841,11 @@ export default function Admin() {
                   .map((row) => (
                   <tr key={row.participant}>
                     <td>{row.participant}</td>
+                    <td>{row.household_size}</td>
                     <td>{row.task1_manual_items}</td>
                     <td>{row.task3_pantry_items}</td>
                     <td>{row.task3_recommendation_actions}</td>
                     <td>{row.made_meal}</td>
-                    <td>{row.used_elsewhere}</td>
                     <td>{row.custom_meal}</td>
                     <td>{row.ingredient_utilization}</td>
                     <td>{row.saved_for_later}</td>

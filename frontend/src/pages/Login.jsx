@@ -91,7 +91,14 @@ export default function Login() {
 
       const user = await api.login({ username: cleanUsername, password });
       localStorage.setItem("sp2_user", JSON.stringify(user));
-      navigate("/");
+
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else if (user.role === "committee") {
+        navigate("/committee");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {

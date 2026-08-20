@@ -68,7 +68,8 @@ def find_user(username: str):
 def register(payload: RegisterPayload):
     username = validate_username(payload.username)
     password = validate_password(payload.password)
-    role = payload.role or "participant"
+    # Public self-registration is participant-only. Elevated roles are created administratively.
+    role = "participant"
 
     existing = find_user(username)
 

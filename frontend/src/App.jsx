@@ -8,6 +8,7 @@ import Profile from "./pages/Profile.jsx";
 import Recommendations from "./pages/Recommendations.jsx";
 import History from "./pages/History.jsx";
 import Admin from "./pages/Admin.jsx";
+import Committee from "./pages/Committee.jsx";
 
 function getUser() {
   try {
@@ -17,11 +18,22 @@ function getUser() {
   }
 }
 
-function ProtectedRoute({ children }) {
+function roleHome(user) {
+  if (!user) return "/login";
+  if (user.role === "admin") return "/admin";
+  if (user.role === "committee") return "/committee";
+  return "/";
+}
+
+function ParticipantRoute({ children }) {
   const user = getUser();
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== "participant") {
+    return <Navigate to={roleHome(user)} replace />;
   }
 
   return children;
@@ -35,10 +47,28 @@ function AdminRoute({ children }) {
   }
 
   if (user.role !== "admin") {
-    return <Navigate to="/" replace />;
+    return <Navigate to={roleHome(user)} replace />;
   }
 
   return children;
+}
+
+function CommitteeRoute({ children }) {
+  const user = getUser();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!['admin', 'committee'].includes(user.role)) {
+    return <Navigate to={roleHome(user)} replace />;
+  }
+
+  return children;
+}
+
+function RoleHomeRedirect() {
+  return <Navigate to={roleHome(getUser())} replace />;
 }
 
 function AppLayout({ children }) {
@@ -67,45 +97,45 @@ export default function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute>
+            <ParticipantRoute>
               <Dashboard />
-            </ProtectedRoute>
+            </ParticipantRoute>
           }
         />
 
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <ParticipantRoute>
               <Profile />
-            </ProtectedRoute>
+            </ParticipantRoute>
           }
         />
 
         <Route
           path="/pantry"
           element={
-            <ProtectedRoute>
+            <ParticipantRoute>
               <Pantry />
-            </ProtectedRoute>
+            </ParticipantRoute>
           }
         />
 
         <Route
           path="/recommendations"
           element={
-            <ProtectedRoute>
+            <ParticipantRoute>
               <Recommendations />
-            </ProtectedRoute>
+            </ParticipantRoute>
           }
         />
 
         <Route
           path="/history"
           element={
-            <ProtectedRoute>
+            <ParticipantRoute>
               <History />
-            </ProtectedRoute>
+            </ParticipantRoute>
           }
         />
 
@@ -118,10 +148,19 @@ export default function App() {
           }
         />
 
-        <Route path="/pre-survey" element={<Navigate to="/" replace />} />
-        <Route path="/post-survey" element={<Navigate to="/" replace />} />
-        <Route path="/feedback" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/committee"
+          element={
+            <CommitteeRoute>
+              <Committee />
+            </CommitteeRoute>
+          }
+        />
+
+        <Route path="/pre-survey" element={<RoleHomeRedirect />} />
+        <Route path="/post-survey" element={<RoleHomeRedirect />} />
+        <Route path="/feedback" element={<RoleHomeRedirect />} />
+        <Route path="*" element={<RoleHomeRedirect />} />
       </Routes>
     </AppLayout>
   );
