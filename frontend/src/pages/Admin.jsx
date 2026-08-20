@@ -423,6 +423,7 @@ export default function Admin() {
     const saved = recommendationLogs.filter((log) => log.action === "saved").length;
     const notUsed = recommendationLogs.filter((log) => log.action === "not_used").length;
     const customMeal = recommendationLogs.filter((log) => log.action === "custom_meal").length;
+    const ingredientUtilization = made + usedElsewhere + customMeal;
 
     const activePantryItems = pantry.filter((item) => item.status !== "deleted");
 
@@ -442,6 +443,7 @@ export default function Admin() {
       saved,
       notUsed,
       customMeal,
+      ingredientUtilization,
       acceptanceRate,
     };
   }, [users, participantUsers, pantry, logs]);
@@ -494,6 +496,13 @@ export default function Admin() {
         task3_recommendation_actions: userLogs.length,
         made_meal: userLogs.filter((log) => log.action === "made").length,
         used_elsewhere: userLogs.filter((log) => log.action === "used_elsewhere").length,
+        custom_meal: userLogs.filter((log) => log.action === "custom_meal").length,
+        ingredient_utilization: userLogs.filter(
+          (log) =>
+            log.action === "made" ||
+            log.action === "used_elsewhere" ||
+            log.action === "custom_meal"
+        ).length,
         saved_for_later: userLogs.filter((log) => log.action === "saved").length,
         did_not_use: userLogs.filter((log) => log.action === "not_used").length,
       };
@@ -652,7 +661,7 @@ export default function Admin() {
         <div className="researchEvidenceGrid">
           <div><h3>Pantry Awareness</h3><strong>Survey + pantry evidence</strong><p>Pre/Post survey responses are analyzed with Task 1 and Smart Pantry pantry activity.</p></div>
           <div><h3>Recommendation Usefulness</h3><strong>TAM + recommendation evidence</strong><p>Task feedback is analyzed with recommendation actions such as made meal, saved, or did not use.</p></div>
-          <div><h3>Ingredient Utilization</h3><strong>Behavioral evidence</strong><p>Made meal and used-elsewhere actions provide direct Smart Pantry utilization evidence.</p></div>
+          <div><h3>Ingredient Utilization</h3><strong>{metrics.ingredientUtilization} utilization actions</strong><p>Made Meal, Used Elsewhere, and Custom Meal actions provide behavioral evidence that participants used pantry ingredients.</p></div>
         </div>
       </section>
 
@@ -821,6 +830,8 @@ export default function Admin() {
                   <th>Recommendation Actions</th>
                   <th>Made Meal</th>
                   <th>Used Elsewhere</th>
+                  <th>Custom Meal</th>
+                  <th>Ingredient Utilization</th>
                   <th>Saved</th>
                   <th>Did Not Use</th>
                 </tr>
@@ -836,6 +847,8 @@ export default function Admin() {
                     <td>{row.task3_recommendation_actions}</td>
                     <td>{row.made_meal}</td>
                     <td>{row.used_elsewhere}</td>
+                    <td>{row.custom_meal}</td>
+                    <td>{row.ingredient_utilization}</td>
                     <td>{row.saved_for_later}</td>
                     <td>{row.did_not_use}</td>
                   </tr>
