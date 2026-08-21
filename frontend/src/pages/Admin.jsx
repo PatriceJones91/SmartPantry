@@ -405,14 +405,6 @@ export default function Admin() {
     return new Set(names).size;
   }, [activity1Rows]);
 
-  const activity1MostRecent = useMemo(() => {
-    if (activity1Rows.length === 0) return null;
-
-    return [...activity1Rows].sort(
-      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
-    )[0];
-  }, [activity1Rows]);
-
   const metrics = useMemo(() => {
     const recommendationLogs = logs.filter((log) => log.action !== "general_feedback");
 
@@ -470,9 +462,7 @@ export default function Admin() {
   }, [activity1Rows, participantFilter, participantUsers]);
 
   const recentLogs = useMemo(() => {
-    return [...filteredLogs]
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(0, 8);
+    return [...filteredLogs].slice(0, 8);
   }, [filteredLogs]);
 
   const participantEvidence = useMemo(() => {
@@ -534,7 +524,6 @@ export default function Admin() {
       score: log.smart_score,
       used_ingredients: formatUsedIngredients(log.used_ingredients),
       feedback: log.feedback,
-      created_at: formatDate(log.created_at),
     }));
 
     downloadCsv("smart_pantry_recommendation_logs.csv", rows);
@@ -555,7 +544,6 @@ export default function Admin() {
       category: item.category,
       expiration_date: item.expiration_date,
       notes: item.notes,
-      saved_at: formatDate(item.created_at),
     }));
 
     downloadCsv("pantry_note_tracker.csv", rows);
@@ -698,10 +686,6 @@ export default function Admin() {
             <strong>{activity1Rows.length}</strong>
             <span>Manual items entered</span>
           </div>
-          <div>
-            <strong>{activity1MostRecent ? formatDate(activity1MostRecent.created_at) : "N/A"}</strong>
-            <span>Most recent manual save</span>
-          </div>
         </div>
 
         <p className="adminMutedNote">Task 1 feedback and TAM responses remain in Google Forms and will be imported for final analysis.</p>
@@ -727,7 +711,6 @@ export default function Admin() {
                     <th>Category</th>
                     <th>Expiration</th>
                     <th>Notes</th>
-                    <th>Saved</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -740,7 +723,6 @@ export default function Admin() {
                       <td>{item.category || "N/A"}</td>
                       <td>{item.expiration_date || "N/A"}</td>
                       <td>{item.notes || "N/A"}</td>
-                      <td>{formatDate(item.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -877,7 +859,7 @@ export default function Admin() {
                     {actionLabel(log.action)}
                   </span>
                   <h3>{log.recipe_name}</h3>
-                  <p>{getUserName(userMap, log.user_id)} • {formatDate(log.created_at)}</p>
+                  <p>{getUserName(userMap, log.user_id)}</p>
                 </div>
 
                 <div>
@@ -939,7 +921,6 @@ export default function Admin() {
                 <tr>
                   <th>Username</th>
                   <th>Role</th>
-                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
@@ -947,7 +928,6 @@ export default function Admin() {
                   <tr key={user.id}>
                     <td>{user.username}</td>
                     <td>{user.role}</td>
-                    <td>{formatDate(user.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1034,7 +1014,6 @@ export default function Admin() {
                   <th>Score</th>
                   <th>Used Ingredients</th>
                   <th>Feedback</th>
-                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
@@ -1050,7 +1029,6 @@ export default function Admin() {
                     <td>{log.smart_score ?? "N/A"}</td>
                     <td>{formatUsedIngredients(log.used_ingredients)}</td>
                     <td>{log.feedback || "N/A"}</td>
-                    <td>{formatDate(log.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -26,22 +26,22 @@ def summary():
 
 @router.get("/users")
 def users():
-    return rows(table("sp2_users").select("id, username, role, household_size, created_at").execute())
+    return rows(table("sp2_users").select("id, username, role, household_size").execute())
 
 
 @router.get("/surveys")
 def surveys():
-    return rows(table("sp2_surveys").select("*").order("created_at", desc=True).execute())
+    return rows(table("sp2_surveys").select("*").execute())
 
 
 @router.get("/pantry")
 def pantry():
-    return rows(table("sp2_pantry_items").select("*").order("created_at", desc=True).execute())
+    return rows(table("sp2_pantry_items").select("*").order("expiration_date").execute())
 
 
 @router.get("/recommendation-logs")
 def recommendation_logs():
-    return rows(table("sp2_recommendation_actions").select("*").order("created_at", desc=True).execute())
+    return rows(table("sp2_recommendation_actions").select("*").execute())
 
 
 @router.get("/recommendation-sessions")
