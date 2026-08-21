@@ -6,7 +6,13 @@ router = APIRouter()
 
 @router.get("/{user_id}")
 def get_pantry(user_id: str):
-    response = table("sp2_pantry_items").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    response = (
+        table("sp2_pantry_items")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("expiration_date")
+        .execute()
+    )
     return rows(response)
 
 @router.post("")
