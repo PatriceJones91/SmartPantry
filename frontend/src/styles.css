@@ -10571,6 +10571,25 @@ body,
 .committeeHero h1 { margin:4px 0 8px; font-size:clamp(2rem,4vw,3.2rem); }
 .committeeHero p { max-width:850px; margin:0; }
 .committeeReadOnly { white-space:nowrap; font-weight:800; letter-spacing:.08em; padding:10px 14px; border-radius:999px; background:#eef7f2; border:1px solid #bfdfcd; }
+.committeeRefreshPanel { min-width:210px; display:flex; flex-direction:column; align-items:stretch; gap:10px; }
+.committeeRefreshPanel button { white-space:nowrap; }
+.committeeRefreshPanel small { color:#526273; font-weight:700; text-align:center; }
+.committeeStudyStatus { padding:9px 12px; border-radius:999px; font-size:.82rem; font-weight:900; letter-spacing:.04em; text-align:center; }
+.committeeStudyStatus.isInProgress { color:#92400e; background:#fff7ed; border:1px solid #fed7aa; }
+.committeeStudyStatus.isProcessing { color:#1e40af; background:#eff6ff; border:1px solid #bfdbfe; }
+.committeeStudyStatus.isComplete { color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; }
+.committeePrivacyNotice { display:flex; align-items:flex-start; gap:12px; margin:0 0 16px; padding:14px 16px; border-radius:14px; color:#1e3a5f; background:#eff6ff; border:1px solid #bfdbfe; }
+.committeePrivacyNotice strong { flex:0 0 auto; }
+.committeePrivacyNotice span { color:#40556f; }
+.adminCommitteeStatusCard { border-left:5px solid #2563eb; }
+.adminCommitteeDashboardLink { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:10px 16px; border-radius:12px; color:#fff; background:#2563eb; font-weight:800; text-decoration:none; }
+.adminCommitteeDashboardLink:hover { background:#1d4ed8; }
+.adminStudyStatusCurrent { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:4px 0 16px; padding:14px 16px; border-radius:14px; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; }
+.adminStudyStatusCurrent strong { color:#0f172a; }
+.adminStudyStatusButtons { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.adminStudyStatusButtons button { min-height:48px; background:#f8fafc; color:#334155; border:1px solid #cbd5e1; }
+.adminStudyStatusButtons button.isActive { color:#fff; background:#2563eb; border-color:#2563eb; box-shadow:0 8px 20px rgba(37,99,235,.2); }
+.adminStudyStatusButtons button:disabled { opacity:.65; cursor:wait; }
 .committeeSection { padding:24px; }
 .committeeMetricGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
 .committeeMetricGrid article { min-height:112px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; padding:18px; border-radius:18px; background:#f8fafc; border:1px solid #e2e8f0; }
@@ -10582,4 +10601,4 @@ body,
 .committeeOutcomeGrid strong { display:block; margin-bottom:8px; }
 .committeeOutcomeGrid p { margin:0; color:#566475; }
 .committeeStatusNote { border-left:5px solid #15803d; }
-@media (max-width:900px) { .committeeOutcomeGrid { grid-template-columns:1fr; } .committeeHero { align-items:flex-start; flex-direction:column; } }
+@media (max-width:900px) { .committeeOutcomeGrid { grid-template-columns:1fr; } .committeeHero { align-items:flex-start; flex-direction:column; } .committeeRefreshPanel { width:100%; } .committeePrivacyNotice { flex-direction:column; } .adminStudyStatusButtons { grid-template-columns:1fr; } .adminStudyStatusCurrent { align-items:flex-start; flex-direction:column; } }

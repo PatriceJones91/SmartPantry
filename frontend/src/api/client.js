@@ -10,10 +10,10 @@ async function request(path, options = {}) {
   let response;
   try {
     response = await fetch(`${API_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(fetchOptions.headers || {}),
-    },
+      headers: {
+        "Content-Type": "application/json",
+        ...(fetchOptions.headers || {}),
+      },
       ...fetchOptions,
       signal: fetchOptions.signal || controller.signal,
     });
@@ -29,7 +29,11 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const detail = typeof data.detail === "string" ? data.detail : "Something went wrong.";
+    const detail =
+      typeof data.detail === "string"
+        ? data.detail
+        : "Something went wrong.";
+
     throw new Error(detail);
   }
 
@@ -79,12 +83,15 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  getSurveyStatus: (userId) => request(`/surveys/status/${userId}`),
+  getSurveyStatus: (userId) =>
+    request(`/surveys/status/${userId}`),
 
   generateRecommendations: (userId, options = {}) =>
     request("/recommendations/generate", {
       method: "POST",
-      timeoutMs: Number(import.meta.env.VITE_RECOMMENDATION_TIMEOUT_MS || 90000),
+      timeoutMs: Number(
+        import.meta.env.VITE_RECOMMENDATION_TIMEOUT_MS || 90000
+      ),
       body: JSON.stringify({
         user_id: userId,
         limit: options.limit ?? 15,
@@ -96,7 +103,8 @@ export const api = {
       }),
     }),
 
-  getRecommendationContract: () => request("/recommendations/contract"),
+  getRecommendationContract: () =>
+    request("/recommendations/contract"),
 
   saveRecommendationAction: (payload) =>
     request("/recommendations/action", {
@@ -106,10 +114,12 @@ export const api = {
 
   getRecommendationHistory: (userId) =>
     request(`/recommendations/history/${userId}`),
+
   getRecommendationGrocerySuggestions: (userId) =>
     request(`/recommendations/grocery-suggestions/${userId}`),
 
-  getProfile: (userId) => request(`/profile/${userId}`),
+  getProfile: (userId) =>
+    request(`/profile/${userId}`),
 
   updateProfile: (userId, payload) =>
     request(`/profile/${userId}`, {
@@ -123,9 +133,44 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
-  adminSummary: () => request("/admin/summary"),
-  adminUsers: () => request("/admin/users"),
-  adminSurveys: () => request("/admin/surveys"),
-  adminPantry: () => request("/admin/pantry"),
-  adminLogs: () => request("/admin/recommendation-logs"),
+  adminSummary: () =>
+    request("/admin/summary", {
+      cache: "no-store",
+    }),
+
+  adminUsers: () =>
+    request("/admin/users", {
+      cache: "no-store",
+    }),
+
+  adminSurveys: () =>
+    request("/admin/surveys", {
+      cache: "no-store",
+    }),
+
+  adminPantry: () =>
+    request("/admin/pantry", {
+      cache: "no-store",
+    }),
+
+  adminLogs: () =>
+    request("/admin/recommendation-logs", {
+      cache: "no-store",
+    }),
+
+  adminStudyStatus: () =>
+    request("/admin/study-status", {
+      cache: "no-store",
+    }),
+
+  updateAdminStudyStatus: (status) =>
+    request("/admin/study-status", {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  committeeEvidence: () =>
+    request("/admin/committee-evidence", {
+      cache: "no-store",
+    }),
 };

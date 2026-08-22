@@ -41,6 +41,12 @@ function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+const STUDY_STATUS_OPTIONS = [
+  { value: "in_progress", label: "Study In Progress" },
+  { value: "processing", label: "Results Being Processed" },
+  { value: "completed", label: "Study Completed" },
+];
+
 function safeJson(value) {
   if (!value) return null;
   if (typeof value === "object") return value;
@@ -325,6 +331,14 @@ export default function Admin() {
   const [activity1Rows, setActivity1Rows] = useState([]);
   const [activity1Loading, setActivity1Loading] = useState(false);
   const [activity1Error, setActivity1Error] = useState("");
+  const [studyStatus, setStudyStatus] = useState({
+    status: "in_progress",
+    label: "Study In Progress",
+    storageReady: true,
+  });
+  const [studyStatusSaving, setStudyStatusSaving] = useState(false);
+  const [studyStatusMessage, setStudyStatusMessage] = useState("");
+  const [studyStatusError, setStudyStatusError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTable, setActiveTable] = useState("users");
@@ -352,18 +366,24 @@ export default function Admin() {
     setError("");
 
     try {
-      const [summaryData, usersData, pantryData, logsData] =
+      const [summaryData, usersData, pantryData, logsData, studyStatusData] =
         await Promise.all([
           api.adminSummary(),
           api.adminUsers(),
           api.adminPantry(),
           api.adminLogs(),
+          api.adminStudyStatus(),
         ]);
 
       setSummary(summaryData || {});
       setUsers(safeArray(usersData));
       setPantry(safeArray(pantryData));
       setLogs(safeArray(logsData));
+      setStudyStatus(studyStatusData || {
+        status: "in_progress",
+        label: "Study In Progress",
+        storageReady: false,
+      });
     } catch (err) {
       setError(err.message || "Could not load admin data.");
     } finally {
@@ -375,6 +395,24 @@ export default function Admin() {
     loadAdminData();
     loadActivity1Rows();
   }, []);
+
+  async function updateCommitteeStudyStatus(nextStatus) {
+    setStudyStatusSaving(true);
+    setStudyStatusMessage("");
+    setStudyStatusError("");
+
+    try {
+      const updated = await api.updateAdminStudyStatus(nextStatus);
+      setStudyStatus(updated);
+      setStudyStatusMessage(
+        `${updated.label} is now displayed on the Committee Dashboard.`
+      );
+    } catch (err) {
+      setStudyStatusError(err.message || "Could not update the committee study status.");
+    } finally {
+      setStudyStatusSaving(false);
+    }
+  }
 
   const userMap = useMemo(() => {
     const map = {};
@@ -598,6 +636,42 @@ export default function Admin() {
             <a href="#raw-evidence">Raw Evidence</a>
           </div>
         </div>
+      </section>
+
+      <section className="card adminSectionCard adminCommitteeStatusCard">
+        <div className="adminSectionHeader">
+          <div>
+            <h2>Committee Dashboard Status</h2>
+            <p>Choose the study stage shown to committee members. The saved status appears on their dashboard after it refreshes.</p>
+          </div>
+          <a className="adminCommitteeDashboardLink" href="/committee">Open Committee Dashboard</a>
+        </div>
+
+        <div className="adminStudyStatusCurrent">
+          <span>Currently displayed</span>
+          <strong>{studyStatus.label || "Study In Progress"}</strong>
+        </div>
+
+        <div className="adminStudyStatusButtons" aria-label="Committee dashboard study status">
+          {STUDY_STATUS_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={studyStatus.status === option.value ? "isActive" : ""}
+              aria-pressed={studyStatus.status === option.value}
+              disabled={studyStatusSaving}
+              onClick={() => updateCommitteeStudyStatus(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {!studyStatus.storageReady && (
+          <p className="error">Run the Phase 21 study-status SQL file in Supabase before changing this setting.</p>
+        )}
+        {studyStatusMessage && <p className="success">{studyStatusMessage}</p>}
+        {studyStatusError && <p className="error">{studyStatusError}</p>}
       </section>
 
       {loading && <section className="card">Loading admin dashboard...</section>}
