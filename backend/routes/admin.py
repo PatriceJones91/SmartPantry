@@ -37,6 +37,7 @@ def _read_study_status():
 
     saved = saved_rows[0] if saved_rows else {}
     status = saved.get("status") or "in_progress"
+
     if status not in STUDY_STATUS_LABELS:
         status = "in_progress"
 
@@ -60,7 +61,10 @@ def update_study_status(payload: StudyStatusUpdate):
     if status not in STUDY_STATUS_LABELS:
         raise HTTPException(
             status_code=400,
-            detail="Choose Study In Progress, Results Being Processed, or Study Completed.",
+            detail=(
+                "Choose Study In Progress, Results Being Processed, "
+                "or Study Completed."
+            ),
         )
 
     updated_at = datetime.now(timezone.utc).isoformat()
@@ -78,8 +82,8 @@ def update_study_status(payload: StudyStatusUpdate):
         raise HTTPException(
             status_code=500,
             detail=(
-                "Could not save the study status. Run the study-status database "
-                "migration in Supabase, then try again."
+                "Could not save the study status. Run the study-status "
+                "database migration in Supabase, then try again."
             ),
         ) from exc
 
@@ -93,15 +97,56 @@ def update_study_status(payload: StudyStatusUpdate):
 
 @router.get("/summary")
 def summary():
-    users = rows(table("sp2_users").select("*").execute())
-    pantry = rows(table("sp2_pantry_items").select("*").execute())
-    surveys = rows(table("sp2_surveys").select("*").execute())
-    actions = rows(table("sp2_recommendation_actions").select("*").execute())
-    sessions = rows(table("sp2_recommendation_sessions").select("id").execute())
-    made = [log for log in actions if log.get("action") == "made"]
-    saved = [log for log in actions if log.get("action") == "saved"]
+    users = rows(
+        table("sp2_users")
+        .select("*")
+        .execute()
+    )
+
+    pantry = rows(
+        table("sp2_pantry_items")
+        .select("*")
+        .execute()
+    )
+
+    surveys = rows(
+        table("sp2_surveys")
+        .select("*")
+        .execute()
+    )
+
+    actions = rows(
+        table("sp2_recommendation_actions")
+        .select("*")
+        .execute()
+    )
+
+    sessions = rows(
+        table("sp2_recommendation_sessions")
+        .select("id")
+        .execute()
+    )
+
+    made = [
+        log
+        for log in actions
+        if log.get("action") == "made"
+    ]
+
+    saved = [
+        log
+        for log in actions
+        if log.get("action") == "saved"
+    ]
+
     return {
-        "participants": len([u for u in users if u.get("role") == "participant"]),
+        "participants": len(
+            [
+                user
+                for user in users
+                if user.get("role") == "participant"
+            ]
+        ),
         "pantry_items": len(pantry),
         "survey_responses": len(surveys),
         "recommendation_sessions": len(sessions),
@@ -116,7 +161,7 @@ def users():
     return rows(
         table("sp2_users")
         .select("id, username, role, household_size")
-        .order("created_at")
+        .order("username")
         .order("id")
         .execute()
     )
@@ -127,45 +172,69 @@ def _participant_key(value):
 
 
 def _normalized_action(value):
-    return "custom_meal" if value == "used_elsewhere" else value
+    if value == "used_elsewhere":
+        return "custom_meal"
+
+    return value
 
 
 @router.get("/committee-evidence")
 def committee_evidence():
-    """Return participant-level evidence without exposing participant identities."""
+    """
+    Return participant-level research evidence without exposing participant
+    usernames or account identifiers in the response.
+    """
 
     participant_users = [
         user
         for user in rows(
             table("sp2_users")
-            .select("id, username, role, household_size, created_at")
-            .order("created_at")
+            .select("id, username, role, household_size")
+            .order("username")
             .order("id")
             .execute()
         )
         if user.get("role") == "participant"
     ]
-    pantry_items = rows(table("sp2_pantry_items").select("user_id, status").execute())
-    recommendation_logs = rows(
-        table("sp2_recommendation_actions").select("user_id, action").execute()
+
+    pantry_items = rows(
+        table("sp2_pantry_items")
+        .select("user_id, status")
+        .execute()
     )
-    task1_rows = rows(get_supabase().rpc("activity1_admin_rows", {}).execute())
+
+    recommendation_logs = rows(
+        table("sp2_recommendation_actions")
+        .select("user_id, action")
+        .execute()
+    )
+
+    task1_rows = rows(
+        get_supabase()
+        .rpc("activity1_admin_rows", {})
+        .execute()
+    )
 
     evidence = []
 
     for index, user in enumerate(participant_users, start=1):
         user_id = user.get("id")
         username_key = _participant_key(user.get("username"))
+
         user_pantry = [
             item
             for item in pantry_items
-            if item.get("user_id") == user_id and item.get("status") != "deleted"
+            if item.get("user_id") == user_id
+            and item.get("status") != "deleted"
         ]
+
         user_logs = [
             log
             for log in recommendation_logs
-            if log.get("user_id") == user_id and log.get("action") != "general_feedback"
+            if log.get("user_id") == user_id
+            and log.get("action") != "general_feedback"
         ]
+
         user_task1_rows = [
             row
             for row in task1_rows
@@ -175,7 +244,11 @@ def committee_evidence():
                 _participant_key(row.get("participant_id")),
             }
         ]
-        actions = [_normalized_action(log.get("action")) for log in user_logs]
+
+        actions = [
+            _normalized_action(log.get("action"))
+            for log in user_logs
+        ]
 
         made = actions.count("made")
         custom = actions.count("custom_meal")
@@ -199,26 +272,46 @@ def committee_evidence():
     return {
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "participants": evidence,
-        "privacy": "Participant usernames and account identifiers are not included.",
+        "privacy": (
+            "Participant usernames and account identifiers are not included."
+        ),
         "studyStatus": _read_study_status(),
     }
 
 
 @router.get("/surveys")
 def surveys():
-    return rows(table("sp2_surveys").select("*").execute())
+    return rows(
+        table("sp2_surveys")
+        .select("*")
+        .execute()
+    )
 
 
 @router.get("/pantry")
 def pantry():
-    return rows(table("sp2_pantry_items").select("*").order("expiration_date").execute())
+    return rows(
+        table("sp2_pantry_items")
+        .select("*")
+        .order("expiration_date")
+        .execute()
+    )
 
 
 @router.get("/recommendation-logs")
 def recommendation_logs():
-    return rows(table("sp2_recommendation_actions").select("*").execute())
+    return rows(
+        table("sp2_recommendation_actions")
+        .select("*")
+        .execute()
+    )
 
 
 @router.get("/recommendation-sessions")
 def recommendation_sessions():
-    return rows(table("sp2_recommendation_sessions").select("*").order("generated_at", desc=True).execute())
+    return rows(
+        table("sp2_recommendation_sessions")
+        .select("*")
+        .order("generated_at", desc=True)
+        .execute()
+    )
